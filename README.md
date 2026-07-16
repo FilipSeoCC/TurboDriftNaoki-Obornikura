@@ -31,7 +31,10 @@ git push -u origin main
 
 ## Sterowanie
 
+**Klawiatura:**
 - Spacja — pompowanie turbiny / handbrake w trybie driftu
 - W / Strzałka w górę — gaz
 - Strzałki w lewo/prawo lub A/D — skręt
 - Drift dookoła ronda (żółte pachołki) daje bonus "RONDO!" i najbardziej wkurza Bukovskiego
+
+**Telefon/tablet:** na urządzeniach dotykowych klawiatura jest automatycznie zastępowana wirtualnymi przyciskami (◀ ▶ w lewym dolnym rogu, GAZ i POMPUJ/DRIFT w prawym) — działa w pionie i poziomie, wspiera notch/safe-area na iOS.
