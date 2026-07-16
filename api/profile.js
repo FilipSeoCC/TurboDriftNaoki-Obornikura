@@ -27,9 +27,19 @@ const MUTATE_SCRIPT = `
 local raw = redis.call('GET', KEYS[1])
 local p
 if raw then p = cjson.decode(raw) else p = {currency=0,mods={engine=0,turbo=0,supercharger=0,injectors=0,fuelpump=0,clutch=0,gearbox=0,tires=0},car='e36_touring'} end
-p.mods = p.mods or {}
 local fields = {'engine','turbo','supercharger','injectors','fuelpump','clutch','gearbox','tires'}
-for _, field in ipairs(fields) do p.mods[field] = tonumber(p.mods[field]) or 0 end
+local function normalizeMods(mods)
+  mods = mods or {}
+  for _, field in ipairs(fields) do mods[field] = tonumber(mods[field]) or 0 end
+  return mods
+end
+p.car = p.car or 'e36_touring'
+p.carMods = p.carMods or {}
+-- Migrate the old global tuning once, assigning it to the currently selected car.
+if next(p.carMods) == nil then p.carMods[p.car] = normalizeMods(p.mods) end
+for carId, mods in pairs(p.carMods) do p.carMods[carId] = normalizeMods(mods) end
+if not p.carMods[p.car] then p.carMods[p.car] = normalizeMods({}) end
+p.mods = p.carMods[p.car]
 p.shareRewarded = p.shareRewarded == true
 local action = ARGV[1]
 if action == 'earn' then
@@ -56,8 +66,12 @@ elseif action == 'buy' then
   p.currency = tonumber(p.currency) - ${PRICE}
   p.mods[category] = tier + 1
 elseif action == 'select_car' then
+  p.carMods[p.car] = p.mods
   p.car = ARGV[2]
+  if not p.carMods[p.car] then p.carMods[p.car] = normalizeMods({}) end
+  p.mods = p.carMods[p.car]
 end
+p.carMods[p.car] = p.mods
 local encoded = cjson.encode(p)
 redis.call('SET', KEYS[1], encoded)
 return encoded`;

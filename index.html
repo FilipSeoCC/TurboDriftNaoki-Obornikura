@@ -434,6 +434,7 @@
         <div class="car-choice" id="carChoice"></div>
         <div class="spec-card" id="specCard"></div>
         <p class="field-label">Tuning — każdy Stage kosztuje 500 🔩</p>
+        <p class="profile-note">💾 Tuning i karta specyfikacji zapisują się automatycznie osobno dla każdego wybranego auta.</p>
         <div class="garage-notice" id="garageNotice"></div>
         <div class="tuning-list" id="tuningList"></div>
         <div class="panel-nav"><button class="btn btn-secondary" id="btnGarageBack" type="button">← Menu główne</button></div>
@@ -565,7 +566,8 @@
   var lastLoopIndex = -1;
   var lastLoopTime = -999;
 
-  var DEFAULT_PROFILE = {currency:0,shareRewarded:false,mods:{engine:0,turbo:0,supercharger:0,injectors:0,fuelpump:0,clutch:0,gearbox:0,tires:0},car:'e36_touring'};
+  var EMPTY_MODS = {engine:0,turbo:0,supercharger:0,injectors:0,fuelpump:0,clutch:0,gearbox:0,tires:0};
+  var DEFAULT_PROFILE = {currency:0,shareRewarded:false,mods:JSON.parse(JSON.stringify(EMPTY_MODS)),carMods:{e36_touring:JSON.parse(JSON.stringify(EMPTY_MODS))},car:'e36_touring'};
   var currentProfile = JSON.parse(JSON.stringify(DEFAULT_PROFILE));
   var loadedProfileName = '';
   var effectiveStats = {maxSpeed:285,accel:245,decel:150,grip:2.6,turn:1,flame:1};
@@ -598,7 +600,11 @@
       if(p.shareRewarded) return Promise.reject({error:'share_reward_claimed'});
       p.currency+=100000;p.shareRewarded=true;
     }
-    else if(action==='select_car' && CAR_MODELS[extra.car]) p.car=extra.car;
+    else if(action==='select_car' && CAR_MODELS[extra.car]){
+      p.carMods[p.car]=normalizeMods(p.mods);p.car=extra.car;
+      if(!p.carMods[p.car])p.carMods[p.car]=normalizeMods(EMPTY_MODS);
+      p.mods=p.carMods[p.car];
+    }
     else if(action==='buy'){
       cat=extra.category;tier=p.mods[cat]||0;nextTier=tier+1;
       if(tier>=3) return Promise.reject({error:'max_tier'});
@@ -613,7 +619,7 @@
         if(p.mods.turbo>0) return Promise.reject({error:'boost_conflict'});
         if(p.mods.clutch<nextTier) return Promise.reject({error:'requires_clutch',required:nextTier});
       }
-      p.currency-=500;p.mods[cat]=nextTier;
+      p.currency-=500;p.mods[cat]=nextTier;p.carMods[p.car]=p.mods;
     }
     currentProfile=normalizeProfile(writeLocalProfile(p));loadedProfileName=profileNick().toLowerCase();showProfile();
     return Promise.resolve(currentProfile);
@@ -627,12 +633,20 @@
     }
     renderGarage();
   }
+  function normalizeMods(mods){
+    mods=mods||{};
+    return {engine:clamp(Number(mods.engine)||0,0,3),turbo:clamp(Number(mods.turbo)||0,0,3),supercharger:clamp(Number(mods.supercharger)||0,0,3),
+      injectors:clamp(Number(mods.injectors)||0,0,3),fuelpump:clamp(Number(mods.fuelpump)||0,0,3),clutch:clamp(Number(mods.clutch)||0,0,3),
+      gearbox:clamp(Number(mods.gearbox)||0,0,3),tires:clamp(Number(mods.tires)||0,0,3)};
+  }
   function normalizeProfile(p){
-    p=p||{}; p.mods=p.mods||{};
-    return {currency:Math.max(0,Number(p.currency)||0),shareRewarded:p.shareRewarded===true,car:CAR_MODELS[p.car]?p.car:'e36_touring',mods:{
-      engine:clamp(Number(p.mods.engine)||0,0,3),turbo:clamp(Number(p.mods.turbo)||0,0,3),supercharger:clamp(Number(p.mods.supercharger)||0,0,3),
-      injectors:clamp(Number(p.mods.injectors)||0,0,3),fuelpump:clamp(Number(p.mods.fuelpump)||0,0,3),clutch:clamp(Number(p.mods.clutch)||0,0,3),
-      gearbox:clamp(Number(p.mods.gearbox)||0,0,3),tires:clamp(Number(p.mods.tires)||0,0,3)}};
+    p=p||{};
+    var car=CAR_MODELS[p.car]?p.car:'e36_touring',carMods={},source=p.carMods||{};
+    Object.keys(CAR_MODELS).forEach(function(id){if(source[id])carMods[id]=normalizeMods(source[id]);});
+    // Migrate old browser/server profiles: their global tuning belongs to the selected car.
+    if(!Object.keys(carMods).length)carMods[car]=normalizeMods(p.mods);
+    if(!carMods[car])carMods[car]=normalizeMods(EMPTY_MODS);
+    return {currency:Math.max(0,Number(p.currency)||0),shareRewarded:p.shareRewarded===true,car:car,carMods:carMods,mods:carMods[car]};
   }
   function loadProfile(force){
     var name=profileNick();
@@ -675,7 +689,7 @@
   }
   function renderGarage(){
     if (!carChoice||!tuningList) return;
-    carChoice.innerHTML=''; Object.keys(CAR_MODELS).forEach(function(id){var m=CAR_MODELS[id],output=modelOutput(m,currentProfile.mods),b=document.createElement('button'),preview=document.createElement('canvas');b.type='button';b.className='car-option'+(currentProfile.car===id?' selected':'');preview.className='car-preview';preview.setAttribute('aria-label','Widok z góry '+m.name);b.appendChild(preview);var label=document.createElement('div');label.className='car-name';label.textContent=m.name;b.appendChild(label);var power=document.createElement('div');power.className='car-power';power.textContent=output.hp+' KM · '+output.nm+' Nm';b.appendChild(power);b.addEventListener('click',function(){garageNotice.textContent='Wybieram auto...';profileAction('select_car',{car:id}).then(function(){garageNotice.textContent='Wybrano: '+m.name;}).catch(function(){garageNotice.textContent='Nie udało się wybrać auta.';});});carChoice.appendChild(b);drawGarageCarIcon(preview,id);});
+    carChoice.innerHTML=''; Object.keys(CAR_MODELS).forEach(function(id){var m=CAR_MODELS[id],carMods=currentProfile.carMods[id]||EMPTY_MODS,output=modelOutput(m,carMods),b=document.createElement('button'),preview=document.createElement('canvas');b.type='button';b.className='car-option'+(currentProfile.car===id?' selected':'');preview.className='car-preview';preview.setAttribute('aria-label','Widok z góry '+m.name);b.appendChild(preview);var label=document.createElement('div');label.className='car-name';label.textContent=m.name;b.appendChild(label);var power=document.createElement('div');power.className='car-power';power.textContent=output.hp+' KM · '+output.nm+' Nm';b.appendChild(power);b.addEventListener('click',function(){garageNotice.textContent='Wybieram auto...';profileAction('select_car',{car:id}).then(function(){garageNotice.textContent='Wybrano: '+m.name+' · wczytano jego tuning';}).catch(function(){garageNotice.textContent='Nie udało się wybrać auta.';});});carChoice.appendChild(b);drawGarageCarIcon(preview,id);});
     var selected=CAR_MODELS[currentProfile.car],mods=currentProfile.mods;
     var selectedOutput=modelOutput(selected,mods);
     var boost=mods.turbo?'Turbo Stage '+mods.turbo:(mods.supercharger?'Kompresor Stage '+mods.supercharger:selected.stockBoost);
