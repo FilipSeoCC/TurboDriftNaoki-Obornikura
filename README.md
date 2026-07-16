@@ -67,6 +67,7 @@ Na ekranie startowym widać też galerię kart Bukovskiego, odblokowywanych za w
 ## Dźwięk
 
 Cały dźwięk jest syntezowany w locie przez Web Audio API — brak plików audio, więc strona zostaje lekka i samowystarczalna:
+- każde pompowanie turbiny uruchamia narastające `sututututu` typu turbo flutter, a pełne doładowanie kończy się głośnym blow-off `pssshh–tutututu`
 - warstwowy dźwięk cross-plane V8 ma głęboki bas, nierówny puls zapłonu i wydechowy bulgot; przy pełnym gazie na maksymalnych obrotach słychać twarde odcięcie
 - pisk opon narasta i cichnie razem z intensywnością driftu
 - uderzenie w pachołek i uderzenie w mur (utrata połowy punktów) mają własne efekty dźwiękowe

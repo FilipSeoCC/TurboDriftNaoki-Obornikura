@@ -650,6 +650,47 @@
     osc.start(t); osc.stop(t+dur+0.03);
   }
 
+  function playTurboFlutter(intensity, fullBoost){
+    if (!audioCtx || muted) return;
+    var t0 = audioCtx.currentTime;
+    var bursts = fullBoost ? 8 : 5;
+    var spacing = fullBoost ? 0.042 : 0.048;
+    var baseFreq = 150 + intensity*2.1;
+    for (var i=0;i<bursts;i++){
+      var t = t0 + i*spacing;
+      var osc = audioCtx.createOscillator();
+      var filter = audioCtx.createBiquadFilter();
+      var g = audioCtx.createGain();
+      osc.type = i%2 ? 'square' : 'sawtooth';
+      osc.frequency.setValueAtTime(baseFreq*(1-i*0.045), t);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(70,baseFreq*0.62), t+spacing*0.8);
+      filter.type = 'bandpass';
+      filter.frequency.value = 650 + intensity*8;
+      filter.Q.value = 2.8;
+      var vol = (fullBoost ? 0.16 : 0.09) * (1-i/(bursts+2));
+      g.gain.setValueAtTime(0.001, t);
+      g.gain.linearRampToValueAtTime(vol, t+0.006);
+      g.gain.exponentialRampToValueAtTime(0.001, t+spacing*0.72);
+      osc.connect(filter); filter.connect(g); g.connect(masterGain);
+      osc.start(t); osc.stop(t+spacing);
+    }
+    if (fullBoost){
+      var length = Math.floor(audioCtx.sampleRate*0.34);
+      var buffer = audioCtx.createBuffer(1,length,audioCtx.sampleRate);
+      var samples = buffer.getChannelData(0);
+      for (var n=0;n<length;n++){ samples[n]=(Math.random()*2-1)*(1-n/length); }
+      var air = audioCtx.createBufferSource();
+      var airFilter = audioCtx.createBiquadFilter();
+      var airGain = audioCtx.createGain();
+      air.buffer = buffer;
+      airFilter.type = 'highpass'; airFilter.frequency.value = 950;
+      airGain.gain.setValueAtTime(0.22,t0);
+      airGain.gain.exponentialRampToValueAtTime(0.001,t0+0.34);
+      air.connect(airFilter); airFilter.connect(airGain); airGain.connect(masterGain);
+      air.start(t0); air.stop(t0+0.35);
+    }
+  }
+
   function playChime(){
     if (!audioCtx || muted) return;
     [660,880,1100].forEach(function(freq, idx){
@@ -770,6 +811,7 @@
     pump.meter = clamp(pump.meter + rand(9,13), 0, 100);
     pump.wobble = 1;
     pump.lastPumpAt = performance.now();
+    playTurboFlutter(pump.meter, pump.meter >= 100);
     if (pump.meter >= 100){ startTransform(); }
   }
 
