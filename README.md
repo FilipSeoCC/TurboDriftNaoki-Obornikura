@@ -70,9 +70,9 @@ Każdy ukończony przejazd daje 1000 śrubek. W garażu można wybrać Touring, 
 
 ## Dźwięk
 
-Większość efektów jest syntezowana w locie przez Web Audio API, a główne brzmienie samochodu korzysta z dołączonego nagrania `assets/shelby-gt500-v8.mp3`:
+Większość efektów jest syntezowana w locie przez Web Audio API, a główne brzmienie samochodu korzysta z dołączonego nagrania `assets/mazda-rx8-dyno.mp3` (dyno Mazdy RX-8):
 - każde pompowanie turbiny uruchamia narastające `sututututu` typu turbo flutter, a pełne doładowanie kończy się głośnym blow-off `pssshh–tutututu`
-- prawdziwe nagranie Shelby GT500 V8 jest zapętlone, przyspiesza wraz z prędkością i współpracuje z syntetycznym odcięciem oraz strzałami wydechu
+- nagranie jest zapętlone, przyspiesza wraz z prędkością i współpracuje z syntetycznym odcięciem oraz strzałami wydechu. **Sprawdź, skąd pochodzi ten plik** — jeśli to czyjeś nagranie dyno bez jasnej licencji na redystrybucję, warto je zastąpić czymś z potwierdzonymi prawami (własne nagranie, royalty-free, albo zostać przy w pełni syntetycznym silniku sprzed tej zmiany)
 - pisk opon narasta i cichnie razem z intensywnością driftu
 - uderzenie w pachołek i uderzenie w mur (utrata połowy punktów) mają własne efekty dźwiękowe
 - kwestie Bukovskiego są też **mówione na głos** przez wbudowaną syntezę mowy przeglądarki (Web Speech API, głos polski), z tempem i wysokością rosnącymi wraz z jego wkurwieniem
