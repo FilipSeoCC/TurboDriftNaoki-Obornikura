@@ -110,6 +110,17 @@
     letter-spacing:0.04em; pointer-events:none;
   }
   #hint b{ color:var(--white); }
+  .game-actions{
+    position:absolute; top:calc(86px + env(safe-area-inset-top)); left:50%; z-index:12;
+    transform:translateX(-50%); display:flex; gap:8px;
+  }
+  .game-actions[hidden]{ display:none; }
+  .game-action-btn{
+    padding:9px 14px; border:1px solid #ffffff38; border-radius:7px; cursor:pointer;
+    background:#11151ddd; color:var(--white); font:800 11px/1 Arial,sans-serif;
+    letter-spacing:.06em; box-shadow:0 3px 10px #0008; backdrop-filter:blur(4px);
+  }
+  .game-action-btn:hover,.game-action-btn:active{ border-color:var(--orange); color:var(--orange-2); }
 
   .screen{
     position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center;
@@ -326,6 +337,11 @@
       </div>
     </div>
 
+    <div class="game-actions" id="gameActions" hidden>
+      <button class="game-action-btn" id="btnPause" type="button">⏸ PAUZA [P]</button>
+      <button class="game-action-btn" id="btnRestart" type="button">↻ RESTART [R]</button>
+    </div>
+
     <div id="quoteBubble"></div>
     <div id="hint"></div>
 
@@ -416,6 +432,9 @@
   var btnRondo = document.getElementById('btnRondo');
   var btnOsemka = document.getElementById('btnOsemka');
   var btnRetry = document.getElementById('btnRetry');
+  var gameActions = document.getElementById('gameActions');
+  var btnPause = document.getElementById('btnPause');
+  var btnRestart = document.getElementById('btnRestart');
   var nickInput = document.getElementById('nickInput');
   var cardGallery = document.getElementById('cardGallery');
   var cardGalleryEnd = document.getElementById('cardGalleryEnd');
@@ -824,6 +843,13 @@
   window.addEventListener('keydown', function(e){
     ensureAudio();
     var k = e.key;
+    if ((k === 'p' || k === 'P' || k === 'Escape') && !e.repeat){
+      togglePause(); e.preventDefault(); return;
+    }
+    if ((k === 'r' || k === 'R') && (STATE === 'drift' || STATE === 'paused') && !e.repeat){
+      restartRun(); e.preventDefault(); return;
+    }
+    if (STATE === 'paused'){ e.preventDefault(); return; }
     if (k === ' ' || k === 'Spacebar'){
       if (!keys[' ']){ onSpaceDown(); }
       keys[' '] = true;
@@ -853,6 +879,28 @@
     screenTitle.hidden = false;
     renderCardGallery();
   });
+  btnPause.addEventListener('click', function(){ ensureAudio(); togglePause(); });
+  btnRestart.addEventListener('click', function(){ ensureAudio(); restartRun(); });
+
+  function silenceDrivingAudio(){
+    if (!audioCtx) return;
+    if (tireGain) tireGain.gain.setTargetAtTime(0,audioCtx.currentTime,.03);
+    if (engineGain) engineGain.gain.setTargetAtTime(0,audioCtx.currentTime,.03);
+    if (engineSampleGain) engineSampleGain.gain.setTargetAtTime(0,audioCtx.currentTime,.03);
+  }
+
+  function togglePause(){
+    if (STATE === 'drift'){
+      STATE = 'paused'; keys = {}; btnPause.textContent = '▶ WZNÓW [P]'; silenceDrivingAudio();
+    } else if (STATE === 'paused'){
+      STATE = 'drift'; btnPause.textContent = '⏸ PAUZA [P]'; ensureAudio();
+    }
+  }
+
+  function restartRun(){
+    if (STATE !== 'drift' && STATE !== 'paused') return;
+    keys = {}; btnPause.textContent = '⏸ PAUZA [P]'; startDrift();
+  }
 
   // ---------- touch controls ----------
   function bindHold(el, onDown, onUp){
@@ -885,6 +933,7 @@
   // ---------- phase: pump ----------
   function startPump(){
     STATE = 'pump';
+    gameActions.hidden = true;
     pump.meter = 0; pump.wobble = 0; pump.turboSpin = 0;
     particles = [];
     if (window.speechSynthesis) window.speechSynthesis.cancel();
@@ -1080,6 +1129,7 @@
   // ---------- phase: drift ----------
   function startDrift(){
     STATE = 'drift';
+    gameActions.hidden = false;
     drift.time = 40; drift.score = 0; drift.heat = 0; drift.maxHeat = 0; drift.lineStreak = 0; drift.lastLinePopupAt = 0;
     timerPanel.hidden = false;
     leftLabel.textContent = 'Prędkość';
@@ -1574,6 +1624,7 @@
 
   function endGame(){
     STATE = 'end';
+    gameActions.hidden = true;
     if (tireGain && audioCtx) tireGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
     if (engineGain && audioCtx) engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.08);
     if (engineSampleGain && audioCtx) engineSampleGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.08);
@@ -1674,6 +1725,17 @@
       updateParticles(dt); drawParticles();
       if (car){ drawCarE36(car.x, car.y, car.angle, car._driftAmt||0); }
       if (performance.now() > quoteShownUntil){ quoteBubble.classList.remove('show'); }
+    } else if (STATE === 'paused'){
+      drawArena();
+      drawTrack();
+      cones.forEach(drawCone);
+      drawParticles();
+      if (car){ drawCarE36(car.x, car.y, car.angle, car._driftAmt||0); }
+      ctx.fillStyle='#05070ab8'; ctx.fillRect(0,0,W,H);
+      ctx.textAlign='center'; ctx.fillStyle='#f4f2ec'; ctx.font='900 italic 42px Arial Narrow,Arial';
+      ctx.fillText('PAUZA',W/2,H/2-8);
+      ctx.fillStyle='#aeb5c0'; ctx.font='700 15px Arial';
+      ctx.fillText('P / ESC — wznów   •   R — restart',W/2,H/2+25);
     } else if (STATE === 'end'){
       drawArena();
       drawTrack();
