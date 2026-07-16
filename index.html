@@ -254,7 +254,7 @@
   .tc-gas{ right: calc(92px + env(safe-area-inset-right)); bottom: calc(18px + env(safe-area-inset-bottom)); }
   .tc-space{
     right: calc(14px + env(safe-area-inset-right)); bottom: calc(18px + env(safe-area-inset-bottom));
-    width:78px; height:78px; font-size:14px;
+    width:82px; height:82px; font-size:11px;
     background:linear-gradient(180deg,var(--orange-2),var(--orange)); color:#170826; border-color:#5c1780;
   }
 
@@ -306,7 +306,7 @@
       <div class="tc-btn tc-left" id="tcLeft" role="button" aria-label="Skręt w lewo">&#9664;</div>
       <div class="tc-btn tc-right2" id="tcRight" role="button" aria-label="Skręt w prawo">&#9654;</div>
       <div class="tc-btn tc-gas" id="tcGas" role="button" aria-label="Gaz">GAZ</div>
-      <div class="tc-btn tc-space" id="tcSpace" role="button" aria-label="Pompuj / drift">POMPUJ</div>
+      <div class="tc-btn tc-space" id="tcSpace" role="button" aria-label="Pompuj / hydrołapa">POMPUJ</div>
     </div>
 
     <div class="card-modal" id="cardModal" hidden>
@@ -755,7 +755,7 @@
     timerPanel.hidden = true;
     leftLabel.textContent = 'Turbina';
     hint.innerHTML = '<b>Kliknij</b>, żeby napompować turbinę w gaciach kreta';
-    if (tcSpace) tcSpace.textContent = 'POMPUJ';
+    if (tcSpace){ tcSpace.textContent = 'POMPUJ'; tcSpace.setAttribute('aria-label','Pompuj turbinę'); }
     scoreVal.textContent = '0';
     rageMeter.style.width = '0%';
   }
@@ -943,8 +943,8 @@
     drift.time = 40; drift.score = 0; drift.heat = 0; drift.maxHeat = 0;
     timerPanel.hidden = false;
     leftLabel.textContent = 'Prędkość';
-    hint.innerHTML = '<b>W / &uarr;</b> gaz &middot; <b>&larr; &rarr;</b> auto samo driftuje w zakrętach &middot; SPACJA = mocniejszy drift &middot; punkty tylko za bliski przejazd kolo pachołka (x2) &middot; uderzenie w mur odbiera połowę punktów!';
-    if (tcSpace) tcSpace.textContent = 'DRIFT';
+    hint.innerHTML = '<b>W / &uarr;</b> gaz &middot; <b>&larr; &rarr;</b> skręt &middot; <b>SPACJA</b> = HYDROŁAPA (hydrauliczny ręczny) &middot; punkty tylko za bliski przejazd koło pachołka (x2) &middot; ściana odbiera połowę punktów!';
+    if (tcSpace){ tcSpace.textContent = 'HYDROŁAPA'; tcSpace.setAttribute('aria-label','Hydrołapa — hydrauliczny hamulec ręczny'); }
     car = { x: W/2, y: H-80, angle: -Math.PI/2, vx:0, vy:0, speed:0, wheelSpin:0, wallHitAt:-9999 };
     setupTrack();
     laps.forEach(function(lp, idx){
@@ -1177,11 +1177,11 @@
     if (keys['arrowleft'] || keys['a']) steer -= 1;
     if (keys['arrowright'] || keys['d']) steer += 1;
     var throttle = (keys['arrowup'] || keys['w']) ? 1 : 0;
-    var brake = keys[' '] ? 1 : 0;
+    var handbrake = keys[' '] ? 1 : 0;
     car._throttle = throttle;
 
     var maxSpeed = 260;
-    var decel = throttle ? 0 : (brake ? 50 : 150);
+    var decel = throttle ? 0 : (handbrake ? 50 : 150);
     car.speed = clamp(car.speed + (throttle? 220*dt : -decel*dt), 0, maxSpeed);
 
     // Sporty synthesized engine with a hard, pulsing rev limiter at top speed.
@@ -1199,9 +1199,9 @@
     }
     // gripRate is a per-second convergence rate (frame-rate independent), not a per-frame blend —
     // low values let the velocity vector lag well behind the heading for a long, aggressive slide
-    var gripRate = brake ? 1.1 : 2.6;
+    var gripRate = handbrake ? 1.1 : 2.6;
     var blend = 1 - Math.exp(-gripRate*dt);
-    var turnRate = (1.05 + car.speed/260) * (brake ? 1.85 : 1.3);
+    var turnRate = (1.05 + car.speed/260) * (handbrake ? 1.85 : 1.3);
     car.angle += steer * turnRate * dt;
 
     var heading = { x: Math.cos(car.angle), y: Math.sin(car.angle) };

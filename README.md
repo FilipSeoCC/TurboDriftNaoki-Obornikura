@@ -48,9 +48,9 @@ git push -u origin main
 ## Sterowanie
 
 **Klawiatura:**
-- Spacja — pompowanie turbiny / mocniejszy drift w trybie jazdy
+- Spacja — pompowanie turbiny / hydrołapa (hydrauliczny hamulec ręczny) podczas jazdy
 - W / Strzałka w górę — gaz
-- Strzałki w lewo/prawo lub A/D — skręt (auto samo driftuje w zakrętach, spacja to wzmacnia)
+- Strzałki w lewo/prawo lub A/D — skręt; hydrołapa zrywa przyczepność i pogłębia poślizg
 - Samo dryfowanie nie daje już punktów — liczy się tylko przejazd jak najbliżej pachołka (bez uderzenia), z bonusem x2 zależnym od bliskości. Bez przyrostu geometrycznego — bonus jest płaski, nie rośnie z każdym kolejnym pachołkiem
 - Uderzenie w mur (skraj areny) odbiera połowę dotychczas zdobytych punktów — bądź precyzyjny
 - Pełna pętla pokazuje komunikat "PĘTLA!", a przejechanie obu pętli ósemki pod rząd pokazuje "ÓSEMKA!" — te komunikaty nie dodają punktów
@@ -62,7 +62,7 @@ Na ekranie startowym wybierasz tor (**Rondo** — jedna pętla, albo **Ósemka**
 
 Na ekranie startowym widać też galerię kart Bukovskiego, odblokowywanych za wynik: 1500 pkt = "Bukovski Bojowy", 3500 pkt = "Bukovski Legenda" (progi dobrane pod nową, trudniejszą punktację — dobra runda to raczej setki/tysiące punktów niż miliony). Odblokowaną kartę można kliknąć — pokazuje obrazek i krótki żartobliwy "raport" z podziękowaniem za wkurwienie Bukovskiego. (Poproszono kiedyś o karty w bardziej rozebranej wersji Bukovskiego — celowo tego nie zrobiłem, bo to realna, nazwana osoba, i nie tworzę seksualizowanych wizerunków bez jej zgody; obie karty są w pełni ubrane, w tym samym żartobliwym klimacie co reszta gry.)
 
-**Telefon/tablet:** na urządzeniach dotykowych klawiatura jest automatycznie zastępowana wirtualnymi przyciskami (◀ ▶ w lewym dolnym rogu, GAZ i POMPUJ/DRIFT w prawym) — działa w pionie i poziomie, wspiera notch/safe-area na iOS. Dotknięcie ekranu w fazie pompowania też działa, na wypadek gdyby wykrywanie dotyku zawiodło.
+**Telefon/tablet:** na urządzeniach dotykowych klawiatura jest automatycznie zastępowana wirtualnymi przyciskami (◀ ▶ w lewym dolnym rogu, GAZ i POMPUJ/HYDROŁAPA w prawym) — działa w pionie i poziomie, wspiera notch/safe-area na iOS. Dotknięcie ekranu w fazie pompowania też działa, na wypadek gdyby wykrywanie dotyku zawiodło.
 
 ## Dźwięk
 
