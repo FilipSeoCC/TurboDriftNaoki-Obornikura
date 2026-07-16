@@ -852,15 +852,29 @@
   var audioCtx = null, masterGain = null, tireGain = null, tireFilter = null;
   var engineGain = null, engineOscLow = null, engineOscHigh = null, engineOscSub = null, engineFilter = null;
   var engineSample = null, engineSampleGain = null, engineSampleSource = null;
-  var musicSample = null, musicGain = null, musicSource = null;
+  var musicSample = null;
   var muted = false;
   var muteBtn = document.getElementById('muteBtn');
 
+  function ensureMusic(){
+    if(!musicSample){
+      musicSample = new Audio('assets/bmw-upierdalanie-anthem.mp3');
+      musicSample.loop = true;
+      musicSample.preload = 'auto';
+      musicSample.playsInline = true;
+      musicSample.volume = 0.065;
+      musicSample.muted = muted;
+    }
+    if(musicSample.paused) musicSample.play().catch(function(){});
+  }
+
   function ensureAudio(){
+    // Music is independent from the driving WebAudio graph, so changing game
+    // screens, pausing or silencing the engine never stops the soundtrack.
+    ensureMusic();
     if (audioCtx){
       if (audioCtx.state === 'suspended'){ audioCtx.resume(); }
       if (engineSample && engineSample.paused){ engineSample.play().catch(function(){}); }
-      if (musicSample && musicSample.paused){ musicSample.play().catch(function(){}); }
       return;
     }
     try{
@@ -921,17 +935,6 @@
       engineSampleGain.connect(masterGain);
       engineSample.play().catch(function(){});
 
-      // Quiet, looping background anthem supplied by the user.
-      musicSample = new Audio('assets/bmw-upierdalanie-anthem.mp3');
-      musicSample.loop = true;
-      musicSample.preload = 'auto';
-      musicSample.playsInline = true;
-      musicGain = audioCtx.createGain();
-      musicGain.gain.value = 0.065;
-      musicSource = audioCtx.createMediaElementSource(musicSample);
-      musicSource.connect(musicGain);
-      musicGain.connect(masterGain);
-      musicSample.play().catch(function(){});
     }catch(e){ audioCtx = null; }
   }
 
@@ -1035,11 +1038,14 @@
       muted = !muted;
       muteBtn.textContent = muted ? '🔇' : '🔊';
       if (masterGain) masterGain.gain.value = muted ? 0 : 1;
+      if (musicSample) musicSample.muted = muted;
       if (muted && window.speechSynthesis) window.speechSynthesis.cancel();
     });
   }
 
-  window.addEventListener('pointerdown', function(){ ensureAudio(); }, {once:true});
+  window.addEventListener('pointerdown', function(){ ensureAudio(); }, {passive:true});
+  window.addEventListener('pageshow', function(){ ensureMusic(); });
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) ensureMusic(); });
 
   // ---------- input ----------
   window.addEventListener('keydown', function(e){
