@@ -582,6 +582,7 @@
 
   // ---------- audio (synthesized, no external files) ----------
   var audioCtx = null, masterGain = null, tireGain = null, tireFilter = null;
+  var engineGain = null, engineOscLow = null, engineOscHigh = null, engineFilter = null;
   var muted = false;
   var muteBtn = document.getElementById('muteBtn');
 
@@ -607,6 +608,25 @@
       tireGain.gain.value = 0;
       noiseSrc.connect(tireFilter); tireFilter.connect(tireGain); tireGain.connect(masterGain);
       noiseSrc.start(0);
+
+      // Layered straight-six style engine: low saw body + raspy upper harmonic.
+      engineFilter = audioCtx.createBiquadFilter();
+      engineFilter.type = 'lowpass';
+      engineFilter.frequency.value = 1500;
+      engineFilter.Q.value = 1.4;
+      engineGain = audioCtx.createGain();
+      engineGain.gain.value = 0;
+      engineOscLow = audioCtx.createOscillator();
+      engineOscHigh = audioCtx.createOscillator();
+      engineOscLow.type = 'sawtooth';
+      engineOscHigh.type = 'square';
+      engineOscLow.frequency.value = 55;
+      engineOscHigh.frequency.value = 110;
+      engineOscLow.connect(engineFilter);
+      engineOscHigh.connect(engineFilter);
+      engineFilter.connect(engineGain);
+      engineGain.connect(masterGain);
+      engineOscLow.start(0); engineOscHigh.start(0);
     }catch(e){ audioCtx = null; }
   }
 
@@ -1076,9 +1096,9 @@
     ctx.fillStyle = '#23d1b5'; ctx.fillRect(2,9,7,4);
     ctx.fillStyle = '#ff2d6b'; ctx.fillRect(10,-13,6,4);
 
-    // exhaust flame (JDM anti-lag backfire) while drifting hard
-    if (Math.abs(driftAmt) > 0.15){
-      var flameAmt = clamp(Math.abs(driftAmt), 0, 1);
+    // Exhaust flame while holding throttle, with a longer anti-lag burst in drift.
+    if (car._throttle || Math.abs(driftAmt) > 0.15){
+      var flameAmt = Math.max(car._throttle ? 0.72 : 0, clamp(Math.abs(driftAmt), 0, 1));
       ctx.save();
       ctx.translate(30, 0);
       var flen = 10 + flameAmt*24 + Math.sin(car.wheelSpin*3)*4;
@@ -1158,10 +1178,25 @@
     if (keys['arrowright'] || keys['d']) steer += 1;
     var throttle = (keys['arrowup'] || keys['w']) ? 1 : 0;
     var brake = keys[' '] ? 1 : 0;
+    car._throttle = throttle;
 
     var maxSpeed = 260;
     var decel = throttle ? 0 : (brake ? 50 : 150);
     car.speed = clamp(car.speed + (throttle? 220*dt : -decel*dt), 0, maxSpeed);
+
+    // Sporty synthesized engine with a hard, pulsing rev limiter at top speed.
+    if (engineGain && audioCtx){
+      var rpm = clamp(car.speed/maxSpeed, 0, 1);
+      var onLimiter = throttle && rpm > 0.965;
+      var limiterGate = onLimiter ? (Math.floor(performance.now()/48)%2 ? 0.025 : 0.16) : (throttle ? 0.115 : 0.035);
+      engineOscLow.frequency.setTargetAtTime(55 + rpm*165, audioCtx.currentTime, 0.025);
+      engineOscHigh.frequency.setTargetAtTime(110 + rpm*330, audioCtx.currentTime, 0.025);
+      engineFilter.frequency.setTargetAtTime(750 + rpm*1850, audioCtx.currentTime, 0.04);
+      engineGain.gain.setTargetAtTime(limiterGate, audioCtx.currentTime, onLimiter ? 0.006 : 0.035);
+      if (onLimiter && Math.random() < dt*13){
+        playTone(rand(85,120), rand(42,60), 0.055, 0.09, 'sawtooth');
+      }
+    }
     // gripRate is a per-second convergence rate (frame-rate independent), not a per-frame blend —
     // low values let the velocity vector lag well behind the heading for a long, aggressive slide
     var gripRate = brake ? 1.1 : 2.6;
@@ -1227,6 +1262,16 @@
           smoke:false
         });
       }
+    }
+    // Small hot-exhaust particles whenever the throttle is held, denser on the limiter.
+    if (throttle && Math.random() < dt*(car.speed > maxSpeed*0.96 ? 32 : 15)){
+      var eca = heading.x, esa = heading.y;
+      particles.push({
+        x:car.x-eca*31+rand(-3,3), y:car.y-esa*31+rand(-3,3),
+        vx:-eca*rand(70,150)+rand(-16,16), vy:-esa*rand(70,150)+rand(-16,16),
+        life:rand(0.14,0.3), age:0,
+        color:Math.random()<0.35 ? '#fff4c4' : (Math.random()<0.65 ? '#ffb020' : '#ff4818'), smoke:false
+      });
     }
     if (tireGain && audioCtx){
       var tireTarget = isDrifting ? clamp(driftAmt*(car.speed/maxSpeed),0,1)*0.4 : 0;
@@ -1326,6 +1371,7 @@
   function endGame(){
     STATE = 'end';
     if (tireGain && audioCtx) tireGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+    if (engineGain && audioCtx) engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.08);
     var finalScore = Math.floor(drift.score);
     document.getElementById('endScore').textContent = finalScore;
     document.getElementById('endRage').textContent = Math.round(drift.maxHeat)+'%';

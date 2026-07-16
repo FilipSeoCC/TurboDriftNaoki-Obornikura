@@ -9,7 +9,8 @@ const REDIS_TOKEN =
   process.env.KV_REST_API_TOKEN ||
   process.env.UPSTASH_REDIS_REST_TOKEN;
 
-const ZSET_KEY = 'tkd:scores';
+// v2 starts a clean leaderboard after the scoring-system rebalance.
+const ZSET_KEY = 'tkd:scores:v2';
 const MAX_ENTRIES = 200;
 const MAX_NAME_LEN = 16;
 const MAX_SCORE = 200000; // scoring only comes from close cone passes + loop bonuses now, so legitimate runs stay well under this
