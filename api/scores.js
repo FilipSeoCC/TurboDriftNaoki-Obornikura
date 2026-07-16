@@ -9,8 +9,8 @@ const REDIS_TOKEN =
   process.env.KV_REST_API_TOKEN ||
   process.env.UPSTASH_REDIS_REST_TOKEN;
 
-// v2 starts a clean leaderboard after the scoring-system rebalance.
-const ZSET_KEY = 'tkd:scores:v2';
+// v3 starts a clean leaderboard after the requested results reset.
+const ZSET_KEY = 'tkd:scores:v3';
 const MAX_ENTRIES = 200;
 const MAX_NAME_LEN = 16;
 const MAX_SCORE = 200000; // line-drift scoring (including x2 zones) stays safely below this cap

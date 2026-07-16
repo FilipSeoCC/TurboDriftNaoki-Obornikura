@@ -667,7 +667,7 @@
   // shared leaderboard: POST/GET against /api/scores (Vercel function + Upstash Redis).
   // Falls back to a browser-local list when the API isn't reachable (e.g. testing the
   // artifact preview or opening index.html directly, where there is no backend).
-  var LB_KEY = 'tkd_scores_v1';
+  var LB_KEY = 'tkd_scores_v2';
   function loadLocalScores(){
     try{ return JSON.parse(localStorage.getItem(LB_KEY)) || []; }catch(e){ return []; }
   }
