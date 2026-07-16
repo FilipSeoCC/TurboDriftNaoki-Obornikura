@@ -596,6 +596,7 @@
   var DEFAULT_PROFILE = {currency:0,shareRewarded:false,mods:JSON.parse(JSON.stringify(EMPTY_MODS)),carMods:{e36_touring:JSON.parse(JSON.stringify(EMPTY_MODS))},car:'e36_touring'};
   var currentProfile = JSON.parse(JSON.stringify(DEFAULT_PROFILE));
   var loadedProfileName = '';
+  var garageActionToken = 0;
   var effectiveStats = {maxSpeed:285,accel:245,decel:150,grip:2.6,turn:1,flame:1};
   var CAR_MODELS = {
     e36_touring:{name:'Fioletowy Toruring E36',color:'#7a2fd1',speed:1,accel:1,grip:1,turn:1,hp:450,nm:550,stockBoost:'Turbo'},
@@ -687,7 +688,6 @@
       currentProfile=normalizeProfile(p); writeLocalProfile(currentProfile); loadedProfileName=profileNick().toLowerCase(); showProfile(); return currentProfile;
     }).catch(function(err){
       if(err&&err.httpStatus===400) return Promise.reject(err);
-      garageNotice.textContent='Tryb lokalny: profil zapisuje się na tym urządzeniu.';
       return localProfileAction(action,extra||{});
     });
   }
@@ -715,7 +715,7 @@
   }
   function renderGarage(){
     if (!carChoice||!tuningList) return;
-    carChoice.innerHTML=''; Object.keys(CAR_MODELS).forEach(function(id){var m=CAR_MODELS[id],carMods=currentProfile.carMods[id]||EMPTY_MODS,output=modelOutput(m,carMods),b=document.createElement('button'),preview=document.createElement('canvas');b.type='button';b.className='car-option'+(currentProfile.car===id?' selected':'');preview.className='car-preview';preview.setAttribute('aria-label','Widok z góry '+m.name);b.appendChild(preview);var label=document.createElement('div');label.className='car-name';label.textContent=m.name;b.appendChild(label);var power=document.createElement('div');power.className='car-power';power.textContent=output.hp+' KM · '+output.nm+' Nm';b.appendChild(power);b.addEventListener('click',function(){garageNotice.textContent='Wybieram auto...';profileAction('select_car',{car:id}).then(function(){garageNotice.textContent='Wybrano: '+m.name+' · wczytano jego tuning';}).catch(function(){garageNotice.textContent='Nie udało się wybrać auta.';});});carChoice.appendChild(b);drawGarageCarIcon(preview,id);});
+    carChoice.innerHTML=''; Object.keys(CAR_MODELS).forEach(function(id){var m=CAR_MODELS[id],carMods=currentProfile.carMods[id]||EMPTY_MODS,output=modelOutput(m,carMods),b=document.createElement('button'),preview=document.createElement('canvas');b.type='button';b.className='car-option'+(currentProfile.car===id?' selected':'');preview.className='car-preview';preview.setAttribute('aria-label','Widok z góry '+m.name);b.appendChild(preview);var label=document.createElement('div');label.className='car-name';label.textContent=m.name;b.appendChild(label);var power=document.createElement('div');power.className='car-power';power.textContent=output.hp+' KM · '+output.nm+' Nm';b.appendChild(power);b.addEventListener('click',function(){var token=++garageActionToken;garageNotice.textContent='Wybieram auto...';profileAction('select_car',{car:id}).then(function(){if(token===garageActionToken)garageNotice.textContent='Wybrano: '+m.name+' · tuning tego auta jest aktywny';}).catch(function(){if(token===garageActionToken)garageNotice.textContent='Nie udało się wybrać auta.';});});carChoice.appendChild(b);drawGarageCarIcon(preview,id);});
     var selected=CAR_MODELS[currentProfile.car],mods=currentProfile.mods;
     var selectedOutput=modelOutput(selected,mods);
     var boost=mods.turbo?'Turbo Stage '+mods.turbo:(mods.supercharger?'Kompresor Stage '+mods.supercharger:selected.stockBoost);
@@ -724,7 +724,7 @@
       '<div class="spec-item"><div class="spec-label">Moment</div><div class="spec-value">'+selectedOutput.nm+' Nm</div></div>'+
       '<div class="spec-item"><div class="spec-label">Doładowanie</div><div class="spec-value" style="font-size:12px">'+boost+'</div></div>'+
       '<div class="spec-item"><div class="spec-label">Sprzęgło</div><div class="spec-value">Stage '+mods.clutch+'</div></div></div>';
-    tuningList.innerHTML=''; TUNING_ORDER.forEach(function(cat){var tier=mods[cat]||0,row=document.createElement('div');row.className='tuning-row';var req=cat==='turbo'?' · wymaga sprzęgła, wtrysków i pompy':(cat==='supercharger'?' · wymaga sprzęgła':'');row.innerHTML='<div class="tuning-name">'+TUNING_NAMES[cat]+'<small style="display:block;color:var(--grey);font-weight:400">'+req+'</small></div><div class="tuning-tier">Stage '+tier+'/3</div>';var buy=document.createElement('button');buy.className='btn buy-btn';buy.type='button';buy.textContent=tier>=3?'MAX':'KUP 500';buy.disabled=tier>=3||currentProfile.currency<500;buy.addEventListener('click',function(){garageNotice.textContent='';profileAction('buy',{category:cat}).catch(function(err){var messages={requires_clutch:'Najpierw kup sprzęgło Stage '+(err.required||tier+1),requires_injectors:'Najpierw kup wtryski Stage '+(err.required||tier+1),requires_fuelpump:'Najpierw kup pompę paliwa Stage '+(err.required||tier+1),boost_conflict:'Wybierz jedną ścieżkę: turbo albo kompresor.',not_enough_currency:'Za mało śrubek.',max_tier:'Ta część ma już maksymalny Stage.'};garageNotice.textContent=messages[err&&err.error]||'Zakup nie powiódł się.';});});row.appendChild(buy);tuningList.appendChild(row);});
+    tuningList.innerHTML=''; TUNING_ORDER.forEach(function(cat){var tier=mods[cat]||0,row=document.createElement('div');row.className='tuning-row';var req=cat==='turbo'?' · wymaga sprzęgła, wtrysków i pompy':(cat==='supercharger'?' · wymaga sprzęgła':'');row.innerHTML='<div class="tuning-name">'+TUNING_NAMES[cat]+'<small style="display:block;color:var(--grey);font-weight:400">'+req+'</small></div><div class="tuning-tier">Stage '+tier+'/3</div>';var buy=document.createElement('button');buy.className='btn buy-btn';buy.type='button';buy.textContent=tier>=3?'MAX':'KUP 500';buy.disabled=tier>=3||currentProfile.currency<500;buy.addEventListener('click',function(){var token=++garageActionToken;garageNotice.textContent='Kupuję '+TUNING_NAMES[cat]+' dla '+selected.name+'...';profileAction('buy',{category:cat}).then(function(){if(token===garageActionToken)garageNotice.textContent='Kupiono '+TUNING_NAMES[cat]+' · zapisano dla '+selected.name;}).catch(function(err){if(token!==garageActionToken)return;var messages={requires_clutch:'Najpierw kup sprzęgło Stage '+(err.required||tier+1),requires_injectors:'Najpierw kup wtryski Stage '+(err.required||tier+1),requires_fuelpump:'Najpierw kup pompę paliwa Stage '+(err.required||tier+1),boost_conflict:'Wybierz jedną ścieżkę: turbo albo kompresor.',not_enough_currency:'Za mało śrubek.',max_tier:'Ta część ma już maksymalny Stage.'};garageNotice.textContent=messages[err&&err.error]||'Zakup nie powiódł się.';});});row.appendChild(buy);tuningList.appendChild(row);});
   }
 
   // ---------- nickname, leaderboard, unlockable cards (all via localStorage) ----------
@@ -907,7 +907,7 @@
       musicSample.loop = true;
       musicSample.preload = 'auto';
       musicSample.playsInline = true;
-      musicSample.volume = 0.065;
+      musicSample.volume = 1;
       musicSample.muted = muted;
     }
     if(musicSample.paused) musicSample.play().catch(function(){});
