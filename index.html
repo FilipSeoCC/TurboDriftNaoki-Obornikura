@@ -112,7 +112,8 @@
   #hint b{ color:var(--white); }
 
   .screen{
-    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center;
+    padding-bottom:calc(20px + env(safe-area-inset-bottom));
     background-color:#0b0d10;
     background-image:
       linear-gradient(180deg, rgba(11,13,16,0.3), rgba(11,13,16,0.5)),
@@ -163,9 +164,9 @@
   .card-gallery-caption{ font-size:11px; color:var(--grey); margin:0 0 8px; }
   .card-gallery{ display:flex; gap:8px; justify-content:center; margin-top:2px; }
   .buko-card{
-    width:64px; height:86px; border-radius:6px; border:2px solid var(--grey-dim);
-    background:#00000030; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:4px; font-size:9px; color:var(--grey); text-align:center; padding:4px;
+    width:56px; height:56px; border-radius:8px; border:2px solid var(--grey-dim);
+    background:#00000030; display:flex; align-items:center; justify-content:center;
+    color:var(--grey); padding:0;
   }
   .buko-card.unlocked{ border-color:var(--orange); color:var(--white); background:#00000050; }
   .buko-card .card-icon{ font-size:20px; }
@@ -269,8 +270,7 @@
     .card .lead{ font-size:13px; }
     .track-choice{ gap:6px; }
     .btn-track{ font-size:11px; padding:10px 6px; }
-    .buko-card{ width:52px; height:74px; }
-    .screen{ align-items:flex-end; padding-bottom:calc(20px + env(safe-area-inset-bottom)); }
+    .buko-card{ width:48px; height:48px; }
   }
 </style>
 </head>
@@ -565,8 +565,7 @@
       el.className = 'buko-card' + (isUnlocked ? ' unlocked' : '');
       el.title = isUnlocked ? c.desc : ('Zdob\u0105d\u017a ' + c.threshold + ' pkt, \u017ceby odblokowa\u0107.');
       var icon = document.createElement('div'); icon.className = 'card-icon'; icon.textContent = isUnlocked ? c.icon : '?';
-      var label = document.createElement('div'); label.textContent = isUnlocked ? c.title : (c.threshold + ' pkt');
-      el.appendChild(icon); el.appendChild(label);
+      el.appendChild(icon);
       if (isUnlocked){
         el.style.cursor = 'pointer';
         el.addEventListener('click', function(){ openCardModal(c); });
