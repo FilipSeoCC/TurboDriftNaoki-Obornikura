@@ -66,9 +66,9 @@ Na ekranie startowym widać też galerię kart Bukovskiego, odblokowywanych za w
 
 ## Dźwięk
 
-Cały dźwięk jest syntezowany w locie przez Web Audio API — brak plików audio, więc strona zostaje lekka i samowystarczalna:
+Większość efektów jest syntezowana w locie przez Web Audio API, a główne brzmienie samochodu korzysta z dołączonego nagrania `assets/shelby-gt500-v8.mp3`:
 - każde pompowanie turbiny uruchamia narastające `sututututu` typu turbo flutter, a pełne doładowanie kończy się głośnym blow-off `pssshh–tutututu`
-- warstwowy dźwięk cross-plane V8 ma głęboki bas, nierówny puls zapłonu i wydechowy bulgot; przy pełnym gazie na maksymalnych obrotach słychać twarde odcięcie
+- prawdziwe nagranie Shelby GT500 V8 jest zapętlone, przyspiesza wraz z prędkością i współpracuje z syntetycznym odcięciem oraz strzałami wydechu
 - pisk opon narasta i cichnie razem z intensywnością driftu
 - uderzenie w pachołek i uderzenie w mur (utrata połowy punktów) mają własne efekty dźwiękowe
 - kwestie Bukovskiego są też **mówione na głos** przez wbudowaną syntezę mowy przeglądarki (Web Speech API, głos polski), z tempem i wysokością rosnącymi wraz z jego wkurwieniem

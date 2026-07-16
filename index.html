@@ -591,11 +591,16 @@
   // ---------- audio (synthesized, no external files) ----------
   var audioCtx = null, masterGain = null, tireGain = null, tireFilter = null;
   var engineGain = null, engineOscLow = null, engineOscHigh = null, engineOscSub = null, engineFilter = null;
+  var engineSample = null, engineSampleGain = null, engineSampleSource = null;
   var muted = false;
   var muteBtn = document.getElementById('muteBtn');
 
   function ensureAudio(){
-    if (audioCtx){ if (audioCtx.state === 'suspended'){ audioCtx.resume(); } return; }
+    if (audioCtx){
+      if (audioCtx.state === 'suspended'){ audioCtx.resume(); }
+      if (engineSample && engineSample.paused){ engineSample.play().catch(function(){}); }
+      return;
+    }
     try{
       var AC = window.AudioContext || window.webkitAudioContext;
       audioCtx = new AC();
@@ -641,6 +646,18 @@
       engineFilter.connect(engineGain);
       engineGain.connect(masterGain);
       engineOscLow.start(0); engineOscHigh.start(0); engineOscSub.start(0);
+
+      // Real Shelby GT500 V8 recording supplied with the game; synth remains a fallback layer.
+      engineSample = new Audio('assets/shelby-gt500-v8.mp3');
+      engineSample.loop = true;
+      engineSample.preload = 'auto';
+      engineSample.playsInline = true;
+      engineSampleGain = audioCtx.createGain();
+      engineSampleGain.gain.value = 0;
+      engineSampleSource = audioCtx.createMediaElementSource(engineSample);
+      engineSampleSource.connect(engineSampleGain);
+      engineSampleGain.connect(masterGain);
+      engineSample.play().catch(function(){});
     }catch(e){ audioCtx = null; }
   }
 
@@ -1253,7 +1270,14 @@
       engineOscHigh.frequency.setTargetAtTime(84 + rpm*264, audioCtx.currentTime, 0.022);
       engineOscSub.frequency.setTargetAtTime(21 + rpm*66, audioCtx.currentTime, 0.03);
       engineFilter.frequency.setTargetAtTime(620 + rpm*1650, audioCtx.currentTime, 0.035);
-      engineGain.gain.setTargetAtTime(limiterGate, audioCtx.currentTime, onLimiter ? 0.005 : 0.018);
+      var sampleReady = engineSample && engineSample.readyState >= 2;
+      engineGain.gain.setTargetAtTime(sampleReady ? limiterGate*0.16 : limiterGate, audioCtx.currentTime, onLimiter ? 0.005 : 0.018);
+      if (engineSampleGain && engineSample){
+        engineSample.playbackRate = clamp(0.72 + rpm*0.68, 0.72, 1.4);
+        var sampleVol = onLimiter ? (Math.floor(performance.now()/52)%2 ? 0.035 : 0.36) : (throttle ? 0.31 : 0.12);
+        engineSampleGain.gain.setTargetAtTime(sampleVol, audioCtx.currentTime, onLimiter ? 0.006 : 0.04);
+        if (engineSample.paused){ engineSample.play().catch(function(){}); }
+      }
       if (onLimiter && Math.random() < dt*13){
         playTone(rand(62,88), rand(32,44), 0.065, 0.12, 'sawtooth');
       }
@@ -1433,6 +1457,7 @@
     STATE = 'end';
     if (tireGain && audioCtx) tireGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
     if (engineGain && audioCtx) engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.08);
+    if (engineSampleGain && audioCtx) engineSampleGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.08);
     var finalScore = Math.floor(drift.score);
     document.getElementById('endScore').textContent = finalScore;
     document.getElementById('endRage').textContent = Math.round(drift.maxHeat)+'%';
