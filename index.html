@@ -372,6 +372,14 @@
   bindHold(tcGas, function(){ keys['arrowup'] = true; }, function(){ keys['arrowup'] = false; });
   bindHold(tcSpace, function(){ if (!keys[' ']){ onSpaceDown(); } keys[' '] = true; }, function(){ keys[' '] = false; });
 
+  // universal tap/click-to-pump fallback: works even if touch/isTouch detection
+  // doesn't fire on a given mobile browser, since this phase has no other pointer handler
+  stage.addEventListener('pointerdown', function(e){
+    if (STATE === 'pump' && !(e.target.closest && e.target.closest('.tc-btn'))){
+      doPump();
+    }
+  });
+
   // ---------- phase: pump ----------
   function startPump(){
     STATE = 'pump';
@@ -380,7 +388,7 @@
     screenTitle.hidden = true; screenEnd.hidden = true;
     timerPanel.hidden = true;
     leftLabel.textContent = 'Turbina';
-    hint.innerHTML = 'Wciskaj <b>SPACJĘ</b> żeby napompować turbinę w gaciach kreta';
+    hint.innerHTML = '<b>Kliknij</b>, żeby napompować turbinę w gaciach kreta';
     if (tcSpace) tcSpace.textContent = 'POMPUJ';
     scoreVal.textContent = '0';
     rageMeter.style.width = '0%';
