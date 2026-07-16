@@ -544,6 +544,38 @@
   var TUNING_ORDER=['clutch','injectors','fuelpump','engine','turbo','supercharger','gearbox','tires'];
 
   function profileNick(){ return (nickInput.value||'').trim().slice(0,14)||'Anonim'; }
+  function localProfileKey(){ return 'tkd_profile_v2_'+profileNick().toLowerCase(); }
+  function readLocalProfile(){
+    try{ return normalizeProfile(JSON.parse(localStorage.getItem(localProfileKey()))); }
+    catch(e){ return normalizeProfile(DEFAULT_PROFILE); }
+  }
+  function writeLocalProfile(profile){
+    try{ localStorage.setItem(localProfileKey(),JSON.stringify(profile)); }catch(e){}
+    return profile;
+  }
+  function localProfileAction(action,extra){
+    var p=readLocalProfile(),cat,tier,nextTier;
+    if(action==='earn') p.currency+=1000;
+    else if(action==='select_car' && CAR_MODELS[extra.car]) p.car=extra.car;
+    else if(action==='buy'){
+      cat=extra.category;tier=p.mods[cat]||0;nextTier=tier+1;
+      if(tier>=3) return Promise.reject({error:'max_tier'});
+      if(p.currency<500) return Promise.reject({error:'not_enough_currency'});
+      if(cat==='turbo'){
+        if(p.mods.supercharger>0) return Promise.reject({error:'boost_conflict'});
+        if(p.mods.clutch<nextTier) return Promise.reject({error:'requires_clutch',required:nextTier});
+        if(p.mods.injectors<nextTier) return Promise.reject({error:'requires_injectors',required:nextTier});
+        if(p.mods.fuelpump<nextTier) return Promise.reject({error:'requires_fuelpump',required:nextTier});
+      }
+      if(cat==='supercharger'){
+        if(p.mods.turbo>0) return Promise.reject({error:'boost_conflict'});
+        if(p.mods.clutch<nextTier) return Promise.reject({error:'requires_clutch',required:nextTier});
+      }
+      p.currency-=500;p.mods[cat]=nextTier;
+    }
+    currentProfile=normalizeProfile(writeLocalProfile(p));loadedProfileName=profileNick().toLowerCase();showProfile();
+    return Promise.resolve(currentProfile);
+  }
   function showProfile(){
     var text='🔩 '+Math.floor(currentProfile.currency||0)+' śrubek';
     titleBalance.textContent=text; garageBalance.textContent=text;
@@ -561,12 +593,16 @@
     if (!force && loadedProfileName===name.toLowerCase()) return Promise.resolve(currentProfile);
     return fetch('/api/profile?name='+encodeURIComponent(name)).then(function(r){if(!r.ok)throw new Error();return r.json();}).then(function(p){
       currentProfile=normalizeProfile(p); loadedProfileName=name.toLowerCase(); showProfile(); return currentProfile;
-    }).catch(function(){ currentProfile=normalizeProfile(DEFAULT_PROFILE); loadedProfileName=name.toLowerCase(); showProfile(); return currentProfile; });
+    }).catch(function(){ currentProfile=readLocalProfile(); loadedProfileName=name.toLowerCase(); showProfile(); return currentProfile; });
   }
   function profileAction(action,extra){
     var payload={name:profileNick(),action:action}; Object.keys(extra||{}).forEach(function(k){payload[k]=extra[k];});
-    return fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(r){return r.json().then(function(j){if(!r.ok)throw j;return j;});}).then(function(p){
-      currentProfile=normalizeProfile(p); loadedProfileName=profileNick().toLowerCase(); showProfile(); return currentProfile;
+    return fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(r){return r.json().then(function(j){if(!r.ok){j.httpStatus=r.status;throw j;}return j;});}).then(function(p){
+      currentProfile=normalizeProfile(p); writeLocalProfile(currentProfile); loadedProfileName=profileNick().toLowerCase(); showProfile(); return currentProfile;
+    }).catch(function(err){
+      if(err&&err.httpStatus===400) return Promise.reject(err);
+      garageNotice.textContent='Tryb lokalny: profil zapisuje się na tym urządzeniu.';
+      return localProfileAction(action,extra||{});
     });
   }
   function modelOutput(model,mods){
@@ -593,7 +629,7 @@
   }
   function renderGarage(){
     if (!carChoice||!tuningList) return;
-    carChoice.innerHTML=''; Object.keys(CAR_MODELS).forEach(function(id){var m=CAR_MODELS[id],output=modelOutput(m,currentProfile.mods),b=document.createElement('button'),preview=document.createElement('canvas');b.type='button';b.className='car-option'+(currentProfile.car===id?' selected':'');preview.className='car-preview';preview.setAttribute('aria-label','Widok z góry '+m.name);b.appendChild(preview);var label=document.createElement('div');label.className='car-name';label.textContent=m.name;b.appendChild(label);var power=document.createElement('div');power.className='car-power';power.textContent=output.hp+' KM · '+output.nm+' Nm';b.appendChild(power);b.addEventListener('click',function(){profileAction('select_car',{car:id}).catch(function(){});});carChoice.appendChild(b);drawGarageCarIcon(preview,id);});
+    carChoice.innerHTML=''; Object.keys(CAR_MODELS).forEach(function(id){var m=CAR_MODELS[id],output=modelOutput(m,currentProfile.mods),b=document.createElement('button'),preview=document.createElement('canvas');b.type='button';b.className='car-option'+(currentProfile.car===id?' selected':'');preview.className='car-preview';preview.setAttribute('aria-label','Widok z góry '+m.name);b.appendChild(preview);var label=document.createElement('div');label.className='car-name';label.textContent=m.name;b.appendChild(label);var power=document.createElement('div');power.className='car-power';power.textContent=output.hp+' KM · '+output.nm+' Nm';b.appendChild(power);b.addEventListener('click',function(){garageNotice.textContent='Wybieram auto...';profileAction('select_car',{car:id}).then(function(){garageNotice.textContent='Wybrano: '+m.name;}).catch(function(){garageNotice.textContent='Nie udało się wybrać auta.';});});carChoice.appendChild(b);drawGarageCarIcon(preview,id);});
     var selected=CAR_MODELS[currentProfile.car],mods=currentProfile.mods;
     var selectedOutput=modelOutput(selected,mods);
     var boost=mods.turbo?'Turbo Stage '+mods.turbo:(mods.supercharger?'Kompresor Stage '+mods.supercharger:selected.stockBoost);
@@ -975,6 +1011,7 @@
     renderGarage();
     loadProfile(true);
   }
+  window.showTurboGarage=showGarage;
   btnGarage.addEventListener('click', showGarage);
   btnEndGarage.addEventListener('click', showGarage);
   btnEndMenu.addEventListener('click', showMainMenu);
