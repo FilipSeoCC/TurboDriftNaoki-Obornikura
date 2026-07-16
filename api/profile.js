@@ -163,7 +163,8 @@ module.exports = async (req, res) => {
     } else return res.status(400).json(actionError('invalid_action'));
 
     return res.status(200).json(await writeProfile(key, profile));
-  } catch (_) {
-    return res.status(500).json({ error: 'server_error' });
+  } catch (error) {
+    console.error('profile api failed', error);
+    return res.status(500).json({ error: 'server_error', detail: error && error.message ? error.message : 'unknown' });
   }
 };
