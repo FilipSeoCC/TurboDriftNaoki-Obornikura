@@ -5,7 +5,7 @@ const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_R
 const PRICE = 500;
 const ROUND_REWARD = 1000;
 const CATEGORIES = ['engine', 'turbo', 'supercharger', 'injectors', 'fuelpump', 'clutch', 'gearbox', 'tires'];
-const CARS = ['e36_touring', 'e36_bodykit', 'e36_m3'];
+const CARS = ['e36_touring', 'e36_bodykit', 'e36_m3', 'mazda_mx5', 'bmw_e46_checker'];
 
 async function redis(command) {
   const response = await fetch(REDIS_URL, {

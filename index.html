@@ -534,7 +534,9 @@
   var CAR_MODELS = {
     e36_touring:{name:'Fioletowe Touring',color:'#7a2fd1',speed:1,accel:1,grip:1,turn:1,hp:450,nm:550,stockBoost:'Turbo'},
     e36_bodykit:{name:'Czarny Sedan E36',color:'#17191e',speed:1.05,accel:1.02,grip:.94,turn:1.03,hp:370,nm:500,stockBoost:'Wolnossący'},
-    e36_m3:{name:'Srebrne E36 M3',color:'#aeb5c0',speed:1.02,accel:1.09,grip:1.02,turn:.94,hp:320,nm:360,stockBoost:'Wolnossący'}
+    e36_m3:{name:'Srebrne E36 M3',color:'#aeb5c0',speed:1.02,accel:1.09,grip:1.02,turn:.94,hp:320,nm:360,stockBoost:'Wolnossący'},
+    mazda_mx5:{name:'Mazda MX-5',color:'#d52d3f',speed:.94,accel:1.06,grip:1.08,turn:1.12,hp:200,nm:210,stockBoost:'Wolnossący'},
+    bmw_e46_checker:{name:'BMW E46 Szachownica',color:'#101217',speed:1.01,accel:1.01,grip:1.03,turn:.99,hp:230,nm:300,stockBoost:'Wolnossący'}
   };
   var ENGINE_TIERS=[1,1.08,1.16,1.25], TURBO_TIERS=[1,1.04,1.09,1.15];
   var GEARBOX_DECEL=[1,.88,.76,.64], TIRE_GRIP=[1,1.08,1.17,1.27];
@@ -571,20 +573,23 @@
     return {hp:Math.round(model.hp*ENGINE_TIERS[mods.engine]*(1+mods.turbo*.09+mods.supercharger*.075)),nm:Math.round(model.nm*ENGINE_TIERS[mods.engine]*(1+mods.turbo*.10+mods.supercharger*.085))};
   }
   function drawGarageCarIcon(canvas,id){
-    var g=canvas.getContext('2d'),m=CAR_MODELS[id],touring=id==='e36_touring',m3=id==='e36_m3';
+    var g=canvas.getContext('2d'),m=CAR_MODELS[id],touring=id==='e36_touring',m3=id==='e36_m3',mx5=id==='mazda_mx5',e46=id==='bmw_e46_checker';
     canvas.width=148;canvas.height=208;g.scale(2,2);g.clearRect(0,0,74,104);
     g.shadowColor=m.color;g.shadowBlur=13;g.fillStyle='#090a0d';
     g.fillRect(5,20,10,23);g.fillRect(59,20,10,23);g.fillRect(5,66,10,23);g.fillRect(59,66,10,23);
+    if(mx5){g.save();g.translate(6,7);g.scale(.84,.9);}
     g.fillStyle=m.color;g.beginPath();g.moveTo(24,5);g.quadraticCurveTo(37,0,50,5);g.lineTo(60,18);g.lineTo(58,88);g.quadraticCurveTo(37,102,16,88);g.lineTo(14,18);g.closePath();g.fill();
     g.shadowBlur=0;g.strokeStyle=m3?'#f1f3f5':'#7029bd';g.lineWidth=3;g.stroke();
-    g.fillStyle='#151a22';g.beginPath();g.moveTo(22,25);g.lineTo(52,25);g.lineTo(touring?55:50,touring?73:66);g.lineTo(touring?19:24,touring?73:66);g.closePath();g.fill();
+    g.fillStyle=mx5?'#090a0d':'#151a22';g.beginPath();g.moveTo(22,25);g.lineTo(52,25);g.lineTo(touring?55:50,touring?73:66);g.lineTo(touring?19:24,touring?73:66);g.closePath();g.fill();
     g.fillStyle='#3f4a59';g.fillRect(24,29,26,16);g.fillRect(touring?22:27,50,touring?30:20,touring?18:13);
     g.fillStyle='#fff4c4';g.fillRect(18,10,13,5);g.fillRect(43,10,13,5);
     g.fillStyle='#111';g.fillRect(33,8,3,8);g.fillRect(38,8,3,8); // BMW kidneys
     g.fillStyle='#ff2d52';g.fillRect(18,88,13,5);g.fillRect(43,88,13,5);
     if(!touring){g.fillStyle=m3?'#5e6670':'#050608';g.fillRect(11,18,52,4);g.fillRect(12,84,50,3);}
     if(m3){g.fillStyle='#3a65bd';g.fillRect(33,4,3,90);g.fillStyle='#9a2ba8';g.fillRect(37,4,3,90);g.fillStyle='#d22f42';g.fillRect(41,4,3,90);}
+    if(e46){for(var iy=0;iy<4;iy++){for(var ix=0;ix<3;ix++){g.fillStyle=(ix+iy)%2===0?'#f4f2ec':'#111';g.fillRect(24+ix*9,29+iy*9,9,9);}}}
     g.fillStyle=m.color;g.fillRect(10,92,54,5);g.fillStyle='#08090c';g.fillRect(9,97,56,4);
+    if(mx5){g.restore();}
   }
   function renderGarage(){
     if (!carChoice||!tuningList) return;
@@ -966,7 +971,9 @@
   }
   function showGarage(){
     STATE='title'; keys={}; gameActions.hidden=true; cardModal.hidden=true; goodScoreReward.classList.remove('reward-popup');
-    return loadProfile(true).then(function(){screenTitle.hidden=true;screenEnd.hidden=true;screenGarage.hidden=false;screenGarage.scrollTop=0;});
+    screenTitle.hidden=true;screenEnd.hidden=true;screenGarage.hidden=false;screenGarage.scrollTop=0;
+    renderGarage();
+    loadProfile(true);
   }
   btnGarage.addEventListener('click', showGarage);
   btnEndGarage.addEventListener('click', showGarage);
@@ -1405,10 +1412,11 @@
     ctx.rotate(angle);
     ctx.scale(-1,1); // local +x is the direction of travel; mirror so the nose (headlights) faces forward and the wing/wagon end faces the rear
     var modelId=currentProfile.car||'e36_touring';
-    var isTouring=modelId==='e36_touring', isM3=modelId==='e36_m3';
-    var bodyDark=isM3?'#707783':(modelId==='e36_bodykit'?'#090b0f':'#4d1a8c');
-    var bodyMid=isM3?'#aeb5c0':(modelId==='e36_bodykit'?'#1b2028':'#7a2fd1');
-    var bodyLight=isM3?'#e2e5e8':(modelId==='e36_bodykit'?'#343b46':'#b169f2');
+    var isTouring=modelId==='e36_touring', isM3=modelId==='e36_m3', isMx5=modelId==='mazda_mx5', isE46=modelId==='bmw_e46_checker';
+    if(isMx5){ctx.scale(.82,.88);}
+    var bodyDark=isM3?'#707783':(isMx5?'#7d1424':((modelId==='e36_bodykit'||isE46)?'#090b0f':'#4d1a8c'));
+    var bodyMid=isM3?'#aeb5c0':(isMx5?'#d52d3f':((modelId==='e36_bodykit'||isE46)?'#1b2028':'#7a2fd1'));
+    var bodyLight=isM3?'#e2e5e8':(isMx5?'#ff6072':((modelId==='e36_bodykit'||isE46)?'#343b46':'#b169f2'));
 
     // neon underglow (anime JDM)
     var glowPulse = 0.55 + Math.sin(car.wheelSpin*2)*0.15;
@@ -1457,6 +1465,9 @@
     ctx.fillStyle = '#3a2a52';
     ctx.fillRect(-14,-7,10,14); // windshield
     ctx.fillRect(-2,-7,isTouring?16:11,14); // shorter sedan roof / long touring glass
+    if(isE46){
+      for(var ryi=0;ryi<4;ryi++){for(var rxi=0;rxi<7;rxi++){ctx.fillStyle=(rxi+ryi)%2===0?'#f4f2ec':'#111';ctx.fillRect(-14+rxi*4,-8+ryi*4,4,4);}}
+    }
 
     // headlights / tail
     ctx.fillStyle = '#fff6c9';
@@ -1485,14 +1496,16 @@
       ctx.restore();
     }
 
-    // rear GT wing (JDM style)
-    ctx.fillStyle = '#120a1f';
-    ctx.fillRect(24,-17,3,34);
-    ctx.fillRect(34,-17,3,34);
-    ctx.fillStyle = bodyMid;
-    ctx.fillRect(22,-19,16,4);
-    ctx.strokeStyle = '#120a1f'; ctx.lineWidth = 1;
-    ctx.strokeRect(22,-19,16,4);
+    // rear GT wing (JDM style); MX-5 keeps a clean roadster tail
+    if(!isMx5){
+      ctx.fillStyle = '#120a1f';
+      ctx.fillRect(24,-17,3,34);
+      ctx.fillRect(34,-17,3,34);
+      ctx.fillStyle = bodyMid;
+      ctx.fillRect(22,-19,16,4);
+      ctx.strokeStyle = '#120a1f'; ctx.lineWidth = 1;
+      ctx.strokeRect(22,-19,16,4);
+    }
 
     // wheels
     ctx.fillStyle = '#141414';
