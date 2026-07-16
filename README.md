@@ -67,7 +67,7 @@ Na ekranie startowym widać też galerię kart Bukovskiego, odblokowywanych za w
 ## Dźwięk
 
 Cały dźwięk jest syntezowany w locie przez Web Audio API — brak plików audio, więc strona zostaje lekka i samowystarczalna:
-- warstwowy dźwięk sportowego silnika rośnie z prędkością, a przy pełnym gazie na maksymalnych obrotach słychać twarde odcięcie
+- warstwowy dźwięk cross-plane V8 ma głęboki bas, nierówny puls zapłonu i wydechowy bulgot; przy pełnym gazie na maksymalnych obrotach słychać twarde odcięcie
 - pisk opon narasta i cichnie razem z intensywnością driftu
 - uderzenie w pachołek i uderzenie w mur (utrata połowy punktów) mają własne efekty dźwiękowe
 - kwestie Bukovskiego są też **mówione na głos** przez wbudowaną syntezę mowy przeglądarki (Web Speech API, głos polski), z tempem i wysokością rosnącymi wraz z jego wkurwieniem

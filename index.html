@@ -582,7 +582,7 @@
 
   // ---------- audio (synthesized, no external files) ----------
   var audioCtx = null, masterGain = null, tireGain = null, tireFilter = null;
-  var engineGain = null, engineOscLow = null, engineOscHigh = null, engineFilter = null;
+  var engineGain = null, engineOscLow = null, engineOscHigh = null, engineOscSub = null, engineFilter = null;
   var muted = false;
   var muteBtn = document.getElementById('muteBtn');
 
@@ -609,24 +609,30 @@
       noiseSrc.connect(tireFilter); tireFilter.connect(tireGain); tireGain.connect(masterGain);
       noiseSrc.start(0);
 
-      // Layered straight-six style engine: low saw body + raspy upper harmonic.
+      // Cross-plane V8 approximation: deep crank rumble, uneven firing pulse and exhaust rasp.
       engineFilter = audioCtx.createBiquadFilter();
       engineFilter.type = 'lowpass';
-      engineFilter.frequency.value = 1500;
-      engineFilter.Q.value = 1.4;
+      engineFilter.frequency.value = 1250;
+      engineFilter.Q.value = 1.1;
       engineGain = audioCtx.createGain();
       engineGain.gain.value = 0;
       engineOscLow = audioCtx.createOscillator();
       engineOscHigh = audioCtx.createOscillator();
+      engineOscSub = audioCtx.createOscillator();
       engineOscLow.type = 'sawtooth';
       engineOscHigh.type = 'square';
-      engineOscLow.frequency.value = 55;
-      engineOscHigh.frequency.value = 110;
+      engineOscSub.type = 'triangle';
+      engineOscLow.frequency.value = 42;
+      engineOscHigh.frequency.value = 84;
+      engineOscSub.frequency.value = 21;
+      engineOscLow.detune.value = -7;
+      engineOscHigh.detune.value = 5;
       engineOscLow.connect(engineFilter);
       engineOscHigh.connect(engineFilter);
+      engineOscSub.connect(engineFilter);
       engineFilter.connect(engineGain);
       engineGain.connect(masterGain);
-      engineOscLow.start(0); engineOscHigh.start(0);
+      engineOscLow.start(0); engineOscHigh.start(0); engineOscSub.start(0);
     }catch(e){ audioCtx = null; }
   }
 
@@ -1184,17 +1190,22 @@
     var decel = throttle ? 0 : (handbrake ? 50 : 150);
     car.speed = clamp(car.speed + (throttle? 220*dt : -decel*dt), 0, maxSpeed);
 
-    // Sporty synthesized engine with a hard, pulsing rev limiter at top speed.
+    // Cross-plane V8: low firing frequency with deliberately uneven exhaust pulses.
     if (engineGain && audioCtx){
       var rpm = clamp(car.speed/maxSpeed, 0, 1);
       var onLimiter = throttle && rpm > 0.965;
-      var limiterGate = onLimiter ? (Math.floor(performance.now()/48)%2 ? 0.025 : 0.16) : (throttle ? 0.115 : 0.035);
-      engineOscLow.frequency.setTargetAtTime(55 + rpm*165, audioCtx.currentTime, 0.025);
-      engineOscHigh.frequency.setTargetAtTime(110 + rpm*330, audioCtx.currentTime, 0.025);
-      engineFilter.frequency.setTargetAtTime(750 + rpm*1850, audioCtx.currentTime, 0.04);
-      engineGain.gain.setTargetAtTime(limiterGate, audioCtx.currentTime, onLimiter ? 0.006 : 0.035);
+      var firingHz = 7 + rpm*38;
+      var pulsePhase = performance.now()/1000 * firingHz * Math.PI*2;
+      var unevenV8Pulse = 0.72 + Math.sin(pulsePhase)*0.20 + Math.sin(pulsePhase*0.5+1.7)*0.11;
+      var baseGain = (throttle ? 0.14 : 0.048) * unevenV8Pulse;
+      var limiterGate = onLimiter ? (Math.floor(performance.now()/52)%2 ? 0.018 : 0.19) : baseGain;
+      engineOscLow.frequency.setTargetAtTime(42 + rpm*132, audioCtx.currentTime, 0.022);
+      engineOscHigh.frequency.setTargetAtTime(84 + rpm*264, audioCtx.currentTime, 0.022);
+      engineOscSub.frequency.setTargetAtTime(21 + rpm*66, audioCtx.currentTime, 0.03);
+      engineFilter.frequency.setTargetAtTime(620 + rpm*1650, audioCtx.currentTime, 0.035);
+      engineGain.gain.setTargetAtTime(limiterGate, audioCtx.currentTime, onLimiter ? 0.005 : 0.018);
       if (onLimiter && Math.random() < dt*13){
-        playTone(rand(85,120), rand(42,60), 0.055, 0.09, 'sawtooth');
+        playTone(rand(62,88), rand(32,44), 0.065, 0.12, 'sawtooth');
       }
     }
     // gripRate is a per-second convergence rate (frame-rate independent), not a per-frame blend —
