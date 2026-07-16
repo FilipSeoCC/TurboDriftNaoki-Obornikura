@@ -39,4 +39,13 @@ git push -u origin main
 - Każde uderzenie w pachołek podwaja twój mnożnik combo (x2, x4, x8...) — działa na wszystkie kolejne punkty; uderzenie w mur zeruje combo
 - Pełna pętla wokół jednej z dwóch rond daje bonus "PĘTLA!", a przejechanie obu rond pod rząd (w ciągu 7s) daje dodatkowy bonus "ÓSEMKA!"
 
-**Telefon/tablet:** na urządzeniach dotykowych klawiatura jest automatycznie zastępowana wirtualnymi przyciskami (◀ ▶ w lewym dolnym rogu, GAZ i POMPUJ/DRIFT w prawym) — działa w pionie i poziomie, wspiera notch/safe-area na iOS.
+**Telefon/tablet:** na urządzeniach dotykowych klawiatura jest automatycznie zastępowana wirtualnymi przyciskami (◀ ▶ w lewym dolnym rogu, GAZ i POMPUJ/DRIFT w prawym) — działa w pionie i poziomie, wspiera notch/safe-area na iOS. Dotknięcie ekranu w fazie pompowania też działa, na wypadek gdyby wykrywanie dotyku zawiodło.
+
+## Dźwięk
+
+Cały dźwięk jest syntezowany w locie przez Web Audio API — brak plików audio, więc strona zostaje lekka i samowystarczalna:
+- pisk opon narasta i cichnie razem z intensywnością driftu
+- uderzenie w pachołek i utrata combo mają własne efekty dźwiękowe
+- kwestie Bukovskiego są też **mówione na głos** przez wbudowaną syntezę mowy przeglądarki (Web Speech API, głos polski), z tempem i wysokością rosnącymi wraz z jego wkurwieniem
+
+Przycisk 🔊/🔇 w prawym górnym rogu HUD wycisza wszystko naraz (w tym mowę).
