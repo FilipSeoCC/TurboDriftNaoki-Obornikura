@@ -35,7 +35,8 @@ git push -u origin main
 - Spacja — pompowanie turbiny / mocniejszy drift w trybie jazdy
 - W / Strzałka w górę — gaz
 - Strzałki w lewo/prawo lub A/D — skręt (auto samo driftuje w zakrętach, spacja to wzmacnia)
-- Punkty (x2) za przejazd jak najbliżej pachołków w trakcie driftu — im bliżej, tym więcej
+- Dryfowanie daje 10 pkt/s (x2 mnożnik bazowy), a przejazd jak najbliżej pachołka bez uderzenia daje dodatkowy bonus zależny od bliskości
+- Każde uderzenie w pachołek podwaja twój mnożnik combo (x2, x4, x8...) — działa na wszystkie kolejne punkty; uderzenie w mur zeruje combo
 - Pełna pętla wokół jednej z dwóch rond daje bonus "PĘTLA!", a przejechanie obu rond pod rząd (w ciągu 7s) daje dodatkowy bonus "ÓSEMKA!"
 
 **Telefon/tablet:** na urządzeniach dotykowych klawiatura jest automatycznie zastępowana wirtualnymi przyciskami (◀ ▶ w lewym dolnym rogu, GAZ i POMPUJ/DRIFT w prawym) — działa w pionie i poziomie, wspiera notch/safe-area na iOS.
