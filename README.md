@@ -62,6 +62,10 @@ Na ekranie startowym wybierasz tor (**Rondo** — jedna pętla, albo **Ósemka**
 
 Na ekranie startowym widać też galerię kart Bukovskiego, odblokowywanych za wynik: 1500 pkt = "Bukovski Bojowy", 3500 pkt = "Bukovski Legenda" (progi dobrane pod nową, trudniejszą punktację — dobra runda to raczej setki/tysiące punktów niż miliony). Odblokowaną kartę można kliknąć — pokazuje obrazek i krótki żartobliwy "raport" z podziękowaniem za wkurwienie Bukovskiego. (Poproszono kiedyś o karty w bardziej rozebranej wersji Bukovskiego — celowo tego nie zrobiłem, bo to realna, nazwana osoba, i nie tworzę seksualizowanych wizerunków bez jej zgody; obie karty są w pełni ubrane, w tym samym żartobliwym klimacie co reszta gry.)
 
+## Garaż i profile
+
+Każdy ukończony przejazd daje 1000 śrubek. W garażu można wybrać Touring, czarnego sedana z body kitem albo srebrne M3 oraz kupować po trzy poziomy silnika, turbo, skrzyni i opon (500 śrubek za poziom). Profil jest przechowywany w Redisie pod znormalizowanym nickiem przez `api/profile.js`. Nick nie jest bezpiecznym kontem i nie ma hasła — osoby używające tego samego nicku współdzielą portfel, auto i tuning.
+
 **Telefon/tablet:** na urządzeniach dotykowych klawiatura jest automatycznie zastępowana wirtualnymi przyciskami (◀ ▶ w lewym dolnym rogu, GAZ i POMPUJ/HYDROŁAPA w prawym) — działa w pionie i poziomie, wspiera notch/safe-area na iOS. Dotknięcie ekranu w fazie pompowania też działa, na wypadek gdyby wykrywanie dotyku zawiodło.
 
 ## Dźwięk

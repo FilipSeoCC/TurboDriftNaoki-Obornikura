@@ -141,6 +141,22 @@
     padding-bottom:calc(28px + env(safe-area-inset-bottom));
   }
   #screenEnd .card{ flex:0 0 auto; margin:0 auto; }
+  #screenGarage{ align-items:flex-start; overflow-y:auto; touch-action:pan-y; padding:18px 10px 30px; }
+  #screenGarage .card{ width:min(94vw,620px); max-width:620px; margin:0 auto; padding:24px; }
+  .balance{ color:#ffd65a; font-weight:900; font-size:16px; margin:8px 0 14px; }
+  .garage-btn{ margin-bottom:16px; }
+  .car-choice{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0 18px; }
+  .car-option{ border:2px solid #ffffff25; border-radius:9px; background:#090b10aa; padding:10px 6px; color:var(--white); cursor:pointer; }
+  .car-option.selected{ border-color:var(--orange); box-shadow:0 0 18px #b043ff70; }
+  .car-swatch{ width:34px; height:68px; margin:0 auto 7px; border-radius:9px 9px 5px 5px; border:3px solid #141414; box-shadow:inset 0 0 0 5px #ffffff18; }
+  .car-name{ font-size:11px; font-weight:900; }
+  .tuning-list{ display:grid; gap:8px; margin:10px 0 18px; }
+  .tuning-row{ display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:10px; padding:10px; background:#090b10aa; border-radius:8px; text-align:left; }
+  .tuning-name{ color:var(--white); font-weight:900; font-size:13px; }
+  .tuning-tier{ color:var(--teal); font:700 12px Consolas,monospace; }
+  .buy-btn{ padding:8px 12px; font-size:11px; }
+  .buy-btn:disabled{ filter:grayscale(1); opacity:.45; cursor:not-allowed; box-shadow:none; }
+  .profile-note{ color:var(--grey); font-size:10px; line-height:1.4; }
   .card{
     background:linear-gradient(180deg, var(--panel), #14171c);
     border:2px solid var(--orange); border-radius:10px;
@@ -377,6 +393,8 @@
         <p class="lead">Bukovski ma w gaciach małego kreta.<br>Napompuj mu turbinę, zamień kreta w bestię i trzymaj drift na świecącej czerwonej linii —<br>im szybciej, bardziej bokiem i dokładniej po linii jedziesz, tym więcej zdobywasz punktów.</p>
         <p class="field-label">Wprowadź nick</p>
         <input type="text" id="nickInput" class="nick-input" maxlength="14" placeholder="Twój nick">
+        <div class="balance" id="titleBalance">🔩 0 śrubek</div>
+        <button class="btn garage-btn" id="btnGarage" type="button">Garaż</button>
         <p class="field-label">Wybierz tor</p>
         <div class="track-choice">
           <button class="btn btn-track" id="btnRondo" data-mode="rondo">Rondo</button>
@@ -384,6 +402,20 @@
         </div>
         <p class="card-gallery-caption">Wykręć jak najlepszy wynik, żeby odblokować karty Bukovskiego!</p>
         <div class="card-gallery" id="cardGallery"></div>
+      </div>
+    </div>
+
+    <div class="screen" id="screenGarage" hidden>
+      <div class="card">
+        <p class="sub">Warsztat Turbo Kreta</p>
+        <h1>Neonowy <span>Garaż</span></h1>
+        <div class="balance" id="garageBalance">🔩 0 śrubek</div>
+        <p class="field-label">Wybierz auto</p>
+        <div class="car-choice" id="carChoice"></div>
+        <p class="field-label">Tuning — każdy Stage kosztuje 500 🔩</p>
+        <div class="tuning-list" id="tuningList"></div>
+        <button class="btn" id="btnGarageBack" type="button">Wróć do menu</button>
+        <p class="profile-note">Nick nie ma hasła. Gracze używający tego samego nicku współdzielą samochód, tuning i śrubki.</p>
       </div>
     </div>
 
@@ -396,6 +428,7 @@
           <div class="result-item"><div class="num mono" id="endRage">0%</div><div class="lbl">Wkurw Bukovskiego</div></div>
         </div>
         <p class="verdict" id="endVerdict">—</p>
+        <div class="balance" id="endBalance">🔩 +1000 za przejazd</div>
         <div class="unlock-banner" id="unlockBanner" hidden></div>
         <p class="card-gallery-caption">Karty Bukovskiego:</p>
         <div class="card-gallery" id="cardGalleryEnd"></div>
@@ -438,8 +471,16 @@
 
   var screenTitle = document.getElementById('screenTitle');
   var screenEnd = document.getElementById('screenEnd');
+  var screenGarage = document.getElementById('screenGarage');
   var btnRondo = document.getElementById('btnRondo');
   var btnOsemka = document.getElementById('btnOsemka');
+  var btnGarage = document.getElementById('btnGarage');
+  var btnGarageBack = document.getElementById('btnGarageBack');
+  var titleBalance = document.getElementById('titleBalance');
+  var garageBalance = document.getElementById('garageBalance');
+  var endBalance = document.getElementById('endBalance');
+  var carChoice = document.getElementById('carChoice');
+  var tuningList = document.getElementById('tuningList');
   var btnRetry = document.getElementById('btnRetry');
   var gameActions = document.getElementById('gameActions');
   var btnPause = document.getElementById('btnPause');
@@ -496,6 +537,50 @@
   var laps = [];
   var lastLoopIndex = -1;
   var lastLoopTime = -999;
+
+  var DEFAULT_PROFILE = {currency:0,mods:{engine:0,turbo:0,gearbox:0,tires:0},car:'e36_touring'};
+  var currentProfile = JSON.parse(JSON.stringify(DEFAULT_PROFILE));
+  var loadedProfileName = '';
+  var effectiveStats = {maxSpeed:285,accel:245,decel:150,grip:2.6,turn:1,flame:1};
+  var CAR_MODELS = {
+    e36_touring:{name:'Fioletowe Touring',color:'#7a2fd1',speed:1,accel:1,grip:1,turn:1},
+    e36_bodykit:{name:'Czarny Body Kit',color:'#17191e',speed:1.05,accel:1.02,grip:.94,turn:1.03},
+    e36_m3:{name:'Srebrne E36 M3',color:'#aeb5c0',speed:1.02,accel:1.09,grip:1.02,turn:.94}
+  };
+  var ENGINE_TIERS=[1,1.08,1.16,1.25], TURBO_TIERS=[1,1.04,1.09,1.15];
+  var GEARBOX_DECEL=[1,.88,.76,.64], TIRE_GRIP=[1,1.08,1.17,1.27];
+  var TUNING_NAMES={engine:'Silnik',turbo:'Turbo',gearbox:'Skrzynia',tires:'Opony'};
+
+  function profileNick(){ return (nickInput.value||'').trim().slice(0,14)||'Anonim'; }
+  function showProfile(){
+    var text='🔩 '+Math.floor(currentProfile.currency||0)+' śrubek';
+    titleBalance.textContent=text; garageBalance.textContent=text;
+    renderGarage();
+  }
+  function normalizeProfile(p){
+    p=p||{}; p.mods=p.mods||{};
+    return {currency:Math.max(0,Number(p.currency)||0),car:CAR_MODELS[p.car]?p.car:'e36_touring',mods:{
+      engine:clamp(Number(p.mods.engine)||0,0,3),turbo:clamp(Number(p.mods.turbo)||0,0,3),
+      gearbox:clamp(Number(p.mods.gearbox)||0,0,3),tires:clamp(Number(p.mods.tires)||0,0,3)}};
+  }
+  function loadProfile(force){
+    var name=profileNick();
+    if (!force && loadedProfileName===name.toLowerCase()) return Promise.resolve(currentProfile);
+    return fetch('/api/profile?name='+encodeURIComponent(name)).then(function(r){if(!r.ok)throw new Error();return r.json();}).then(function(p){
+      currentProfile=normalizeProfile(p); loadedProfileName=name.toLowerCase(); showProfile(); return currentProfile;
+    }).catch(function(){ currentProfile=normalizeProfile(DEFAULT_PROFILE); loadedProfileName=name.toLowerCase(); showProfile(); return currentProfile; });
+  }
+  function profileAction(action,extra){
+    var payload={name:profileNick(),action:action}; Object.keys(extra||{}).forEach(function(k){payload[k]=extra[k];});
+    return fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(r){return r.json().then(function(j){if(!r.ok)throw j;return j;});}).then(function(p){
+      currentProfile=normalizeProfile(p); loadedProfileName=profileNick().toLowerCase(); showProfile(); return currentProfile;
+    });
+  }
+  function renderGarage(){
+    if (!carChoice||!tuningList) return;
+    carChoice.innerHTML=''; Object.keys(CAR_MODELS).forEach(function(id){var m=CAR_MODELS[id],b=document.createElement('button');b.type='button';b.className='car-option'+(currentProfile.car===id?' selected':'');b.innerHTML='<div class="car-swatch" style="background:'+m.color+'"></div><div class="car-name">'+m.name+'</div>';b.addEventListener('click',function(){profileAction('select_car',{car:id}).catch(function(){});});carChoice.appendChild(b);});
+    tuningList.innerHTML=''; Object.keys(TUNING_NAMES).forEach(function(cat){var tier=currentProfile.mods[cat]||0,row=document.createElement('div');row.className='tuning-row';row.innerHTML='<div class="tuning-name">'+TUNING_NAMES[cat]+'</div><div class="tuning-tier">Stage '+tier+'/3</div>';var buy=document.createElement('button');buy.className='btn buy-btn';buy.type='button';buy.textContent=tier>=3?'MAX':'KUP 500';buy.disabled=tier>=3||currentProfile.currency<500;buy.addEventListener('click',function(){profileAction('buy',{category:cat}).catch(function(){});});row.appendChild(buy);tuningList.appendChild(row);});
+  }
 
   // ---------- nickname, leaderboard, unlockable cards (all via localStorage) ----------
   nickInput.value = (function(){ try{ return localStorage.getItem('tkd_nick') || ''; }catch(e){ return ''; } })();
@@ -880,8 +965,12 @@
     else if (STATE === 'end'){ startPump(); }
   }
 
-  btnRondo.addEventListener('click', function(){ ensureAudio(); trackMode = 'rondo'; startPump(); });
-  btnOsemka.addEventListener('click', function(){ ensureAudio(); trackMode = 'osemka'; startPump(); });
+  nickInput.addEventListener('blur', function(){ loadProfile(false); });
+  btnRondo.addEventListener('click', function(){ ensureAudio(); trackMode = 'rondo'; loadProfile(false).then(startPump); });
+  btnOsemka.addEventListener('click', function(){ ensureAudio(); trackMode = 'osemka'; loadProfile(false).then(startPump); });
+  btnGarage.addEventListener('click', function(){ loadProfile(false).then(function(){ screenTitle.hidden=true; screenGarage.hidden=false; screenGarage.scrollTop=0; }); });
+  btnGarageBack.addEventListener('click', function(){ screenGarage.hidden=true; screenTitle.hidden=false; });
+  loadProfile(false);
   btnRetry.addEventListener('click', function(){
     ensureAudio();
     STATE = 'title';
@@ -1140,6 +1229,16 @@
   function startDrift(){
     STATE = 'drift';
     gameActions.hidden = false;
+    var model=CAR_MODELS[currentProfile.car]||CAR_MODELS.e36_touring,mods=currentProfile.mods||DEFAULT_PROFILE.mods;
+    effectiveStats={
+      maxSpeed:285*model.speed*ENGINE_TIERS[mods.engine],
+      accel:245*model.accel*ENGINE_TIERS[mods.engine],
+      decel:150*GEARBOX_DECEL[mods.gearbox],
+      grip:2.6*model.grip*TIRE_GRIP[mods.tires],
+      turn:model.turn,
+      flame:1+(mods.turbo||0)*.24,
+      turbo:mods.turbo||0
+    };
     drift.time = 40; drift.score = 0; drift.heat = 0; drift.maxHeat = 0; drift.lineStreak = 0; drift.lastLinePopupAt = 0; drift.bonusZone = -1; drift.bonusUntil = 0;
     timerPanel.hidden = false;
     leftLabel.textContent = 'Prędkość';
@@ -1306,6 +1405,11 @@
     ctx.translate(x,y);
     ctx.rotate(angle);
     ctx.scale(-1,1); // local +x is the direction of travel; mirror so the nose (headlights) faces forward and the wing/wagon end faces the rear
+    var modelId=currentProfile.car||'e36_touring';
+    var isTouring=modelId==='e36_touring', isM3=modelId==='e36_m3';
+    var bodyDark=isM3?'#707783':(modelId==='e36_bodykit'?'#090b0f':'#4d1a8c');
+    var bodyMid=isM3?'#aeb5c0':(modelId==='e36_bodykit'?'#1b2028':'#7a2fd1');
+    var bodyLight=isM3?'#e2e5e8':(modelId==='e36_bodykit'?'#343b46':'#b169f2');
 
     // neon underglow (anime JDM)
     var glowPulse = 0.55 + Math.sin(car.wheelSpin*2)*0.15;
@@ -1319,7 +1423,7 @@
     ctx.beginPath(); ctx.ellipse(2,4,30,15,0,0,Math.PI*2); ctx.fill();
 
     // fender flares (wide JDM body kit)
-    ctx.fillStyle = '#5b1f99';
+    ctx.fillStyle = isM3?'#626a75':(modelId==='e36_bodykit'?'#050608':'#5b1f99');
     ctx.beginPath(); ctx.ellipse(-16,-17,7,5,0,0,Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.ellipse(-16,17,7,5,0,0,Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.ellipse(14,-17,7,5,0,0,Math.PI*2); ctx.fill();
@@ -1327,27 +1431,33 @@
 
     // body (touring wagon, purple JDM)
     var bodyGrad = ctx.createLinearGradient(0,-16,0,16);
-    bodyGrad.addColorStop(0, '#b169f2');
-    bodyGrad.addColorStop(0.5, '#7a2fd1');
-    bodyGrad.addColorStop(1, '#4d1a8c');
+    bodyGrad.addColorStop(0, bodyLight);
+    bodyGrad.addColorStop(0.5, bodyMid);
+    bodyGrad.addColorStop(1, bodyDark);
     ctx.fillStyle = bodyGrad;
     roundedPath(-30,-14,58,28,6); ctx.fill();
-    ctx.fillRect(18,-13,10,26);
+    ctx.fillRect(isTouring?18:20,-13,isTouring?10:8,26);
     ctx.lineWidth = 2; ctx.strokeStyle = '#120a1f';
     roundedPath(-30,-14,58,28,6); ctx.stroke();
+    if(!isTouring){
+      ctx.fillStyle=isM3?'#4c535e':'#050608';
+      ctx.fillRect(-23,-17,43,3); ctx.fillRect(-23,14,43,3); // sedan side skirts
+      ctx.fillRect(-34,-15,4,30); // front splitter
+    }
 
     // violet-white racing stripe
-    ctx.fillStyle = '#e9d9ff';
-    ctx.fillRect(-30,-4,58,8);
+    ctx.fillStyle = isM3?'#39404a':(modelId==='e36_bodykit'?'#b043ff':'#e9d9ff');
+    ctx.fillRect(-30,-4,58,isM3?5:8);
+    if(isM3){ctx.fillStyle='#d22f42';ctx.fillRect(-30,2,58,2);}
 
     // roof / glass (long touring roofline)
     ctx.fillStyle = '#1c1229';
-    roundedPath(-16,-9,34,18,4); ctx.fill();
+    roundedPath(-16,-9,isTouring?34:29,18,4); ctx.fill();
     ctx.strokeStyle = '#120a1f'; ctx.lineWidth = 1.5;
-    roundedPath(-16,-9,34,18,4); ctx.stroke();
+    roundedPath(-16,-9,isTouring?34:29,18,4); ctx.stroke();
     ctx.fillStyle = '#3a2a52';
     ctx.fillRect(-14,-7,10,14); // windshield
-    ctx.fillRect(-2,-7,16,14); // rear glass toward wagon
+    ctx.fillRect(-2,-7,isTouring?16:11,14); // shorter sedan roof / long touring glass
 
     // headlights / tail
     ctx.fillStyle = '#fff6c9';
@@ -1361,8 +1471,8 @@
     ctx.fillStyle = '#ff2d6b'; ctx.fillRect(10,-13,6,4);
 
     // Exhaust flame while holding throttle, with a longer anti-lag burst in drift.
-    if (car._throttle || Math.abs(driftAmt) > 0.15){
-      var flameAmt = Math.max(car._throttle ? 0.72 : 0, clamp(Math.abs(driftAmt), 0, 1));
+    if (car._throttle || Math.abs(driftAmt) > Math.max(.06,.15-(effectiveStats.turbo||0)*.025)){
+      var flameAmt = Math.max(car._throttle ? 0.72 : 0, clamp(Math.abs(driftAmt), 0, 1))*(effectiveStats.flame||1);
       ctx.save();
       ctx.translate(30, 0);
       var flen = 10 + flameAmt*24 + Math.sin(car.wheelSpin*3)*4;
@@ -1380,7 +1490,7 @@
     ctx.fillStyle = '#120a1f';
     ctx.fillRect(24,-17,3,34);
     ctx.fillRect(34,-17,3,34);
-    ctx.fillStyle = '#7a2fd1';
+    ctx.fillStyle = bodyMid;
     ctx.fillRect(22,-19,16,4);
     ctx.strokeStyle = '#120a1f'; ctx.lineWidth = 1;
     ctx.strokeRect(22,-19,16,4);
@@ -1444,9 +1554,10 @@
     var handbrake = keys[' '] ? 1 : 0;
     car._throttle = throttle;
 
-    var maxSpeed = 285;
-    var decel = throttle ? 0 : (handbrake ? 50 : 150);
-    car.speed = clamp(car.speed + (throttle? 245*dt : -decel*dt), 0, maxSpeed);
+    var maxSpeed = effectiveStats.maxSpeed;
+    var decel = throttle ? 0 : (handbrake ? 50 : effectiveStats.decel);
+    var lowSpeedBoost = 1+(effectiveStats.turbo*.055)*(1-car.speed/maxSpeed);
+    car.speed = clamp(car.speed + (throttle? effectiveStats.accel*lowSpeedBoost*dt : -decel*dt), 0, maxSpeed);
 
     // Cross-plane V8: low firing frequency with deliberately uneven exhaust pulses.
     if (engineGain && audioCtx){
@@ -1475,9 +1586,9 @@
     }
     // gripRate is a per-second convergence rate (frame-rate independent), not a per-frame blend —
     // low values let the velocity vector lag well behind the heading for a long, aggressive slide
-    var gripRate = handbrake ? 1.1 : 2.6;
+    var gripRate = handbrake ? 1.1 : effectiveStats.grip;
     var blend = 1 - Math.exp(-gripRate*dt);
-    var turnRate = (1.05 + car.speed/maxSpeed) * (handbrake ? 1.85 : 1.3);
+    var turnRate = (1.05 + car.speed/maxSpeed) * (handbrake ? 1.85 : 1.3) * effectiveStats.turn;
     car.angle += steer * turnRate * dt;
 
     var heading = { x: Math.cos(car.angle), y: Math.sin(car.angle) };
@@ -1679,6 +1790,8 @@
 
     var nick = (nickInput.value || '').trim().slice(0,14) || 'Anonim';
     submitScore(nick, finalScore, trackMode, { name: nick, score: finalScore, mode: trackMode });
+    endBalance.textContent='🔩 Naliczanie +1000 śrubek...';
+    profileAction('earn').then(function(){endBalance.textContent='🔩 +1000 śrubek za ukończony przejazd · saldo: '+Math.floor(currentProfile.currency);}).catch(function(){endBalance.textContent='Nie udało się naliczyć śrubek — spróbuj ponownie później.';});
 
     var newCards = checkCardUnlocks(finalScore);
     renderCardGallery();

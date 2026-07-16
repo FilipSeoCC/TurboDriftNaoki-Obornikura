@@ -13,7 +13,7 @@ const REDIS_TOKEN =
 const ZSET_KEY = 'tkd:scores:v2';
 const MAX_ENTRIES = 200;
 const MAX_NAME_LEN = 16;
-const MAX_SCORE = 200000; // scoring only comes from close cone passes + loop bonuses now, so legitimate runs stay well under this
+const MAX_SCORE = 200000; // line-drift scoring (including x2 zones) stays safely below this cap
 
 async function redis(commands) {
   const isPipeline = Array.isArray(commands[0]);
