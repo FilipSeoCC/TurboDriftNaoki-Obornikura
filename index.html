@@ -885,7 +885,7 @@
     var verdict, title;
     if (drift.maxHeat < 30){ title='Bukovski Spokojny'; verdict='Bukovski dopalił szluga na ganku i nawet nie zauważył.'; }
     else if (drift.maxHeat < 70){ title='Solidnie Wkurzony'; verdict='Bukovski biega po podwórku i szuka kreta z widłami w ręku.'; }
-    else { title='Totalna Furia'; verdict='BUKOVSKI WRZESZCZY NA CAŁĄ ULICĘ: GÓWNIARZU ZASRANY ZAJEBANY!!! ALE URWAŁ — misja zaliczona.'; }
+    else { title='Totalna Furia'; verdict='BUKOVSKI WRZESZCZY NA CAŁĄ ULICĘ: GÓWNIARZU ZASRANY ZAJEBANY!!! Misja zaliczona.'; }
     document.getElementById('endTitle').innerHTML = title.split(' ').map(function(w,i){return i===title.split(' ').length-1? '<span>'+w+'</span>':w;}).join(' ');
     document.getElementById('endVerdict').textContent = verdict;
     screenEnd.hidden = false;
