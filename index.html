@@ -805,10 +805,11 @@
   function rand(a,b){ return a + Math.random()*(b-a); }
   function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
 
-  // ---------- audio (synthesized, no external files) ----------
+  // ---------- audio ----------
   var audioCtx = null, masterGain = null, tireGain = null, tireFilter = null;
   var engineGain = null, engineOscLow = null, engineOscHigh = null, engineOscSub = null, engineFilter = null;
   var engineSample = null, engineSampleGain = null, engineSampleSource = null;
+  var musicSample = null, musicGain = null, musicSource = null;
   var muted = false;
   var muteBtn = document.getElementById('muteBtn');
 
@@ -816,6 +817,7 @@
     if (audioCtx){
       if (audioCtx.state === 'suspended'){ audioCtx.resume(); }
       if (engineSample && engineSample.paused){ engineSample.play().catch(function(){}); }
+      if (musicSample && musicSample.paused){ musicSample.play().catch(function(){}); }
       return;
     }
     try{
@@ -875,6 +877,18 @@
       engineSampleSource.connect(engineSampleGain);
       engineSampleGain.connect(masterGain);
       engineSample.play().catch(function(){});
+
+      // Quiet, looping background anthem supplied by the user.
+      musicSample = new Audio('assets/bmw-upierdalanie-anthem.mp3');
+      musicSample.loop = true;
+      musicSample.preload = 'auto';
+      musicSample.playsInline = true;
+      musicGain = audioCtx.createGain();
+      musicGain.gain.value = 0.065;
+      musicSource = audioCtx.createMediaElementSource(musicSample);
+      musicSource.connect(musicGain);
+      musicGain.connect(masterGain);
+      musicSample.play().catch(function(){});
     }catch(e){ audioCtx = null; }
   }
 
@@ -981,6 +995,8 @@
       if (muted && window.speechSynthesis) window.speechSynthesis.cancel();
     });
   }
+
+  window.addEventListener('pointerdown', function(){ ensureAudio(); }, {once:true});
 
   // ---------- input ----------
   window.addEventListener('keydown', function(e){
