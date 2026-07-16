@@ -1,6 +1,6 @@
 # Turbo Kret Drift
 
-Przeglądarkowa gra żartobliwa w klimacie JDM anime: napompuj kreta w gaciach Bukovskiego do pełnej turbiny (która strzela ogniem!), zamień się w fioletowe BMW E36 touring w stylu JDM i zdriftuj figurę-8 wokół dwóch pętli z pachołkami, żeby maksymalnie go wkurwić.
+Przeglądarkowa gra żartobliwa w klimacie JDM anime: napompuj kreta w gaciach Bukovskiego do pełnej turbiny (która strzela ogniem!), zamień się w fioletowe BMW E36 touring w stylu JDM — z naklejkami sponsorskimi i wydechem strzelającym ogniem podczas driftu — i zdriftuj figurę-8 wokół dwóch pętli z pachołkami w 40 sekund, żeby maksymalnie go wkurwić.
 
 To statyczna strona — jeden plik `index.html`, bez buildu i bez zależności.
 

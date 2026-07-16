@@ -199,7 +199,7 @@
 
       <div class="hud-panel" id="timerPanel" hidden>
         <div class="hud-label">Czas</div>
-        <div id="timerVal" class="display mono">60</div>
+        <div id="timerVal" class="display mono">40</div>
       </div>
 
       <div class="hud-panel" id="scorePanel">
@@ -563,7 +563,7 @@
   // ---------- phase: drift ----------
   function startDrift(){
     STATE = 'drift';
-    drift.time = 60; drift.score = 0; drift.heat = 0; drift.maxHeat = 0;
+    drift.time = 40; drift.score = 0; drift.heat = 0; drift.maxHeat = 0;
     comboMult = 1;
     timerPanel.hidden = false;
     leftLabel.textContent = 'Prędkość';
@@ -704,6 +704,27 @@
     ctx.fillStyle = '#ff2d6b';
     ctx.fillRect(26,-11,4,6); ctx.fillRect(26,5,4,6);
 
+    // JDM sponsor sticker decals on the rear quarter panel
+    ctx.fillStyle = '#f4f2ec'; ctx.fillRect(2,-13,7,4);
+    ctx.fillStyle = '#23d1b5'; ctx.fillRect(2,9,7,4);
+    ctx.fillStyle = '#ff2d6b'; ctx.fillRect(10,-13,6,4);
+
+    // exhaust flame (JDM anti-lag backfire) while drifting hard
+    if (Math.abs(driftAmt) > 0.15){
+      var flameAmt = clamp(Math.abs(driftAmt), 0, 1);
+      ctx.save();
+      ctx.translate(30, 0);
+      var flen = 10 + flameAmt*24 + Math.sin(car.wheelSpin*3)*4;
+      var fg2 = ctx.createLinearGradient(0,0,flen,0);
+      fg2.addColorStop(0,'#fff6c9'); fg2.addColorStop(0.35,'#ffe08a'); fg2.addColorStop(0.7,'#ff8a1a'); fg2.addColorStop(1,'#ff2d0a00');
+      ctx.fillStyle = fg2;
+      ctx.beginPath();
+      ctx.moveTo(0,-5); ctx.quadraticCurveTo(flen*0.5,-3,flen,0);
+      ctx.quadraticCurveTo(flen*0.5,3,0,5);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+
     // rear GT wing (JDM style)
     ctx.fillStyle = '#120a1f';
     ctx.fillRect(24,-17,3,34);
@@ -822,6 +843,19 @@
           x: wx + rand(-4,4), y: wy + rand(-4,4),
           vx: rand(-30,30), vy: rand(-30,30),
           life: rand(0.4,0.7), age:0, color:'#c9c9c9', smoke:true
+        });
+      }
+      // exhaust backfire pops (JDM anti-lag flames) while drifting hard
+      if (Math.random() < dt*9*driftAmt){
+        var fca = heading.x, fsa = heading.y;
+        var fx = car.x + (-30)*fca;
+        var fy = car.y + (-30)*fsa;
+        particles.push({
+          x: fx + rand(-3,3), y: fy + rand(-3,3),
+          vx: -fca*rand(60,140) + rand(-20,20), vy: -fsa*rand(60,140) + rand(-20,20),
+          life: rand(0.2,0.4), age:0,
+          color: Math.random()<0.4 ? '#fff2b0' : (Math.random()<0.7 ? '#ffb020' : '#ff5a1a'),
+          smoke:false
         });
       }
     }
