@@ -399,7 +399,7 @@
     if (pump.meter > 55){
       var tr = 12 + pump.meter*0.22;
       var scale = 2.4;
-      var wx = W/2 + (-2-tr*1.15-6)*scale;
+      var wx = W/2 + (-2-tr*1.55-6)*scale;
       var wy = H/2 + (-6)*scale;
       if (Math.random() < dt*(pump.meter-50)*0.6){
         particles.push({
@@ -422,40 +422,74 @@
     ctx.fillStyle = '#00000040';
     ctx.beginPath(); ctx.ellipse(0, 34, 30, 8, 0, 0, Math.PI*2); ctx.fill();
 
-    // turbine backpack (drawn behind body) — big real turbo housing
+    // turbine backpack (drawn behind body) — real snail-shaped turbo housing
     if (turboAmt > 0){
-      ctx.save();
-      ctx.translate(-2, -6);
-      ctx.rotate(spin);
       var tr = 12 + turboAmt*0.22;
 
-      // outer metal housing
-      var housing = ctx.createRadialGradient(0,0,tr*0.3,0,0,tr*1.15);
-      housing.addColorStop(0,'#e7ecef'); housing.addColorStop(0.6,'#8b95a1'); housing.addColorStop(1,'#3d444c');
+      // static volute housing + outlet duct (the housing itself never spins, only the wheel inside it)
+      ctx.save();
+      ctx.translate(-2, -6);
+
+      var ductGrad = ctx.createLinearGradient(0,-tr*0.42,0,tr*0.42);
+      ductGrad.addColorStop(0,'#c7ccd1'); ductGrad.addColorStop(0.5,'#8b95a1'); ductGrad.addColorStop(1,'#4a5158');
+      ctx.fillStyle = ductGrad;
+      ctx.beginPath();
+      ctx.moveTo(-tr*0.35, -tr*0.42);
+      ctx.lineTo(-tr*1.55, -tr*0.5);
+      ctx.lineTo(-tr*1.55, tr*0.5);
+      ctx.lineTo(-tr*0.35, tr*0.42);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#20242a'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = '#dfe4e8';
+      ctx.beginPath(); ctx.ellipse(-tr*1.55, 0, tr*0.14, tr*0.52, 0, 0, Math.PI*2); ctx.fill();
+      ctx.stroke();
+
+      var housing = ctx.createRadialGradient(-tr*0.2,-tr*0.2,tr*0.3,0,0,tr*1.15);
+      housing.addColorStop(0,'#eef2f4'); housing.addColorStop(0.55,'#9aa3ab'); housing.addColorStop(1,'#42484f');
       ctx.fillStyle = housing;
       ctx.beginPath(); ctx.arc(0,0,tr*1.15,0,Math.PI*2); ctx.fill();
       ctx.strokeStyle = '#20242a'; ctx.lineWidth = 2; ctx.stroke();
 
-      // inner spinning compressor wheel
-      var grd = ctx.createRadialGradient(0,0,2,0,0,tr);
-      grd.addColorStop(0, '#fff');
-      grd.addColorStop(0.5, '#c9d3da');
+      ctx.fillStyle = '#20242a';
+      for (var k=0;k<4;k++){
+        var ba = k*(Math.PI/2) + 0.5;
+        ctx.beginPath(); ctx.arc(Math.cos(ba)*tr*1.03, Math.sin(ba)*tr*1.03, tr*0.09, 0, Math.PI*2); ctx.fill();
+      }
+
+      ctx.fillStyle = '#2a2e33';
+      ctx.beginPath(); ctx.arc(0,0,tr*0.98,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+
+      // spinning compressor wheel — curved sickle blades, only this part rotates
+      ctx.save();
+      ctx.translate(-2, -6);
+      ctx.rotate(spin);
+      var grd = ctx.createRadialGradient(0,0,2,0,0,tr*0.86);
+      grd.addColorStop(0, '#e8ecef');
+      grd.addColorStop(0.6, '#aab2b9');
       grd.addColorStop(1, '#6b747c');
       ctx.fillStyle = grd;
-      ctx.beginPath(); ctx.arc(0,0,tr,0,Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#3a3f45'; ctx.lineWidth = 1.5;
-      for (var b=0;b<10;b++){
-        ctx.save(); ctx.rotate(b*Math.PI*2/10);
-        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(tr*0.92, tr*0.22);
-        ctx.stroke(); ctx.restore();
+      ctx.beginPath(); ctx.arc(0,0,tr*0.86,0,Math.PI*2); ctx.fill();
+
+      ctx.fillStyle = '#1c1f22';
+      for (var b=0;b<8;b++){
+        ctx.save(); ctx.rotate(b*Math.PI*2/8);
+        ctx.beginPath();
+        ctx.moveTo(0,0);
+        ctx.quadraticCurveTo(tr*0.5, -tr*0.05, tr*0.78, tr*0.3);
+        ctx.quadraticCurveTo(tr*0.48, tr*0.12, 0,0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
       }
-      ctx.fillStyle = '#2a2e33';
-      ctx.beginPath(); ctx.arc(0,0,tr*0.22,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#3a3f45';
+      ctx.beginPath(); ctx.arc(0,0,tr*0.16,0,Math.PI*2); ctx.fill();
       ctx.restore();
 
       if (turboAmt > 55){
         ctx.save();
-        ctx.translate(-2-tr*1.15-6, -6);
+        ctx.translate(-2-tr*1.55-6, -6);
         var flick = (10 + turboAmt*0.35) + Math.sin(spin*6)*6;
         var fg = ctx.createLinearGradient(0,0,-flick,0);
         fg.addColorStop(0,'#fff6c9'); fg.addColorStop(0.35,'#ffe08a'); fg.addColorStop(0.7,'#ff8a1a'); fg.addColorStop(1,'#ff2d0a00');
