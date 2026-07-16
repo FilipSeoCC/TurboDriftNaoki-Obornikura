@@ -473,7 +473,7 @@
 
   var pump = { meter:0, wobble:0, lastPumpAt:-999, turboSpin:0 };
   var transformT = 0;
-  var drift = { time:60, score:0, heat:0, maxHeat:0, lineStreak:0, lastLinePopupAt:0 };
+  var drift = { time:60, score:0, heat:0, maxHeat:0, lineStreak:0, lastLinePopupAt:0, bonusZone:-1, bonusUntil:0 };
   var car = null;
   var cones = [];
   var particles = [];
@@ -483,6 +483,7 @@
   var DRIFT_MIN_SPEED = 40;
   var LOOPS = [];
   var SCORING_PATH = [];
+  var BONUS_ZONES = [];
   var laps = [];
   var lastLoopIndex = -1;
   var lastLoopTime = -999;
@@ -1130,10 +1131,10 @@
   function startDrift(){
     STATE = 'drift';
     gameActions.hidden = false;
-    drift.time = 40; drift.score = 0; drift.heat = 0; drift.maxHeat = 0; drift.lineStreak = 0; drift.lastLinePopupAt = 0;
+    drift.time = 40; drift.score = 0; drift.heat = 0; drift.maxHeat = 0; drift.lineStreak = 0; drift.lastLinePopupAt = 0; drift.bonusZone = -1; drift.bonusUntil = 0;
     timerPanel.hidden = false;
     leftLabel.textContent = 'Prędkość';
-    hint.innerHTML = '<b>W / &uarr;</b> gaz &middot; <b>&larr; &rarr;</b> skręt &middot; <b>SPACJA</b> = HYDROŁAPA &middot; driftuj szybko i dokładnie po świecącej czerwonej linii!';
+    hint.innerHTML = '<b>W / &uarr;</b> gaz &middot; <b>&larr; &rarr;</b> skręt &middot; <b>SPACJA</b> = HYDROŁAPA &middot; trzymaj czerwoną linię i przejeżdżaj przez pola <b>x2</b>!';
     if (tcSpace){ tcSpace.textContent = 'HYDROŁAPA'; tcSpace.setAttribute('aria-label','Hydrołapa — hydrauliczny hamulec ręczny'); }
     car = { x: W/2, y: H-80, angle: -Math.PI/2, vx:0, vy:0, speed:0, wheelSpin:0, wallHitAt:-9999 };
     setupTrack();
@@ -1174,6 +1175,12 @@
         var ampY = Math.min(H*0.28, LOOPS[0].radius*1.45);
         SCORING_PATH.push({ x:cx+Math.sin(t)*ampX, y:cy+Math.sin(t*2)*ampY });
       }
+    }
+    BONUS_ZONES = [];
+    var zoneCount = trackMode === 'rondo' ? 4 : 6;
+    for (var z=0;z<zoneCount;z++){
+      var zoneIndex = Math.floor((z+0.5)*SCORING_PATH.length/zoneCount)%SCORING_PATH.length;
+      BONUS_ZONES.push({x:SCORING_PATH[zoneIndex].x,y:SCORING_PATH[zoneIndex].y,radius:31});
     }
     laps = LOOPS.map(function(){ return { prevTheta:0, accum:0, active:false, laps:0 }; });
     cones = [];
@@ -1228,6 +1235,15 @@
       ctx.stroke();
       ctx.restore();
     }
+    BONUS_ZONES.forEach(function(zone,idx){
+      var pulse = 1 + Math.sin(performance.now()/180+idx*1.7)*0.12;
+      ctx.save(); ctx.translate(zone.x,zone.y); ctx.scale(pulse,pulse);
+      ctx.fillStyle='#ffb02035'; ctx.strokeStyle='#ffd65a'; ctx.lineWidth=4;
+      ctx.shadowColor='#ffb020'; ctx.shadowBlur=22;
+      ctx.beginPath(); ctx.arc(0,0,zone.radius,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#fff6cb'; ctx.font='900 15px Consolas,monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('x2',0,1); ctx.restore();
+    });
   }
 
   function distanceToScoringPath(x, y){
@@ -1547,15 +1563,29 @@
     var speedQuality = clamp((car.speed-DRIFT_MIN_SPEED)/(maxSpeed-DRIFT_MIN_SPEED),0,1);
     var slideQuality = clamp((driftAmt-0.12)/0.58,0,1);
     var onScoringLine = isDrifting && lineQuality>0;
+    var activeBonus = -1;
+    if (onScoringLine){
+      BONUS_ZONES.forEach(function(zone,idx){
+        var zdx=car.x-zone.x, zdy=car.y-zone.y;
+        if (zdx*zdx+zdy*zdy < zone.radius*zone.radius){ activeBonus=idx; }
+      });
+    }
+    if (activeBonus !== -1 && drift.bonusZone !== activeBonus){
+      drift.bonusUntil = performance.now()+3500;
+      popups.push({x:car.x,y:car.y-40,text:'MNOŻNIK x2 — 3,5 SEK!',age:0,life:1.05,big:true});
+      playChime();
+    }
+    drift.bonusZone = activeBonus;
+    var bonusMultiplier = performance.now()<drift.bonusUntil ? 2 : 1;
     car._lineQuality = onScoringLine ? lineQuality : 0;
     if (onScoringLine){
-      var scoreRate = (5 + 38*speedQuality*slideQuality) * lineQuality*lineQuality;
+      var scoreRate = (5 + 38*speedQuality*slideQuality) * lineQuality*lineQuality * bonusMultiplier;
       drift.score += scoreRate*dt;
       drift.lineStreak += dt;
       drift.heat = clamp(drift.heat + dt*(4+lineQuality*7),0,100);
       if (performance.now()-drift.lastLinePopupAt > 850){
         var tick = Math.max(1,Math.round(scoreRate*0.85));
-        popups.push({x:car.x,y:car.y-28,text:'+'+tick+' LINIA '+Math.round(lineQuality*100)+'%',age:0,life:0.75,big:lineQuality>0.8});
+        popups.push({x:car.x,y:car.y-28,text:'+'+tick+(bonusMultiplier===2?' x2':'')+' LINIA '+Math.round(lineQuality*100)+'%',age:0,life:0.75,big:lineQuality>0.8});
         drift.lastLinePopupAt=performance.now();
       }
       if (Math.random()<dt*24*lineQuality){
