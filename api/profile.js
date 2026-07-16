@@ -4,7 +4,7 @@ const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 const PRICE = 500;
 const ROUND_REWARD = 1000;
-const CATEGORIES = ['engine', 'turbo', 'gearbox', 'tires'];
+const CATEGORIES = ['engine', 'turbo', 'supercharger', 'injectors', 'fuelpump', 'clutch', 'gearbox', 'tires'];
 const CARS = ['e36_touring', 'e36_bodykit', 'e36_m3'];
 
 async function redis(command) {
@@ -25,15 +25,28 @@ function sanitizeName(value) {
 const MUTATE_SCRIPT = `
 local raw = redis.call('GET', KEYS[1])
 local p
-if raw then p = cjson.decode(raw) else p = {currency=0,mods={engine=0,turbo=0,gearbox=0,tires=0},car='e36_touring'} end
+if raw then p = cjson.decode(raw) else p = {currency=0,mods={engine=0,turbo=0,supercharger=0,injectors=0,fuelpump=0,clutch=0,gearbox=0,tires=0},car='e36_touring'} end
+p.mods = p.mods or {}
+local fields = {'engine','turbo','supercharger','injectors','fuelpump','clutch','gearbox','tires'}
+for _, field in ipairs(fields) do p.mods[field] = tonumber(p.mods[field]) or 0 end
 local action = ARGV[1]
 if action == 'earn' then
   p.currency = (tonumber(p.currency) or 0) + ${ROUND_REWARD}
 elseif action == 'buy' then
   local category = ARGV[2]
   local tier = tonumber(p.mods[category]) or 0
+  local nextTier = tier + 1
   if tier >= 3 then return cjson.encode({error='max_tier'}) end
   if (tonumber(p.currency) or 0) < ${PRICE} then return cjson.encode({error='not_enough_currency'}) end
+  if category == 'turbo' then
+    if p.mods.supercharger > 0 then return cjson.encode({error='boost_conflict'}) end
+    if p.mods.clutch < nextTier then return cjson.encode({error='requires_clutch',required=nextTier}) end
+    if p.mods.injectors < nextTier then return cjson.encode({error='requires_injectors',required=nextTier}) end
+    if p.mods.fuelpump < nextTier then return cjson.encode({error='requires_fuelpump',required=nextTier}) end
+  elseif category == 'supercharger' then
+    if p.mods.turbo > 0 then return cjson.encode({error='boost_conflict'}) end
+    if p.mods.clutch < nextTier then return cjson.encode({error='requires_clutch',required=nextTier}) end
+  end
   p.currency = tonumber(p.currency) - ${PRICE}
   p.mods[category] = tier + 1
 elseif action == 'select_car' then

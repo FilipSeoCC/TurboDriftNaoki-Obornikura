@@ -157,6 +157,14 @@
   .buy-btn{ padding:8px 12px; font-size:11px; }
   .buy-btn:disabled{ filter:grayscale(1); opacity:.45; cursor:not-allowed; box-shadow:none; }
   .profile-note{ color:var(--grey); font-size:10px; line-height:1.4; }
+  .spec-card{ margin:0 0 18px; padding:14px; border:1px solid #ffffff25; border-left:4px solid var(--teal); border-radius:8px; background:linear-gradient(135deg,#08151a,#11131a); text-align:left; }
+  .spec-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; color:var(--white); font-weight:900; }
+  .spec-badge{ color:#08151a; background:var(--teal); border-radius:12px; padding:3px 8px; font-size:10px; }
+  .spec-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:7px; }
+  .spec-item{ padding:7px; background:#0005; border-radius:6px; }
+  .spec-label{ color:var(--grey); font-size:9px; text-transform:uppercase; }
+  .spec-value{ color:var(--orange-2); font:900 16px Consolas,monospace; }
+  .garage-notice{ min-height:18px; color:#ffd65a; font-size:12px; font-weight:700; margin:0 0 8px; }
   .card{
     background:linear-gradient(180deg, var(--panel), #14171c);
     border:2px solid var(--orange); border-radius:10px;
@@ -412,7 +420,9 @@
         <div class="balance" id="garageBalance">🔩 0 śrubek</div>
         <p class="field-label">Wybierz auto</p>
         <div class="car-choice" id="carChoice"></div>
+        <div class="spec-card" id="specCard"></div>
         <p class="field-label">Tuning — każdy Stage kosztuje 500 🔩</p>
+        <div class="garage-notice" id="garageNotice"></div>
         <div class="tuning-list" id="tuningList"></div>
         <button class="btn" id="btnGarageBack" type="button">Wróć do menu</button>
         <p class="profile-note">Nick nie ma hasła. Gracze używający tego samego nicku współdzielą samochód, tuning i śrubki.</p>
@@ -481,6 +491,8 @@
   var endBalance = document.getElementById('endBalance');
   var carChoice = document.getElementById('carChoice');
   var tuningList = document.getElementById('tuningList');
+  var specCard = document.getElementById('specCard');
+  var garageNotice = document.getElementById('garageNotice');
   var btnRetry = document.getElementById('btnRetry');
   var gameActions = document.getElementById('gameActions');
   var btnPause = document.getElementById('btnPause');
@@ -538,18 +550,19 @@
   var lastLoopIndex = -1;
   var lastLoopTime = -999;
 
-  var DEFAULT_PROFILE = {currency:0,mods:{engine:0,turbo:0,gearbox:0,tires:0},car:'e36_touring'};
+  var DEFAULT_PROFILE = {currency:0,mods:{engine:0,turbo:0,supercharger:0,injectors:0,fuelpump:0,clutch:0,gearbox:0,tires:0},car:'e36_touring'};
   var currentProfile = JSON.parse(JSON.stringify(DEFAULT_PROFILE));
   var loadedProfileName = '';
   var effectiveStats = {maxSpeed:285,accel:245,decel:150,grip:2.6,turn:1,flame:1};
   var CAR_MODELS = {
-    e36_touring:{name:'Fioletowe Touring',color:'#7a2fd1',speed:1,accel:1,grip:1,turn:1},
-    e36_bodykit:{name:'Czarny Body Kit',color:'#17191e',speed:1.05,accel:1.02,grip:.94,turn:1.03},
-    e36_m3:{name:'Srebrne E36 M3',color:'#aeb5c0',speed:1.02,accel:1.09,grip:1.02,turn:.94}
+    e36_touring:{name:'Fioletowe Touring',color:'#7a2fd1',speed:1,accel:1,grip:1,turn:1,hp:450,nm:550,stockBoost:'Turbo'},
+    e36_bodykit:{name:'Czarny Sedan E36',color:'#17191e',speed:1.05,accel:1.02,grip:.94,turn:1.03,hp:370,nm:500,stockBoost:'Wolnossący'},
+    e36_m3:{name:'Srebrne E36 M3',color:'#aeb5c0',speed:1.02,accel:1.09,grip:1.02,turn:.94,hp:320,nm:360,stockBoost:'Wolnossący'}
   };
   var ENGINE_TIERS=[1,1.08,1.16,1.25], TURBO_TIERS=[1,1.04,1.09,1.15];
   var GEARBOX_DECEL=[1,.88,.76,.64], TIRE_GRIP=[1,1.08,1.17,1.27];
-  var TUNING_NAMES={engine:'Silnik',turbo:'Turbo',gearbox:'Skrzynia',tires:'Opony'};
+  var TUNING_NAMES={clutch:'Sprzęgło',injectors:'Wtryski',fuelpump:'Pompa paliwa',engine:'Silnik',turbo:'Turbo',supercharger:'Kompresor',gearbox:'Skrzynia',tires:'Opony'};
+  var TUNING_ORDER=['clutch','injectors','fuelpump','engine','turbo','supercharger','gearbox','tires'];
 
   function profileNick(){ return (nickInput.value||'').trim().slice(0,14)||'Anonim'; }
   function showProfile(){
@@ -560,7 +573,8 @@
   function normalizeProfile(p){
     p=p||{}; p.mods=p.mods||{};
     return {currency:Math.max(0,Number(p.currency)||0),car:CAR_MODELS[p.car]?p.car:'e36_touring',mods:{
-      engine:clamp(Number(p.mods.engine)||0,0,3),turbo:clamp(Number(p.mods.turbo)||0,0,3),
+      engine:clamp(Number(p.mods.engine)||0,0,3),turbo:clamp(Number(p.mods.turbo)||0,0,3),supercharger:clamp(Number(p.mods.supercharger)||0,0,3),
+      injectors:clamp(Number(p.mods.injectors)||0,0,3),fuelpump:clamp(Number(p.mods.fuelpump)||0,0,3),clutch:clamp(Number(p.mods.clutch)||0,0,3),
       gearbox:clamp(Number(p.mods.gearbox)||0,0,3),tires:clamp(Number(p.mods.tires)||0,0,3)}};
   }
   function loadProfile(force){
@@ -579,7 +593,16 @@
   function renderGarage(){
     if (!carChoice||!tuningList) return;
     carChoice.innerHTML=''; Object.keys(CAR_MODELS).forEach(function(id){var m=CAR_MODELS[id],b=document.createElement('button');b.type='button';b.className='car-option'+(currentProfile.car===id?' selected':'');b.innerHTML='<div class="car-swatch" style="background:'+m.color+'"></div><div class="car-name">'+m.name+'</div>';b.addEventListener('click',function(){profileAction('select_car',{car:id}).catch(function(){});});carChoice.appendChild(b);});
-    tuningList.innerHTML=''; Object.keys(TUNING_NAMES).forEach(function(cat){var tier=currentProfile.mods[cat]||0,row=document.createElement('div');row.className='tuning-row';row.innerHTML='<div class="tuning-name">'+TUNING_NAMES[cat]+'</div><div class="tuning-tier">Stage '+tier+'/3</div>';var buy=document.createElement('button');buy.className='btn buy-btn';buy.type='button';buy.textContent=tier>=3?'MAX':'KUP 500';buy.disabled=tier>=3||currentProfile.currency<500;buy.addEventListener('click',function(){profileAction('buy',{category:cat}).catch(function(){});});row.appendChild(buy);tuningList.appendChild(row);});
+    var selected=CAR_MODELS[currentProfile.car],mods=currentProfile.mods;
+    var powerMult=ENGINE_TIERS[mods.engine]*(1+mods.turbo*.09+mods.supercharger*.075);
+    var torqueMult=ENGINE_TIERS[mods.engine]*(1+mods.turbo*.10+mods.supercharger*.085);
+    var boost=mods.turbo?'Turbo Stage '+mods.turbo:(mods.supercharger?'Kompresor Stage '+mods.supercharger:selected.stockBoost);
+    specCard.innerHTML='<div class="spec-head"><span>'+selected.name+'</span><span class="spec-badge">KARTA SPEC</span></div><div class="spec-grid">'+
+      '<div class="spec-item"><div class="spec-label">Moc</div><div class="spec-value">'+Math.round(selected.hp*powerMult)+' KM</div></div>'+
+      '<div class="spec-item"><div class="spec-label">Moment</div><div class="spec-value">'+Math.round(selected.nm*torqueMult)+' Nm</div></div>'+
+      '<div class="spec-item"><div class="spec-label">Doładowanie</div><div class="spec-value" style="font-size:12px">'+boost+'</div></div>'+
+      '<div class="spec-item"><div class="spec-label">Sprzęgło</div><div class="spec-value">Stage '+mods.clutch+'</div></div></div>';
+    tuningList.innerHTML=''; TUNING_ORDER.forEach(function(cat){var tier=mods[cat]||0,row=document.createElement('div');row.className='tuning-row';var req=cat==='turbo'?' · wymaga sprzęgła, wtrysków i pompy':(cat==='supercharger'?' · wymaga sprzęgła':'');row.innerHTML='<div class="tuning-name">'+TUNING_NAMES[cat]+'<small style="display:block;color:var(--grey);font-weight:400">'+req+'</small></div><div class="tuning-tier">Stage '+tier+'/3</div>';var buy=document.createElement('button');buy.className='btn buy-btn';buy.type='button';buy.textContent=tier>=3?'MAX':'KUP 500';buy.disabled=tier>=3||currentProfile.currency<500;buy.addEventListener('click',function(){garageNotice.textContent='';profileAction('buy',{category:cat}).catch(function(err){var messages={requires_clutch:'Najpierw kup sprzęgło Stage '+(err.required||tier+1),requires_injectors:'Najpierw kup wtryski Stage '+(err.required||tier+1),requires_fuelpump:'Najpierw kup pompę paliwa Stage '+(err.required||tier+1),boost_conflict:'Wybierz jedną ścieżkę: turbo albo kompresor.',not_enough_currency:'Za mało śrubek.',max_tier:'Ta część ma już maksymalny Stage.'};garageNotice.textContent=messages[err&&err.error]||'Zakup nie powiódł się.';});});row.appendChild(buy);tuningList.appendChild(row);});
   }
 
   // ---------- nickname, leaderboard, unlockable cards (all via localStorage) ----------
@@ -1230,14 +1253,16 @@
     STATE = 'drift';
     gameActions.hidden = false;
     var model=CAR_MODELS[currentProfile.car]||CAR_MODELS.e36_touring,mods=currentProfile.mods||DEFAULT_PROFILE.mods;
+    var boostTier=(mods.turbo||0)+(mods.supercharger||0);
     effectiveStats={
-      maxSpeed:285*model.speed*ENGINE_TIERS[mods.engine],
-      accel:245*model.accel*ENGINE_TIERS[mods.engine],
+      maxSpeed:285*model.speed*ENGINE_TIERS[mods.engine]*(1+boostTier*.025),
+      accel:245*model.accel*ENGINE_TIERS[mods.engine]*(1+(mods.turbo||0)*.035+(mods.supercharger||0)*.055),
       decel:150*GEARBOX_DECEL[mods.gearbox],
       grip:2.6*model.grip*TIRE_GRIP[mods.tires],
       turn:model.turn,
-      flame:1+(mods.turbo||0)*.24,
-      turbo:mods.turbo||0
+      flame:1+(mods.turbo||0)*.24+(mods.supercharger||0)*.12,
+      turbo:mods.turbo||0,
+      supercharger:mods.supercharger||0
     };
     drift.time = 40; drift.score = 0; drift.heat = 0; drift.maxHeat = 0; drift.lineStreak = 0; drift.lastLinePopupAt = 0; drift.bonusZone = -1; drift.bonusUntil = 0;
     timerPanel.hidden = false;
@@ -1556,7 +1581,7 @@
 
     var maxSpeed = effectiveStats.maxSpeed;
     var decel = throttle ? 0 : (handbrake ? 50 : effectiveStats.decel);
-    var lowSpeedBoost = 1+(effectiveStats.turbo*.055)*(1-car.speed/maxSpeed);
+    var lowSpeedBoost = 1+(effectiveStats.turbo*.055)*(1-car.speed/maxSpeed)+(effectiveStats.supercharger*.025);
     car.speed = clamp(car.speed + (throttle? effectiveStats.accel*lowSpeedBoost*dt : -decel*dt), 0, maxSpeed);
 
     // Cross-plane V8: low firing frequency with deliberately uneven exhaust pulses.

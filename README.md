@@ -64,7 +64,7 @@ Na ekranie startowym widać też galerię kart Bukovskiego, odblokowywanych za w
 
 ## Garaż i profile
 
-Każdy ukończony przejazd daje 1000 śrubek. W garażu można wybrać Touring, czarnego sedana z body kitem albo srebrne M3 oraz kupować po trzy poziomy silnika, turbo, skrzyni i opon (500 śrubek za poziom). Profil jest przechowywany w Redisie pod znormalizowanym nickiem przez `api/profile.js`. Nick nie jest bezpiecznym kontem i nie ma hasła — osoby używające tego samego nicku współdzielą portfel, auto i tuning.
+Każdy ukończony przejazd daje 1000 śrubek. W garażu można wybrać Touring, czarnego sedana z body kitem albo srebrne M3 oraz kupować po trzy poziomy silnika, turbo lub kompresora, wtrysków, pompy paliwa, sprzęgła, skrzyni i opon (500 śrubek za poziom). Turbo wymaga na każdym Stage równie mocnych wtrysków, pompy i sprzęgła, a kompresor równie mocnego sprzęgła; obie ścieżki doładowania są wzajemnie wykluczające. Profil jest przechowywany w Redisie pod znormalizowanym nickiem przez `api/profile.js`. Nick nie jest bezpiecznym kontem i nie ma hasła — osoby używające tego samego nicku współdzielą portfel, auto i tuning.
 
 **Telefon/tablet:** na urządzeniach dotykowych klawiatura jest automatycznie zastępowana wirtualnymi przyciskami (◀ ▶ w lewym dolnym rogu, GAZ i POMPUJ/HYDROŁAPA w prawym) — działa w pionie i poziomie, wspiera notch/safe-area na iOS. Dotknięcie ekranu w fazie pompowania też działa, na wypadek gdyby wykrywanie dotyku zawiodło.
 
