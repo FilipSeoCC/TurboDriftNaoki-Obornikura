@@ -2,15 +2,16 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Turbo Kret Drift</title>
 <style>
-  *{box-sizing:border-box;}
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{
     margin:0; padding:0; width:100%; height:100%; overflow:hidden;
     background:#14171c;
     font-family:"Segoe UI",Helvetica,Arial,sans-serif;
     -webkit-user-select:none; user-select:none;
+    touch-action:none; overscroll-behavior:none;
   }
   :root{
     --ink:#14171c;
@@ -55,7 +56,10 @@
     display:block; width:100%; height:100%;
   }
   #hud{
-    position:absolute; top:14px; left:14px; right:14px;
+    position:absolute;
+    top: calc(14px + env(safe-area-inset-top));
+    left: calc(14px + env(safe-area-inset-left));
+    right: calc(14px + env(safe-area-inset-right));
     display:flex; align-items:flex-start; justify-content:space-between;
     gap:16px; pointer-events:none;
   }
@@ -147,6 +151,38 @@
     .meter > i{ transition:none; }
     #quoteBubble{ transition:none; }
   }
+
+  /* ---------- touch controls ---------- */
+  .tc-wrap{ position:absolute; inset:0; pointer-events:none; z-index:5; display:none; }
+  .tc-btn{
+    position:absolute; width:64px; height:64px; border-radius:50%;
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    border:2px solid #00000080; color:var(--white); font-weight:900; font-size:12px;
+    letter-spacing:0.03em; display:flex; align-items:center; justify-content:center;
+    pointer-events:auto; touch-action:none; user-select:none;
+    box-shadow:0 3px 0 #000a, inset 0 1px 0 #ffffff1a; text-transform:uppercase;
+  }
+  .tc-btn.pressed{ transform:translateY(2px); box-shadow:0 1px 0 #000a; }
+  .tc-left{ left: calc(14px + env(safe-area-inset-left)); bottom: calc(18px + env(safe-area-inset-bottom)); font-size:22px; }
+  .tc-right2{ left: calc(86px + env(safe-area-inset-left)); bottom: calc(18px + env(safe-area-inset-bottom)); font-size:22px; }
+  .tc-gas{ right: calc(92px + env(safe-area-inset-right)); bottom: calc(18px + env(safe-area-inset-bottom)); }
+  .tc-space{
+    right: calc(14px + env(safe-area-inset-right)); bottom: calc(18px + env(safe-area-inset-bottom));
+    width:78px; height:78px; font-size:14px;
+    background:linear-gradient(180deg,var(--orange-2),var(--orange)); color:#1a1408; border-color:#a3430a;
+  }
+
+  @media (max-width: 560px){
+    .hud-panel{ min-width:0; padding:6px 8px; }
+    .hud-label{ font-size:8px; }
+    .meter{ width:88px; height:8px; }
+    #timerVal{ font-size:22px; }
+    #scoreVal{ font-size:16px; }
+    #timerPanel{ min-width:56px; }
+    #hud{ gap:8px; }
+    .card{ padding:24px 20px; }
+    .card .lead{ font-size:13px; }
+  }
 </style>
 </head>
 <body>
@@ -175,6 +211,13 @@
 
     <div id="quoteBubble"></div>
     <div id="hint"></div>
+
+    <div class="tc-wrap" id="tcWrap">
+      <div class="tc-btn tc-left" id="tcLeft" role="button" aria-label="Skręt w lewo">&#9664;</div>
+      <div class="tc-btn tc-right2" id="tcRight" role="button" aria-label="Skręt w prawo">&#9654;</div>
+      <div class="tc-btn tc-gas" id="tcGas" role="button" aria-label="Gaz">GAZ</div>
+      <div class="tc-btn tc-space" id="tcSpace" role="button" aria-label="Pompuj / drift">POMPUJ</div>
+    </div>
 
     <div class="screen" id="screenTitle">
       <div class="card">
@@ -223,6 +266,17 @@
   var btnStart = document.getElementById('btnStart');
   var btnRetry = document.getElementById('btnRetry');
 
+  var isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  var tcWrap = document.getElementById('tcWrap');
+  var tcLeft = document.getElementById('tcLeft');
+  var tcRight = document.getElementById('tcRight');
+  var tcGas = document.getElementById('tcGas');
+  var tcSpace = document.getElementById('tcSpace');
+  if (isTouch){
+    tcWrap.style.display = 'block';
+    hint.style.display = 'none';
+  }
+
   var W = 0, H = 0, DPR = 1;
   function resize(){
     var r = stage.getBoundingClientRect();
@@ -233,6 +287,7 @@
     ctx.setTransform(DPR,0,0,DPR,0,0);
   }
   window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', function(){ setTimeout(resize, 300); });
   resize();
 
   // ---------- state machine ----------
@@ -285,6 +340,25 @@
   btnStart.addEventListener('click', function(){ startPump(); });
   btnRetry.addEventListener('click', function(){ startPump(); });
 
+  // ---------- touch controls ----------
+  function bindHold(el, onDown, onUp){
+    if (!el) return;
+    el.addEventListener('pointerdown', function(e){
+      e.preventDefault();
+      el.classList.add('pressed');
+      if (el.setPointerCapture){ try{ el.setPointerCapture(e.pointerId); }catch(err){} }
+      onDown();
+    }, {passive:false});
+    ['pointerup','pointercancel','pointerleave'].forEach(function(evt){
+      el.addEventListener(evt, function(){ el.classList.remove('pressed'); onUp(); });
+    });
+    el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+  }
+  bindHold(tcLeft, function(){ keys['arrowleft'] = true; }, function(){ keys['arrowleft'] = false; });
+  bindHold(tcRight, function(){ keys['arrowright'] = true; }, function(){ keys['arrowright'] = false; });
+  bindHold(tcGas, function(){ keys['arrowup'] = true; }, function(){ keys['arrowup'] = false; });
+  bindHold(tcSpace, function(){ if (!keys[' ']){ onSpaceDown(); } keys[' '] = true; }, function(){ keys[' '] = false; });
+
   // ---------- phase: pump ----------
   function startPump(){
     STATE = 'pump';
@@ -293,6 +367,7 @@
     timerPanel.hidden = true;
     leftLabel.textContent = 'Turbina';
     hint.innerHTML = 'Wciskaj <b>SPACJĘ</b> żeby napompować turbinę w gaciach kreta';
+    if (tcSpace) tcSpace.textContent = 'POMPUJ';
     scoreVal.textContent = '0';
     rageMeter.style.width = '0%';
   }
@@ -416,6 +491,7 @@
     timerPanel.hidden = false;
     leftLabel.textContent = 'Prędkość';
     hint.innerHTML = '<b>W / &uarr;</b> gaz &middot; <b>&larr; &rarr;</b> skręt &middot; przytrzymaj <b>SPACJĘ</b> i okrąż rondo, żeby zdriftować';
+    if (tcSpace) tcSpace.textContent = 'DRIFT';
     car = { x: W/2, y: H-80, angle: -Math.PI/2, vx:0, vy:0, speed:0, wheelSpin:0 };
     setupRoundabout();
     var theta0 = Math.atan2(car.y-ROUND.cy, car.x-ROUND.cx);
