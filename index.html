@@ -179,9 +179,9 @@
   .card-modal-inner{
     position:relative; background:linear-gradient(180deg, var(--panel), #14171c);
     border:2px solid var(--orange); border-radius:12px; padding:20px; max-width:min(90vw,420px);
-    text-align:center; box-shadow:0 0 40px #b043ff4d, 0 20px 40px #000a;
+    max-height:92vh; overflow:auto; text-align:center; box-shadow:0 0 40px #b043ff4d, 0 20px 40px #000a;
   }
-  .card-modal-img{ width:100%; border-radius:8px; margin-bottom:14px; }
+  .card-modal-img{ width:100%; max-height:70vh; object-fit:contain; border-radius:8px; margin-bottom:14px; }
   .card-modal-title{ margin:0 0 8px; font-size:18px; color:var(--white); }
   .card-modal-title span{ color:var(--orange); }
   .card-modal-text{ margin:0; font-size:13px; color:var(--grey); line-height:1.5; }
@@ -190,6 +190,21 @@
     background:#00000060; border:none; color:var(--white); font-size:18px; cursor:pointer; line-height:26px; padding:0;
   }
   .card-modal-close:hover{ background:#000000a0; }
+
+  .score-reward{ margin:-4px 0 18px; text-align:center; }
+  .score-gift-btn{
+    width:min(100%,320px); padding:12px 18px; border:2px solid #59606d; border-radius:10px;
+    background:#11141a; color:var(--grey); font:800 12px/1.25 inherit; letter-spacing:.06em;
+    text-transform:uppercase; cursor:not-allowed; transition:transform .15s, box-shadow .15s, border-color .15s;
+  }
+  .score-gift-icon{ display:block; font-size:30px; margin-bottom:5px; filter:grayscale(1); }
+  .score-gift-btn.unlocked{
+    border-color:var(--orange); color:var(--white); cursor:pointer;
+    background:linear-gradient(135deg,#23152d,#151821); box-shadow:0 0 22px #b043ff42;
+  }
+  .score-gift-btn.unlocked .score-gift-icon{ filter:none; animation:giftPulse 1.25s ease-in-out infinite; }
+  .score-gift-btn.unlocked:hover{ transform:translateY(-2px) scale(1.02); box-shadow:0 0 30px #b043ff70; }
+  @keyframes giftPulse{ 50%{ transform:scale(1.14) rotate(-4deg); } }
 
   .result-grid{
     display:flex; gap:18px; justify-content:center; margin:0 0 22px;
@@ -353,6 +368,12 @@
           <div class="lb-title lb-title-worst">OSTATNIE 5</div>
           <div class="lb-rows" id="lbRowsBottom"></div>
           <p class="lb-note">Wynik widoczny dla wszystkich graczy</p>
+        </div>
+        <div class="score-reward">
+          <button class="score-gift-btn" id="goodScoreGift" type="button" disabled>
+            <span class="score-gift-icon" id="goodScoreGiftIcon">🔒</span>
+            <span id="goodScoreGiftText">Zdobądź 1500 pkt, aby odblokować prezent</span>
+          </button>
         </div>
         <button class="btn" id="btnRetry">Jeszcze raz</button>
       </div>
@@ -541,6 +562,15 @@
   var cardModalImg = document.getElementById('cardModalImg');
   var cardModalTitle = document.getElementById('cardModalTitle');
   var cardModalText = document.getElementById('cardModalText');
+  var goodScoreGift = document.getElementById('goodScoreGift');
+  var goodScoreGiftIcon = document.getElementById('goodScoreGiftIcon');
+  var goodScoreGiftText = document.getElementById('goodScoreGiftText');
+  var GOOD_SCORE_REWARD = {
+    threshold:1500,
+    title:'Nagroda Specjalna',
+    desc:'Nagroda za dobry wynik. Kliknij krzyżyk, aby wrócić do tabeli.',
+    img:'assets/good-score-reward.png'
+  };
 
   function openCardModal(c){
     var words = c.title.split(' ');
@@ -556,6 +586,19 @@
   }
   cardModalClose.addEventListener('click', function(){ cardModal.hidden = true; });
   cardModal.addEventListener('click', function(e){ if (e.target === cardModal){ cardModal.hidden = true; } });
+  goodScoreGift.addEventListener('click', function(){
+    if (!goodScoreGift.disabled){ openCardModal(GOOD_SCORE_REWARD); }
+  });
+
+  function updateGoodScoreReward(score){
+    var unlocked = score >= GOOD_SCORE_REWARD.threshold;
+    goodScoreGift.disabled = !unlocked;
+    goodScoreGift.classList.toggle('unlocked', unlocked);
+    goodScoreGiftIcon.textContent = unlocked ? '🎁' : '🔒';
+    goodScoreGiftText.textContent = unlocked
+      ? 'Nagroda za dobry wynik — kliknij prezent'
+      : 'Zdobądź ' + GOOD_SCORE_REWARD.threshold + ' pkt, aby odblokować prezent';
+  }
 
   function renderCardGalleryInto(container){
     if (!container) return;
@@ -1473,6 +1516,7 @@
 
     var newCards = checkCardUnlocks(finalScore);
     renderCardGallery();
+    updateGoodScoreReward(finalScore);
     if (newCards.length){
       unlockBanner.hidden = false;
       unlockBanner.textContent = 'ODBLOKOWANO: ' + newCards.map(function(c){ return c.title; }).join(', ');
