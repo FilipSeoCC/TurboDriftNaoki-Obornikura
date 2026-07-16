@@ -53,7 +53,7 @@ git push -u origin main
 - Strzałki w lewo/prawo lub A/D — skręt (auto samo driftuje w zakrętach, spacja to wzmacnia)
 - Samo dryfowanie nie daje już punktów — liczy się tylko przejazd jak najbliżej pachołka (bez uderzenia), z bonusem x2 zależnym od bliskości. Bez przyrostu geometrycznego — bonus jest płaski, nie rośnie z każdym kolejnym pachołkiem
 - Uderzenie w mur (skraj areny) odbiera połowę dotychczas zdobytych punktów — bądź precyzyjny
-- Pełna pętla wokół rondo/pętli daje bonus "PĘTLA!"; w trybie ósemki przejechanie obu pętli pod rząd (w ciągu 7s) daje dodatkowy bonus "ÓSEMKA!"
+- Pełna pętla pokazuje komunikat "PĘTLA!", a przejechanie obu pętli ósemki pod rząd pokazuje "ÓSEMKA!" — te komunikaty nie dodają punktów
 - Pachołki stoją w dwóch pierścieniach — na wewnętrznej i zewnętrznej krawędzi pasa driftu — więc jedziesz środkiem między nimi, nie przez nie
 
 ## Tor, nick, TOP 5 i karty

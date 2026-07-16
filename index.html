@@ -925,7 +925,7 @@
     leftLabel.textContent = 'Prędkość';
     hint.innerHTML = '<b>W / &uarr;</b> gaz &middot; <b>&larr; &rarr;</b> auto samo driftuje w zakrętach &middot; SPACJA = mocniejszy drift &middot; punkty tylko za bliski przejazd kolo pachołka (x2) &middot; uderzenie w mur odbiera połowę punktów!';
     if (tcSpace) tcSpace.textContent = 'DRIFT';
-    car = { x: W/2, y: H-80, angle: -Math.PI/2, vx:0, vy:0, speed:0, wheelSpin:0 };
+    car = { x: W/2, y: H-80, angle: -Math.PI/2, vx:0, vy:0, speed:0, wheelSpin:0, wallHitAt:-9999 };
     setupTrack();
     laps.forEach(function(lp, idx){
       lp.prevTheta = Math.atan2(car.y-LOOPS[idx].cy, car.x-LOOPS[idx].cx);
@@ -1183,10 +1183,11 @@
     if (car.x > W-margin){ car.x = W-margin; car.vx *= -0.4; car.speed *= 0.7; hitWall = true; }
     if (car.y < margin){ car.y = margin; car.vy *= -0.4; car.speed *= 0.7; hitWall = true; }
     if (car.y > H-margin){ car.y = H-margin; car.vy *= -0.4; car.speed *= 0.7; hitWall = true; }
-    if (hitWall && drift.score > 1){
-      var lost = drift.score / 2;
-      drift.score -= lost;
-      popups.push({x:car.x, y:car.y-20, text:'-'+Math.round(lost)+' (ŚCIANA!)', age:0, life:1.2, big:true});
+    if (hitWall && performance.now() - car.wallHitAt > 700){
+      car.wallHitAt = performance.now();
+      var lost = Math.floor(drift.score / 2);
+      drift.score = Math.floor(drift.score / 2);
+      popups.push({x:car.x, y:car.y-20, text:'-'+lost+' (ŚCIANA!)', age:0, life:1.2, big:true});
       playTone(200, 45, 0.3, 0.3, 'sawtooth');
     }
 
@@ -1240,6 +1241,10 @@
       var d = Math.sqrt(dx*dx+dy*dy);
       if (d < 26 && c.hit<=0){
         c.hit = 1;
+        c.passing = false;
+        c.minDist = Infinity;
+        c.cooldown = 0.8;
+        popups.push({x:c.x, y:c.y-20, text:'TRAFIONY!', age:0, life:1.0, big:true});
         playTone(260, 70, 0.12, 0.35, 'square');
       }
       var inClip = isDrifting && c.cooldown<=0 && d<CLIP_RADIUS;
@@ -1253,7 +1258,7 @@
         if (bonus > 0){
           addScore(bonus);
           drift.heat = clamp(drift.heat + closeness*10, 0, 100);
-          popups.push({x:c.x, y:c.y-14, text:'+'+bonus, age:0, life:0.8});
+          popups.push({x:c.x, y:c.y-14, text:'+'+(bonus*SCORE_MULT)+' ×2', age:0, life:0.8});
         }
         c.minDist = Infinity;
         c.cooldown = 0.8;
@@ -1282,18 +1287,15 @@
         var dir = lp.accum > 0 ? 1 : -1;
         lp.accum -= dir*Math.PI*2;
         lp.laps += 1;
-        var loopBase = 40 + lp.laps*15;
-        addScore(loopBase);
         drift.heat = clamp(drift.heat + 32, 0, 100);
-        popups.push({x:loop.cx, y:loop.cy-loop.radius-30, text:'PĘTLA! +'+(loopBase*SCORE_MULT), age:0, life:1.3, big:true});
+        popups.push({x:loop.cx, y:loop.cy-loop.radius-30, text:'PĘTLA!', age:0, life:1.3, big:true});
         playChime();
         showQuote(true);
         quoteTimer = 1.4;
 
         if (lastLoopIndex !== -1 && lastLoopIndex !== idx && (nowMs-lastLoopTime) < 7000){
-          addScore(80);
           drift.heat = clamp(drift.heat + 20, 0, 100);
-          popups.push({x:W/2, y:H/2-loop.radius-60, text:'ÓSEMKA! +'+(80*SCORE_MULT), age:0, life:1.6, big:true});
+          popups.push({x:W/2, y:H/2-loop.radius-60, text:'ÓSEMKA!', age:0, life:1.6, big:true});
         }
         lastLoopIndex = idx; lastLoopTime = nowMs;
       }
@@ -1301,7 +1303,7 @@
 
     drift.maxHeat = Math.max(drift.maxHeat, drift.heat);
     rageMeter.style.width = drift.heat.toFixed(0)+'%';
-    scoreVal.textContent = Math.round(drift.score);
+    scoreVal.textContent = Math.floor(drift.score);
     leftMeter.style.width = clamp(car.speed/maxSpeed*100,0,100)+'%';
 
     quoteTimer -= dt;
@@ -1324,7 +1326,7 @@
   function endGame(){
     STATE = 'end';
     if (tireGain && audioCtx) tireGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
-    var finalScore = Math.round(drift.score);
+    var finalScore = Math.floor(drift.score);
     document.getElementById('endScore').textContent = finalScore;
     document.getElementById('endRage').textContent = Math.round(drift.maxHeat)+'%';
     var verdict, title;
