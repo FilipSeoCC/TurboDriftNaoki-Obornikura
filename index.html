@@ -345,6 +345,8 @@
         </div>
         <p class="verdict" id="endVerdict">—</p>
         <div class="unlock-banner" id="unlockBanner" hidden></div>
+        <p class="card-gallery-caption">Karty Bukovskiego:</p>
+        <div class="card-gallery" id="cardGalleryEnd"></div>
         <div class="leaderboard">
           <div class="lb-title">TOP 5</div>
           <div class="lb-rows" id="lbRowsTop"></div>
@@ -383,6 +385,7 @@
   var btnRetry = document.getElementById('btnRetry');
   var nickInput = document.getElementById('nickInput');
   var cardGallery = document.getElementById('cardGallery');
+  var cardGalleryEnd = document.getElementById('cardGalleryEnd');
   var unlockBanner = document.getElementById('unlockBanner');
   var lbRowsTop = document.getElementById('lbRowsTop');
   var lbRowsBottom = document.getElementById('lbRowsBottom');
@@ -554,9 +557,10 @@
   cardModalClose.addEventListener('click', function(){ cardModal.hidden = true; });
   cardModal.addEventListener('click', function(e){ if (e.target === cardModal){ cardModal.hidden = true; } });
 
-  function renderCardGallery(){
+  function renderCardGalleryInto(container){
+    if (!container) return;
     var unlocked = loadUnlockedCards();
-    cardGallery.innerHTML = '';
+    container.innerHTML = '';
     CARDS.forEach(function(c){
       var isUnlocked = unlocked.indexOf(c.id) !== -1;
       var el = document.createElement('div');
@@ -568,8 +572,12 @@
         el.style.cursor = 'pointer';
         el.addEventListener('click', function(){ openCardModal(c); });
       }
-      cardGallery.appendChild(el);
+      container.appendChild(el);
     });
+  }
+  function renderCardGallery(){
+    renderCardGalleryInto(cardGallery);
+    renderCardGalleryInto(cardGalleryEnd);
   }
   renderCardGallery();
 
@@ -1439,6 +1447,7 @@
     submitScore(nick, finalScore, trackMode, { name: nick, score: finalScore, mode: trackMode });
 
     var newCards = checkCardUnlocks(finalScore);
+    renderCardGallery();
     if (newCards.length){
       unlockBanner.hidden = false;
       unlockBanner.textContent = 'ODBLOKOWANO: ' + newCards.map(function(c){ return c.title; }).join(', ');
@@ -1447,6 +1456,10 @@
     }
 
     screenEnd.hidden = false;
+
+    if (newCards.length){
+      setTimeout(function(){ openCardModal(newCards[0]); }, 700);
+    }
   }
 
   // ---------- particles & popups ----------
