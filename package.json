@@ -1,0 +1,6 @@
+{
+  "name": "turbo-kret-drift",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Turbo Kret Drift - static game with a Vercel serverless API backed by Upstash Redis for the shared leaderboard."
+}

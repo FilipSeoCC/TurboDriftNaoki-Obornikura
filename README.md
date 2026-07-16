@@ -2,7 +2,7 @@
 
 Przeglądarkowa gra żartobliwa w klimacie JDM anime: napompuj kreta w gaciach Bukovskiego do pełnej turbiny (która strzela ogniem!), zamień się w fioletowe BMW E36 touring w stylu JDM — z naklejkami sponsorskimi i wydechem strzelającym ogniem podczas driftu — i zdriftuj wybrany tor (rondo albo ósemka) w 40 sekund, żeby maksymalnie go wkurwić. Wpisz nick, wejdź na TOP 5, odblokuj karty Bukovskiego.
 
-To statyczna strona — jeden plik `index.html`, bez buildu i bez zależności.
+Front jest statyczny (`index.html`, bez buildu, bez zależności). Globalna tablica wyników korzysta z jednej serverless function (`api/scores.js`) i bazy Redis (Upstash) podpiętej pod projekt na Vercelu.
 
 ## Uruchomienie lokalnie
 
@@ -18,7 +18,23 @@ npx serve .
 2. W tym folderze uruchom: `vercel` (pierwsze uruchomienie poprosi o zalogowanie i nazwę projektu)
 3. Do produkcji: `vercel --prod`
 
-Można też wejść na [vercel.com/new](https://vercel.com/new), zaimportować to repo z GitHuba i wdrożyć bez CLI — Vercel sam wykryje statyczną stronę, nic nie trzeba konfigurować.
+Można też wejść na [vercel.com/new](https://vercel.com/new), zaimportować to repo z GitHuba i wdrożyć bez CLI — Vercel sam wykryje statyczną stronę i `api/scores.js` jako funkcję, nic więcej nie trzeba konfigurować.
+
+## Backend tablicy wyników (Vercel Storage + Upstash Redis)
+
+`api/scores.js` to pojedyncza funkcja Vercela, która rozmawia bezpośrednio z REST API Upstasha (bez żadnej biblioteki npm) — czyta i zapisuje jeden sorted set w Redisie.
+
+1. W projekcie na Vercelu: **Storage → Create Database → Upstash for Redis** (albo połącz istniejącą, tak jak już zrobiłeś).
+2. Vercel sam wstrzykuje zmienne środowiskowe (`KV_REST_API_URL` / `KV_REST_API_TOKEN` albo `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`, w zależności od tego jak dokładnie łączyłeś) — funkcja obsługuje obie nazwy, więc nic nie trzeba ręcznie ustawiać.
+3. Redeploy po połączeniu bazy (albo po każdym pushu — Vercel robi to automatycznie).
+
+**Endpoint:**
+- `GET /api/scores` → `{ top: [...5 najlepszych], bottom: [...5 najgorszych] }`
+- `POST /api/scores` z body `{ name, score, mode }` → zapisuje wynik i zwraca to samo co GET
+
+**Ograniczenia, o których warto wiedzieć:** to prosty, nieuwierzytelniony endpoint — każdy, kto zna adres, może wysłać dowolny wynik bezpośrednio przez API (z pominięciem samej gry). Funkcja waliduje typy i utnie absurdalne wartości (limit 500 000 000 pkt, nick maks. 16 znaków, oczyszczony ze znaków HTML), ale to nie jest pełny anti-cheat — dla żartobliwej gry ze znajomymi to akceptowalne ryzyko, ale nie polegaj na tym rankingu jako na czymś odpornym na złośliwe wpisy.
+
+Jeśli strona jest otwarta poza Vercelem (np. w podglądzie artefaktu albo lokalnie z pliku), `/api/scores` nie istnieje — front łapie błąd i po cichu przełącza się na tablicę zapisywaną w `localStorage` przeglądarki, żeby gra dalej działała.
 
 ## Wypchnięcie na GitHub
 
@@ -42,9 +58,9 @@ git push -u origin main
 
 ## Tor, nick, TOP 5 i karty
 
-Na ekranie startowym wybierasz tor (**Rondo** — jedna pętla, albo **Ósemka** — dwie) i wpisujesz nick (zapamiętywany w przeglądarce). Po rundzie ekran końcowy pokazuje TOP 5 najlepszych wyników (Twój aktualny wynik podświetlony), zapisywane lokalnie w `localStorage` — nie ma serwera ani konta, wyniki są per przeglądarka/urządzenie.
+Na ekranie startowym wybierasz tor (**Rondo** — jedna pętla, albo **Ósemka** — dwie) i wpisujesz nick. Po rundzie ekran końcowy pokazuje **globalny** ranking — TOP 5 najlepszych wyników i 5 najgorszych, widoczne dla wszystkich graczy (Twój aktualny wynik podświetlony), zapisywane we wspólnej bazie Redis (patrz sekcja o backendzie wyżej).
 
-Na ekranie startowym widać też galerię kart Bukovskiego, odblokowywanych za wynik: 1000 pkt = "Bukovski Bojowy", 2000 pkt = "Bukovski Legenda". (Poproszono o karty w bardziej rozebranej wersji Bukovskiego — celowo tego nie zrobiłem, bo to realna, nazwana osoba, i nie tworzę seksualizowanych wizerunków bez jej zgody; zamiast tego dostał dwie żartobliwe karty w tym samym klimacie co reszta gry.)
+Na ekranie startowym widać też galerię kart Bukovskiego, odblokowywanych za wynik: 10 000 000 pkt = "Bukovski Bojowy", 20 000 000 pkt = "Bukovski Legenda". Odblokowaną kartę można kliknąć — pokazuje obrazek i krótki żartobliwy "raport" z podziękowaniem za wkurwienie Bukovskiego. (Poproszono kiedyś o karty w bardziej rozebranej wersji Bukovskiego — celowo tego nie zrobiłem, bo to realna, nazwana osoba, i nie tworzę seksualizowanych wizerunków bez jej zgody; obie karty są w pełni ubrane, w tym samym żartobliwym klimacie co reszta gry.)
 
 **Telefon/tablet:** na urządzeniach dotykowych klawiatura jest automatycznie zastępowana wirtualnymi przyciskami (◀ ▶ w lewym dolnym rogu, GAZ i POMPUJ/DRIFT w prawym) — działa w pionie i poziomie, wspiera notch/safe-area na iOS. Dotknięcie ekranu w fazie pompowania też działa, na wypadek gdyby wykrywanie dotyku zawiodło.
 
