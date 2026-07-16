@@ -145,6 +145,9 @@
   #screenGarage .card{ width:min(94vw,620px); max-width:620px; margin:0 auto; padding:24px; }
   .balance{ color:#ffd65a; font-weight:900; font-size:16px; margin:8px 0 14px; }
   .garage-btn{ margin-bottom:16px; }
+  .share-box{ margin:0 0 18px; padding:12px; border:1px solid #ffffff22; border-radius:8px; background:#090b10aa; }
+  .share-box .btn{ width:100%; padding:11px 14px; font-size:12px; }
+  .share-note{ min-height:16px; margin:7px 0 0; color:#ffd65a; font-size:10px; line-height:1.35; }
   .car-choice{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0 18px; }
   .car-option{ border:2px solid #ffffff25; border-radius:9px; background:#090b10aa; padding:10px 6px; color:var(--white); cursor:pointer; }
   .car-option.selected{ border-color:var(--orange); box-shadow:0 0 18px #b043ff70; }
@@ -380,6 +383,10 @@
         <input type="text" id="nickInput" class="nick-input" maxlength="14" placeholder="Twój nick">
         <div class="balance" id="titleBalance">🔩 0 śrubek</div>
         <button class="btn garage-btn" id="btnGarage" type="button">Garaż</button>
+        <div class="share-box">
+          <button class="btn" id="btnShare" type="button">📨 Poleć grę · +100 000 🔩</button>
+          <p class="share-note" id="shareNote">Udostępnij przez Messengera lub inną aplikację. Nagroda jest jednorazowa.</p>
+        </div>
         <p class="field-label">Wybierz tor</p>
         <div class="track-choice">
           <button class="btn btn-track" id="btnRondo" data-mode="rondo">Rondo</button>
@@ -460,6 +467,8 @@
   var btnRondo = document.getElementById('btnRondo');
   var btnOsemka = document.getElementById('btnOsemka');
   var btnGarage = document.getElementById('btnGarage');
+  var btnShare = document.getElementById('btnShare');
+  var shareNote = document.getElementById('shareNote');
   var btnGarageBack = document.getElementById('btnGarageBack');
   var btnEndGarage = document.getElementById('btnEndGarage');
   var btnEndMenu = document.getElementById('btnEndMenu');
@@ -527,7 +536,7 @@
   var lastLoopIndex = -1;
   var lastLoopTime = -999;
 
-  var DEFAULT_PROFILE = {currency:0,mods:{engine:0,turbo:0,supercharger:0,injectors:0,fuelpump:0,clutch:0,gearbox:0,tires:0},car:'e36_touring'};
+  var DEFAULT_PROFILE = {currency:0,shareRewarded:false,mods:{engine:0,turbo:0,supercharger:0,injectors:0,fuelpump:0,clutch:0,gearbox:0,tires:0},car:'e36_touring'};
   var currentProfile = JSON.parse(JSON.stringify(DEFAULT_PROFILE));
   var loadedProfileName = '';
   var effectiveStats = {maxSpeed:285,accel:245,decel:150,grip:2.6,turn:1,flame:1};
@@ -556,6 +565,10 @@
   function localProfileAction(action,extra){
     var p=readLocalProfile(),cat,tier,nextTier;
     if(action==='earn') p.currency+=1000;
+    else if(action==='share_reward'){
+      if(p.shareRewarded) return Promise.reject({error:'share_reward_claimed'});
+      p.currency+=100000;p.shareRewarded=true;
+    }
     else if(action==='select_car' && CAR_MODELS[extra.car]) p.car=extra.car;
     else if(action==='buy'){
       cat=extra.category;tier=p.mods[cat]||0;nextTier=tier+1;
@@ -579,11 +592,15 @@
   function showProfile(){
     var text='🔩 '+Math.floor(currentProfile.currency||0)+' śrubek';
     titleBalance.textContent=text; garageBalance.textContent=text;
+    if(btnShare){
+      btnShare.disabled=currentProfile.shareRewarded===true;
+      btnShare.textContent=currentProfile.shareRewarded?'✓ Nagroda za polecenie odebrana':'📨 Poleć grę · +100 000 🔩';
+    }
     renderGarage();
   }
   function normalizeProfile(p){
     p=p||{}; p.mods=p.mods||{};
-    return {currency:Math.max(0,Number(p.currency)||0),car:CAR_MODELS[p.car]?p.car:'e36_touring',mods:{
+    return {currency:Math.max(0,Number(p.currency)||0),shareRewarded:p.shareRewarded===true,car:CAR_MODELS[p.car]?p.car:'e36_touring',mods:{
       engine:clamp(Number(p.mods.engine)||0,0,3),turbo:clamp(Number(p.mods.turbo)||0,0,3),supercharger:clamp(Number(p.mods.supercharger)||0,0,3),
       injectors:clamp(Number(p.mods.injectors)||0,0,3),fuelpump:clamp(Number(p.mods.fuelpump)||0,0,3),clutch:clamp(Number(p.mods.clutch)||0,0,3),
       gearbox:clamp(Number(p.mods.gearbox)||0,0,3),tires:clamp(Number(p.mods.tires)||0,0,3)}};
@@ -1011,8 +1028,29 @@
     renderGarage();
     loadProfile(true);
   }
+  function referralLink(){
+    var url=new URL(window.location.href);url.search='';url.hash='';url.searchParams.set('ref',profileNick());return url.toString();
+  }
+  function grantShareReward(){
+    shareNote.textContent='Naliczam nagrodę...';
+    return profileAction('share_reward').then(function(){shareNote.textContent='Gotowe! Otrzymujesz 100 000 śrubek za polecenie gry.';}).catch(function(err){
+      shareNote.textContent=err&&err.error==='share_reward_claimed'?'Ta jednorazowa nagroda została już odebrana.':'Nie udało się naliczyć nagrody. Spróbuj ponownie.';
+    });
+  }
+  function shareGame(){
+    var link=referralLink();
+    var data={title:'Turbo Kret Drift',text:'Wbij do Turbo Kret Drift i pobij mój wynik! Nick polecającego: '+profileNick(),url:link};
+    shareNote.textContent='Wybierz Messengera lub inną aplikację...';
+    if(navigator.share){
+      navigator.share(data).then(grantShareReward).catch(function(err){if(!err||err.name!=='AbortError')shareNote.textContent='Udostępnianie nie powiodło się. Spróbuj ponownie.';});
+      return;
+    }
+    var copied=navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(data.text+' '+link):Promise.reject();
+    copied.then(function(){shareNote.textContent='Link skopiowany — wklej go znajomemu na Messengerze.';return grantShareReward();}).catch(function(){shareNote.textContent='Skopiuj link z paska adresu i wyślij go znajomemu.';});
+  }
   window.showTurboGarage=showGarage;
   btnGarage.addEventListener('click', showGarage);
+  btnShare.addEventListener('click', shareGame);
   btnEndGarage.addEventListener('click', showGarage);
   btnEndMenu.addEventListener('click', showMainMenu);
   btnGarageBack.addEventListener('click', showMainMenu);

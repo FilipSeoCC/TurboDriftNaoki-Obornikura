@@ -4,6 +4,7 @@ const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 const PRICE = 500;
 const ROUND_REWARD = 1000;
+const SHARE_REWARD = 100000;
 const CATEGORIES = ['engine', 'turbo', 'supercharger', 'injectors', 'fuelpump', 'clutch', 'gearbox', 'tires'];
 const CARS = ['e36_touring', 'e36_bodykit', 'e36_m3', 'mazda_mx5', 'bmw_e46_checker'];
 
@@ -29,9 +30,14 @@ if raw then p = cjson.decode(raw) else p = {currency=0,mods={engine=0,turbo=0,su
 p.mods = p.mods or {}
 local fields = {'engine','turbo','supercharger','injectors','fuelpump','clutch','gearbox','tires'}
 for _, field in ipairs(fields) do p.mods[field] = tonumber(p.mods[field]) or 0 end
+p.shareRewarded = p.shareRewarded == true
 local action = ARGV[1]
 if action == 'earn' then
   p.currency = (tonumber(p.currency) or 0) + ${ROUND_REWARD}
+elseif action == 'share_reward' then
+  if p.shareRewarded then return cjson.encode({error='share_reward_claimed'}) end
+  p.currency = (tonumber(p.currency) or 0) + ${SHARE_REWARD}
+  p.shareRewarded = true
 elseif action == 'buy' then
   local category = ARGV[2]
   local tier = tonumber(p.mods[category]) or 0
@@ -76,7 +82,7 @@ module.exports = async (req, res) => {
       } else if (action === 'select_car') {
         if (!CARS.includes(body.car)) return res.status(400).json({ error: 'invalid_car' });
         value = body.car;
-      } else if (action !== 'earn') return res.status(400).json({ error: 'invalid_action' });
+      } else if (action !== 'earn' && action !== 'share_reward') return res.status(400).json({ error: 'invalid_action' });
       const result = await redis(['EVAL', MUTATE_SCRIPT, '1', key, action, value]);
       const profile = JSON.parse(result.result);
       if (profile.error) return res.status(400).json(profile);
