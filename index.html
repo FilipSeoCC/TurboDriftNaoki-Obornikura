@@ -1422,20 +1422,37 @@
     }
     SCORING_PATH = [];
     var pathPoints = 180;
-    for (var p=0;p<pathPoints;p++){
-      var t = p/pathPoints*Math.PI*2;
-      if (trackMode === 'rondo'){
+    if (trackMode === 'rondo'){
+      for (var p=0;p<pathPoints;p++){
+        var t = p/pathPoints*Math.PI*2;
         SCORING_PATH.push({ x:cx+Math.cos(t)*LOOPS[0].radius, y:cy+Math.sin(t)*LOOPS[0].radius });
-      } else {
-        var ampX = Math.min(W*0.34, LOOPS[0].radius*2.25);
-        var ampY = Math.min(H*0.28, LOOPS[0].radius*1.45);
-        SCORING_PATH.push({ x:cx+Math.sin(t)*ampX, y:cy+Math.sin(t*2)*ampY });
+      }
+    } else {
+      // Five-point pentagram: visit every second vertex of a regular pentagon.
+      // Each arm is resampled so line scoring and vehicle spawning stay smooth.
+      var starRx = Math.min(W*0.34, LOOPS[0].radius*2.35);
+      var starRy = Math.min(H*0.34, LOOPS[0].radius*1.85);
+      var starVertices = [];
+      for (var sv=0;sv<5;sv++){
+        var sa = -Math.PI/2 + sv*Math.PI*2/5;
+        starVertices.push({x:cx+Math.cos(sa)*starRx,y:cy+Math.sin(sa)*starRy});
+      }
+      var starOrder = [0,2,4,1,3];
+      var pointsPerArm = pathPoints/5;
+      for (var arm=0;arm<5;arm++){
+        var from=starVertices[starOrder[arm]],to=starVertices[starOrder[(arm+1)%5]];
+        for (var sp=0;sp<pointsPerArm;sp++){
+          var mix=sp/pointsPerArm;
+          SCORING_PATH.push({x:from.x+(to.x-from.x)*mix,y:from.y+(to.y-from.y)*mix});
+        }
       }
     }
     BONUS_ZONES = [];
-    var zoneCount = trackMode === 'rondo' ? 4 : 6;
+    var zoneCount = trackMode === 'rondo' ? 4 : 5;
     for (var z=0;z<zoneCount;z++){
-      var zoneIndex = Math.floor((z+0.5)*SCORING_PATH.length/zoneCount)%SCORING_PATH.length;
+      var zoneIndex = trackMode === 'rondo'
+        ? Math.floor((z+0.5)*SCORING_PATH.length/zoneCount)%SCORING_PATH.length
+        : z*Math.floor(SCORING_PATH.length/5);
       BONUS_ZONES.push({x:SCORING_PATH[zoneIndex].x,y:SCORING_PATH[zoneIndex].y,radius:31});
     }
     laps = LOOPS.map(function(){ return { prevTheta:0, accum:0, active:false, laps:0 }; });
