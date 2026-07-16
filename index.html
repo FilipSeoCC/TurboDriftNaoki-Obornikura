@@ -205,6 +205,18 @@
   .score-gift-btn.unlocked .score-gift-icon{ filter:none; animation:giftPulse 1.25s ease-in-out infinite; }
   .score-gift-btn.unlocked:hover{ transform:translateY(-2px) scale(1.02); box-shadow:0 0 30px #b043ff70; }
   @keyframes giftPulse{ 50%{ transform:scale(1.14) rotate(-4deg); } }
+  .score-reward.reward-popup{
+    position:fixed; inset:0; z-index:25; margin:0; padding:20px; display:flex;
+    align-items:center; justify-content:center; background:#080a0edb; backdrop-filter:blur(5px);
+  }
+  .score-reward.reward-popup .score-gift-btn{
+    width:min(88vw,380px); padding:24px 20px; border-width:3px; font-size:16px;
+    box-shadow:0 0 32px #b043ff9c, 0 16px 50px #000c; animation:rewardPopupPulse .9s ease-in-out infinite;
+  }
+  .score-reward.reward-popup .score-gift-icon{ font-size:64px; }
+  @keyframes rewardPopupPulse{
+    50%{ transform:scale(1.08); box-shadow:0 0 52px #c45cffd9, 0 18px 60px #000d; }
+  }
 
   .result-grid{
     display:flex; gap:18px; justify-content:center; margin:0 0 22px;
@@ -563,6 +575,7 @@
   var cardModalTitle = document.getElementById('cardModalTitle');
   var cardModalText = document.getElementById('cardModalText');
   var goodScoreGift = document.getElementById('goodScoreGift');
+  var goodScoreReward = goodScoreGift.parentElement;
   var goodScoreGiftIcon = document.getElementById('goodScoreGiftIcon');
   var goodScoreGiftText = document.getElementById('goodScoreGiftText');
   var GOOD_SCORE_REWARD = {
@@ -587,16 +600,20 @@
   cardModalClose.addEventListener('click', function(){ cardModal.hidden = true; });
   cardModal.addEventListener('click', function(e){ if (e.target === cardModal){ cardModal.hidden = true; } });
   goodScoreGift.addEventListener('click', function(){
-    if (!goodScoreGift.disabled){ openCardModal(GOOD_SCORE_REWARD); }
+    if (!goodScoreGift.disabled){
+      goodScoreReward.classList.remove('reward-popup');
+      openCardModal(GOOD_SCORE_REWARD);
+    }
   });
 
   function updateGoodScoreReward(score){
     var unlocked = score >= GOOD_SCORE_REWARD.threshold;
     goodScoreGift.disabled = !unlocked;
     goodScoreGift.classList.toggle('unlocked', unlocked);
+    goodScoreReward.classList.toggle('reward-popup', unlocked);
     goodScoreGiftIcon.textContent = unlocked ? '🎁' : '🔒';
     goodScoreGiftText.textContent = unlocked
-      ? 'Nagroda za dobry wynik — kliknij prezent'
+      ? 'Kliknij, aby odebrać prezent'
       : 'Zdobądź ' + GOOD_SCORE_REWARD.threshold + ' pkt, aby odblokować prezent';
   }
 
@@ -759,6 +776,17 @@
     }
   }
 
+  function playEngineSampleBurst(intensity){
+    if (!audioCtx || muted || !engineSample || !engineSampleGain) return;
+    var t = audioCtx.currentTime;
+    engineSample.playbackRate = clamp(0.82 + intensity*0.0048, 0.82, 1.3);
+    engineSampleGain.gain.cancelScheduledValues(t);
+    engineSampleGain.gain.setValueAtTime(Math.max(0.001, engineSampleGain.gain.value), t);
+    engineSampleGain.gain.linearRampToValueAtTime(0.36, t+0.025);
+    engineSampleGain.gain.exponentialRampToValueAtTime(0.001, t+0.28);
+    if (engineSample.paused){ engineSample.play().catch(function(){}); }
+  }
+
   function playChime(){
     if (!audioCtx || muted) return;
     [660,880,1100].forEach(function(freq, idx){
@@ -879,6 +907,7 @@
     pump.meter = clamp(pump.meter + rand(9,13), 0, 100);
     pump.wobble = 1;
     pump.lastPumpAt = performance.now();
+    playEngineSampleBurst(pump.meter);
     playTurboFlutter(pump.meter, pump.meter >= 100);
     if (pump.meter >= 100){ startTransform(); }
   }
@@ -1526,7 +1555,7 @@
 
     screenEnd.hidden = false;
 
-    if (newCards.length){
+    if (newCards.length && finalScore < GOOD_SCORE_REWARD.threshold){
       setTimeout(function(){ openCardModal(newCards[0]); }, 700);
     }
   }
