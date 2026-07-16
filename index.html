@@ -149,6 +149,27 @@
   .btn:active{ transform:translateY(3px); box-shadow:0 1px 0 #5c1780; }
   .btn:focus-visible{ outline:3px solid var(--teal); outline-offset:3px; }
 
+  .nick-input{
+    width:100%; max-width:260px; margin:0 auto 14px; display:block;
+    background:#00000040; border:1px solid #ffffff30; border-radius:6px;
+    color:var(--white); font-family:inherit; font-size:14px; padding:8px 12px;
+    text-align:center;
+  }
+  .nick-input::placeholder{ color:var(--grey); }
+  .nick-input:focus{ outline:2px solid var(--teal); border-color:transparent; }
+
+  .track-choice{ display:flex; gap:10px; justify-content:center; margin:0 0 18px; }
+  .btn-track{ flex:1; padding:12px 10px; font-size:13px; }
+
+  .card-gallery{ display:flex; gap:8px; justify-content:center; margin-top:2px; }
+  .buko-card{
+    width:64px; height:86px; border-radius:6px; border:2px solid var(--grey-dim);
+    background:#00000030; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:4px; font-size:9px; color:var(--grey); text-align:center; padding:4px;
+  }
+  .buko-card.unlocked{ border-color:var(--orange); color:var(--white); background:#00000050; }
+  .buko-card .card-icon{ font-size:20px; }
+
   .result-grid{
     display:flex; gap:18px; justify-content:center; margin:0 0 22px;
   }
@@ -159,6 +180,25 @@
   .result-item .lbl{ font-size:10px; letter-spacing:0.1em; color:var(--grey); text-transform:uppercase; margin-top:2px; }
 
   .verdict{ font-size:16px; font-weight:700; margin:0 0 22px; color:var(--white); }
+
+  .unlock-banner{
+    background:linear-gradient(90deg, var(--orange), var(--orange-2));
+    color:#170826; font-weight:900; text-transform:uppercase; font-size:11px;
+    padding:8px 12px; border-radius:6px; margin:0 0 14px; text-align:center;
+  }
+
+  .leaderboard{ margin:0 0 20px; text-align:left; }
+  .lb-title{
+    font-size:11px; letter-spacing:0.1em; color:var(--grey); text-transform:uppercase;
+    font-weight:700; margin-bottom:6px; text-align:center;
+  }
+  .lb-row{ display:flex; align-items:center; gap:8px; padding:5px 10px; border-radius:6px; font-size:13px; }
+  .lb-row:nth-child(odd){ background:#00000025; }
+  .lb-row.lb-you{ background:#b043ff26; border:1px solid var(--orange); }
+  .lb-rank{ width:18px; color:var(--grey); font-weight:700; }
+  .lb-name{ flex:1; color:var(--white); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lb-score{ color:var(--orange-2); font-family:"Consolas","Menlo",monospace; font-weight:700; font-variant-numeric:tabular-nums; }
+  .lb-empty{ text-align:center; color:var(--grey); font-size:12px; padding:8px; }
 
   @media (prefers-reduced-motion: reduce){
     .meter > i{ transition:none; }
@@ -196,6 +236,9 @@
     .card{ padding:24px 20px; }
     .card .lead{ font-size:13px; }
     .hero-photo{ height:110px; margin-bottom:12px; }
+    .track-choice{ gap:6px; }
+    .btn-track{ font-size:11px; padding:10px 6px; }
+    .buko-card{ width:52px; height:74px; }
   }
 </style>
 </head>
@@ -239,8 +282,13 @@
         <div class="hero-photo"></div>
         <p class="sub">Operacja Wkurw &middot; Odcinek 1</p>
         <h1>Turbo <span>Kret</span> Drift</h1>
-        <p class="lead">Bukovski ma w gaciach małego kreta.<br>Napompuj mu turbinę, zamień kreta w bestię i dryfuj wokół ósemki z pachołkami —<br>dryfowanie daje punkty w czasie, a każde trafienie pachołka podwaja twój mnożnik punktów.</p>
-        <button class="btn" id="btnStart">Kliknij</button>
+        <p class="lead">Bukovski ma w gaciach małego kreta.<br>Napompuj mu turbinę, zamień kreta w bestię i dryfuj wokół toru z pachołkami —<br>dryfowanie daje punkty w czasie, a każde trafienie pachołka podwaja twój mnożnik punktów.</p>
+        <input type="text" id="nickInput" class="nick-input" maxlength="14" placeholder="Twój nick">
+        <div class="track-choice">
+          <button class="btn btn-track" id="btnRondo" data-mode="rondo">Rondo</button>
+          <button class="btn btn-track" id="btnOsemka" data-mode="osemka">Ósemka</button>
+        </div>
+        <div class="card-gallery" id="cardGallery"></div>
       </div>
     </div>
 
@@ -254,6 +302,11 @@
           <div class="result-item"><div class="num mono" id="endRage">0%</div><div class="lbl">Wkurw Bukovskiego</div></div>
         </div>
         <p class="verdict" id="endVerdict">—</p>
+        <div class="unlock-banner" id="unlockBanner" hidden></div>
+        <div class="leaderboard">
+          <div class="lb-title">TOP 5</div>
+          <div class="lb-rows" id="lbRows"></div>
+        </div>
         <button class="btn" id="btnRetry">Jeszcze raz</button>
       </div>
     </div>
@@ -280,8 +333,14 @@
 
   var screenTitle = document.getElementById('screenTitle');
   var screenEnd = document.getElementById('screenEnd');
-  var btnStart = document.getElementById('btnStart');
+  var btnRondo = document.getElementById('btnRondo');
+  var btnOsemka = document.getElementById('btnOsemka');
   var btnRetry = document.getElementById('btnRetry');
+  var nickInput = document.getElementById('nickInput');
+  var cardGallery = document.getElementById('cardGallery');
+  var unlockBanner = document.getElementById('unlockBanner');
+  var lbRows = document.getElementById('lbRows');
+  var trackMode = 'osemka';
 
   var isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
   var tcWrap = document.getElementById('tcWrap');
@@ -333,6 +392,87 @@
   function addScore(base){
     drift.score += base * SCORE_MULT * comboMult;
   }
+
+  // ---------- nickname, leaderboard, unlockable cards (all via localStorage) ----------
+  nickInput.value = (function(){ try{ return localStorage.getItem('tkd_nick') || ''; }catch(e){ return ''; } })();
+  nickInput.addEventListener('input', function(){
+    try{ localStorage.setItem('tkd_nick', nickInput.value); }catch(e){}
+  });
+
+  var LB_KEY = 'tkd_scores_v1';
+  function loadScores(){
+    try{ return JSON.parse(localStorage.getItem(LB_KEY)) || []; }catch(e){ return []; }
+  }
+  function saveScores(list){
+    try{ localStorage.setItem(LB_KEY, JSON.stringify(list)); }catch(e){}
+  }
+  function recordScore(name, score, mode){
+    var list = loadScores();
+    var entry = { name: name, score: score, mode: mode };
+    list.push(entry);
+    list.sort(function(a,b){ return b.score - a.score; });
+    if (list.length > 20){ list = list.slice(0, 20); }
+    saveScores(list);
+    return { list: list, entry: entry };
+  }
+  function renderLeaderboard(list, highlightEntry){
+    lbRows.innerHTML = '';
+    if (!list.length){
+      var empty = document.createElement('div');
+      empty.className = 'lb-empty';
+      empty.textContent = 'Brak wynik\u00f3w \u2014 b\u0105d\u017a pierwszy!';
+      lbRows.appendChild(empty);
+      return;
+    }
+    list.slice(0,5).forEach(function(e, i){
+      var row = document.createElement('div');
+      row.className = 'lb-row' + (e === highlightEntry ? ' lb-you' : '');
+      var rank = document.createElement('span'); rank.className = 'lb-rank'; rank.textContent = (i+1) + '.';
+      var name = document.createElement('span'); name.className = 'lb-name'; name.textContent = e.name;
+      var score = document.createElement('span'); score.className = 'lb-score'; score.textContent = Math.round(e.score);
+      row.appendChild(rank); row.appendChild(name); row.appendChild(score);
+      lbRows.appendChild(row);
+    });
+  }
+
+  var CARDS = [
+    { id:'bojowy', threshold:1000, title:'Bukovski Bojowy', icon:'\uD83D\uDD31', desc:'Chwyta wid\u0142y i biegnie za tob\u0105 po podw\u00f3rku.' },
+    { id:'legenda', threshold:2000, title:'Bukovski Legenda', icon:'\uD83D\uDC51', desc:'Sta\u0142a, permanentna furia. S\u0105siedzi si\u0119 poddali.' }
+  ];
+  var CARD_KEY = 'tkd_cards_v1';
+  function loadUnlockedCards(){
+    try{ return JSON.parse(localStorage.getItem(CARD_KEY)) || []; }catch(e){ return []; }
+  }
+  function saveUnlockedCards(list){
+    try{ localStorage.setItem(CARD_KEY, JSON.stringify(list)); }catch(e){}
+  }
+  function checkCardUnlocks(score){
+    var unlocked = loadUnlockedCards();
+    var newlyUnlocked = [];
+    CARDS.forEach(function(c){
+      if (score >= c.threshold && unlocked.indexOf(c.id) === -1){
+        unlocked.push(c.id);
+        newlyUnlocked.push(c);
+      }
+    });
+    if (newlyUnlocked.length){ saveUnlockedCards(unlocked); }
+    return newlyUnlocked;
+  }
+  function renderCardGallery(){
+    var unlocked = loadUnlockedCards();
+    cardGallery.innerHTML = '';
+    CARDS.forEach(function(c){
+      var isUnlocked = unlocked.indexOf(c.id) !== -1;
+      var el = document.createElement('div');
+      el.className = 'buko-card' + (isUnlocked ? ' unlocked' : '');
+      el.title = isUnlocked ? c.desc : ('Zdob\u0105d\u017a ' + c.threshold + ' pkt, \u017ceby odblokowa\u0107.');
+      var icon = document.createElement('div'); icon.className = 'card-icon'; icon.textContent = isUnlocked ? c.icon : '?';
+      var label = document.createElement('div'); label.textContent = isUnlocked ? c.title : (c.threshold + ' pkt');
+      el.appendChild(icon); el.appendChild(label);
+      cardGallery.appendChild(el);
+    });
+  }
+  renderCardGallery();
 
   var quotesLow = ["Bukovski zapala szluga, ma to w nosie.","Bukovski: 'a i tak zapalę.'","Bukovski pyka fajkę na ganku, olewa sprawę.","Bukovski wraca do dymka, cisza."];
   var quotesMid = ["Bukovski gasi szluga: 'co tu, kurwa, jedzie?!'","Bukovski: 'ZNOWU TEN KRET?!'","Bukovski szuka kamienia do rzucenia.","Bukovski: 'Moje pelargonie, gnido!'"];
@@ -447,8 +587,15 @@
     else if (STATE === 'end'){ startPump(); }
   }
 
-  btnStart.addEventListener('click', function(){ ensureAudio(); startPump(); });
-  btnRetry.addEventListener('click', function(){ ensureAudio(); startPump(); });
+  btnRondo.addEventListener('click', function(){ ensureAudio(); trackMode = 'rondo'; startPump(); });
+  btnOsemka.addEventListener('click', function(){ ensureAudio(); trackMode = 'osemka'; startPump(); });
+  btnRetry.addEventListener('click', function(){
+    ensureAudio();
+    STATE = 'title';
+    screenEnd.hidden = true;
+    screenTitle.hidden = false;
+    renderCardGallery();
+  });
 
   // ---------- touch controls ----------
   function bindHold(el, onDown, onUp){
@@ -692,20 +839,31 @@
 
   function setupTrack(){
     var cx = W/2, cy = H/2;
-    var r = Math.max(55, Math.min(W,H)*0.19);
-    var sep = r*1.5;
-    LOOPS = [
-      { cx: cx-sep/2, cy: cy, radius: r },
-      { cx: cx+sep/2, cy: cy, radius: r }
-    ];
+    if (trackMode === 'rondo'){
+      var r1 = Math.max(80, Math.min(W,H)*0.3);
+      LOOPS = [ { cx: cx, cy: cy, radius: r1 } ];
+    } else {
+      var r2 = Math.max(55, Math.min(W,H)*0.19);
+      var sep = r2*1.5;
+      LOOPS = [
+        { cx: cx-sep/2, cy: cy, radius: r2 },
+        { cx: cx+sep/2, cy: cy, radius: r2 }
+      ];
+    }
     laps = LOOPS.map(function(){ return { prevTheta:0, accum:0, active:false, laps:0 }; });
     cones = [];
-    var n = 6;
+    var n = 5;
     LOOPS.forEach(function(loop){
+      var innerR = loop.radius - 60;
+      var outerR = loop.radius + 80;
       for (var i=0;i<n;i++){
         var a = i*(Math.PI*2/n);
         cones.push({
-          x: loop.cx+Math.cos(a)*loop.radius, y: loop.cy+Math.sin(a)*loop.radius,
+          x: loop.cx+Math.cos(a)*innerR, y: loop.cy+Math.sin(a)*innerR,
+          hit:0, passing:false, minDist:Infinity, cooldown:0
+        });
+        cones.push({
+          x: loop.cx+Math.cos(a)*outerR, y: loop.cy+Math.sin(a)*outerR,
           hit:0, passing:false, minDist:Infinity, cooldown:0
         });
       }
@@ -1070,7 +1228,8 @@
   function endGame(){
     STATE = 'end';
     if (tireGain && audioCtx) tireGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
-    document.getElementById('endScore').textContent = Math.round(drift.score);
+    var finalScore = Math.round(drift.score);
+    document.getElementById('endScore').textContent = finalScore;
     document.getElementById('endRage').textContent = Math.round(drift.maxHeat)+'%';
     var verdict, title;
     if (drift.maxHeat < 30){ title='Bukovski Spokojny'; verdict='Bukovski dopalił szluga na ganku i nawet nie zauważył.'; }
@@ -1078,6 +1237,19 @@
     else { title='Totalna Furia'; verdict='BUKOVSKI WRZESZCZY NA CAŁĄ ULICĘ: GÓWNIARZU ZASRANY ZAJEBANY!!! Misja zaliczona.'; }
     document.getElementById('endTitle').innerHTML = title.split(' ').map(function(w,i){return i===title.split(' ').length-1? '<span>'+w+'</span>':w;}).join(' ');
     document.getElementById('endVerdict').textContent = verdict;
+
+    var nick = (nickInput.value || '').trim().slice(0,14) || 'Anonim';
+    var rec = recordScore(nick, finalScore, trackMode);
+    renderLeaderboard(rec.list, rec.entry);
+
+    var newCards = checkCardUnlocks(finalScore);
+    if (newCards.length){
+      unlockBanner.hidden = false;
+      unlockBanner.textContent = 'ODBLOKOWANO: ' + newCards.map(function(c){ return c.title; }).join(', ');
+    } else {
+      unlockBanner.hidden = true;
+    }
+
     screenEnd.hidden = false;
   }
 
