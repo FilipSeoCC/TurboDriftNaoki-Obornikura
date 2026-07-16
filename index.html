@@ -191,8 +191,14 @@
   .leaderboard{ margin:0 0 20px; text-align:left; }
   .lb-title{
     font-size:11px; letter-spacing:0.1em; color:var(--grey); text-transform:uppercase;
-    font-weight:700; margin-bottom:6px; text-align:center;
+    font-weight:700; margin-bottom:6px; text-align:center; position:relative;
   }
+  .lb-clear{
+    position:absolute; right:0; top:-2px; background:none; border:none; color:var(--grey);
+    font-size:10px; text-transform:none; letter-spacing:0; text-decoration:underline;
+    cursor:pointer; padding:2px 4px;
+  }
+  .lb-clear:hover{ color:var(--white); }
   .lb-row{ display:flex; align-items:center; gap:8px; padding:5px 10px; border-radius:6px; font-size:13px; }
   .lb-row:nth-child(odd){ background:#00000025; }
   .lb-row.lb-you{ background:#b043ff26; border:1px solid var(--orange); }
@@ -306,7 +312,7 @@
         <p class="verdict" id="endVerdict">—</p>
         <div class="unlock-banner" id="unlockBanner" hidden></div>
         <div class="leaderboard">
-          <div class="lb-title">TOP 5</div>
+          <div class="lb-title">TOP 5 <button type="button" id="btnClearLb" class="lb-clear">wyczyść</button></div>
           <div class="lb-rows" id="lbRows"></div>
         </div>
         <button class="btn" id="btnRetry">Jeszcze raz</button>
@@ -342,6 +348,7 @@
   var cardGallery = document.getElementById('cardGallery');
   var unlockBanner = document.getElementById('unlockBanner');
   var lbRows = document.getElementById('lbRows');
+  var btnClearLb = document.getElementById('btnClearLb');
   var trackMode = 'osemka';
 
   var isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
@@ -437,9 +444,18 @@
     });
   }
 
+  btnClearLb.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
+  btnClearLb.addEventListener('click', function(e){
+    e.stopPropagation();
+    if (window.confirm('Na pewno wyczyścić tablicę wyników?')){
+      saveScores([]);
+      renderLeaderboard([], null);
+    }
+  });
+
   var CARDS = [
-    { id:'bojowy', threshold:1000, title:'Bukovski Bojowy', icon:'\uD83D\uDD31', desc:'Chwyta wid\u0142y i biegnie za tob\u0105 po podw\u00f3rku.' },
-    { id:'legenda', threshold:2000, title:'Bukovski Legenda', icon:'\uD83D\uDC51', desc:'Sta\u0142a, permanentna furia. S\u0105siedzi si\u0119 poddali.' }
+    { id:'bojowy', threshold:10000000, title:'Bukovski Bojowy', icon:'\uD83D\uDD31', desc:'Chwyta wid\u0142y i biegnie za tob\u0105 po podw\u00f3rku.' },
+    { id:'legenda', threshold:20000000, title:'Bukovski Legenda', icon:'\uD83D\uDC51', desc:'Sta\u0142a, permanentna furia. S\u0105siedzi si\u0119 poddali.' }
   ];
   var CARD_KEY = 'tkd_cards_v1';
   function loadUnlockedCards(){
