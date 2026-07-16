@@ -1001,12 +1001,12 @@
   btnOsemka.addEventListener('click', function(){ ensureAudio(); trackMode = 'osemka'; loadProfile(false).then(startPump); });
   function showMainMenu(){
     STATE = 'title';
-    keys={}; gameActions.hidden=true; cardModal.hidden=true; goodScoreReward.classList.remove('reward-popup');
+    keys={}; gameActions.hidden=true; cardModal.hidden=true;
     screenEnd.hidden=true; screenGarage.hidden=true; screenTitle.hidden=false;
     renderCardGallery();
   }
   function showGarage(){
-    STATE='title'; keys={}; gameActions.hidden=true; cardModal.hidden=true; goodScoreReward.classList.remove('reward-popup');
+    STATE='title'; keys={}; gameActions.hidden=true; cardModal.hidden=true;
     screenTitle.hidden=true;screenEnd.hidden=true;screenGarage.hidden=false;screenGarage.scrollTop=0;
     renderGarage();
     loadProfile(true);
