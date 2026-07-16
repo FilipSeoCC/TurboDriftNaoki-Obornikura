@@ -148,6 +148,13 @@
   .share-box{ margin:0 0 18px; padding:12px; border:1px solid #ffffff22; border-radius:8px; background:#090b10aa; }
   .share-box .btn{ width:100%; padding:11px 14px; font-size:12px; }
   .share-note{ min-height:16px; margin:7px 0 0; color:#ffd65a; font-size:10px; line-height:1.35; }
+  .multi-box{ margin:0 0 18px; padding:12px; border:1px solid #23d1b566; border-radius:8px; background:#071619cc; }
+  .mode-choice{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .mode-btn{ padding:12px 8px; border:2px solid #ffffff25; border-radius:7px; background:#090b10; color:var(--white); font:900 italic 12px Arial Narrow,Arial; cursor:pointer; }
+  .mode-btn.selected{ border-color:var(--teal); color:var(--teal); box-shadow:0 0 14px #23d1b555; }
+  .multi-room-options[hidden]{ display:none; }
+  .room-input{ width:100%; margin-top:9px; padding:9px; border:1px solid #ffffff33; border-radius:6px; background:#090b10; color:var(--teal); text-align:center; font:900 13px Consolas,monospace; text-transform:uppercase; }
+  .multi-note{ margin:7px 0 0; color:var(--grey); font-size:10px; line-height:1.35; }
   .car-choice{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0 18px; }
   .car-option{ border:2px solid #ffffff25; border-radius:9px; background:#090b10aa; padding:10px 6px; color:var(--white); cursor:pointer; }
   .car-option.selected{ border-color:var(--orange); box-shadow:0 0 18px #b043ff70; }
@@ -415,6 +422,17 @@
           <button class="btn" id="btnShare" type="button">📨 Poleć grę · +100 000 🔩</button>
           <p class="share-note" id="shareNote">Udostępnij przez Messengera lub inną aplikację. Nagroda jest jednorazowa.</p>
         </div>
+        <div class="multi-box">
+          <p class="field-label">Wybierz tryb gry</p>
+          <div class="mode-choice">
+            <button class="mode-btn selected" id="btnSingleMode" type="button">👤 SINGLEPLAYER</button>
+            <button class="mode-btn" id="btnMultiMode" type="button">👥 MULTIPLAYER</button>
+          </div>
+          <div class="multi-room-options" id="multiRoomOptions" hidden>
+            <input class="room-input" id="roomInput" maxlength="12" value="PUBLIC" aria-label="Kod pokoju multiplayer">
+            <p class="multi-note" id="multiplayerStatus">Pokój PUBLIC · maks. 8 graczy · bez kolizji</p>
+          </div>
+        </div>
         <p class="field-label">Wybierz tor</p>
         <div class="track-choice">
           <button class="btn btn-track" id="btnRondo" data-mode="rondo">Rondo</button>
@@ -519,7 +537,15 @@
   var unlockBanner = document.getElementById('unlockBanner');
   var lbRowsTop = document.getElementById('lbRowsTop');
   var lbRowsBottom = document.getElementById('lbRowsBottom');
+  var btnSingleMode = document.getElementById('btnSingleMode');
+  var btnMultiMode = document.getElementById('btnMultiMode');
+  var multiRoomOptions = document.getElementById('multiRoomOptions');
+  var roomInput = document.getElementById('roomInput');
+  var multiplayerStatus = document.getElementById('multiplayerStatus');
   var trackMode = 'osemka';
+  var multiplayerId = (function(){try{var id=sessionStorage.getItem('tkd_multi_id');if(!id){id='p_'+Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('tkd_multi_id',id);}return id;}catch(e){return 'p_'+Math.random().toString(36).slice(2);}})();
+  var multiplayerTimer = 0, multiplayerBusy = false, remotePlayers = {}, multiplayerEnabled = false;
+  try{multiplayerEnabled=localStorage.getItem('tkd_game_mode')==='multi';roomInput.value=localStorage.getItem('tkd_room')||'PUBLIC';}catch(e){}
 
   var isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
   var tcWrap = document.getElementById('tcWrap');
@@ -1097,10 +1123,58 @@
     else if (STATE === 'end'){ startPump(); }
   }
 
+  function multiplayerRoom(){return (roomInput.value||'PUBLIC').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,12).toUpperCase()||'PUBLIC';}
+  function updateMultiplayerStatus(count,text){
+    if(!multiplayerStatus)return;
+    multiplayerStatus.textContent=text||(multiplayerEnabled?'Pokój '+multiplayerRoom()+' · graczy online: '+count:'Multiplayer wyłączony');
+  }
+  function acceptRemotePlayers(players){
+    var seen={},now=performance.now();
+    (players||[]).forEach(function(p){
+      if(!p||p.id===multiplayerId)return;
+      seen[p.id]=true;
+      var existing=remotePlayers[p.id];
+      if(!existing)existing=remotePlayers[p.id]={x:p.x*W,y:p.y*H,targetX:p.x*W,targetY:p.y*H,angle:p.angle,targetAngle:p.angle};
+      existing.targetX=p.x*W;existing.targetY=p.y*H;existing.targetAngle=p.angle;existing.name=p.name;existing.car=p.car;existing.score=p.score;existing.speed=p.speed;existing.seenAt=now;
+    });
+    Object.keys(remotePlayers).forEach(function(id){if(!seen[id]&&now-(remotePlayers[id].seenAt||0)>2500)delete remotePlayers[id];});
+    updateMultiplayerStatus(Object.keys(remotePlayers).length+1);
+  }
+  function syncMultiplayer(){
+    if(!multiplayerEnabled||!car||(STATE!=='drift'&&STATE!=='paused')||multiplayerBusy)return;
+    multiplayerBusy=true;
+    fetch('/api/room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update',room:multiplayerRoom(),track:trackMode,id:multiplayerId,name:profileNick(),car:currentProfile.car,x:clamp(car.x/Math.max(W,1),0,1),y:clamp(car.y/Math.max(H,1),0,1),angle:car.angle,speed:car.speed,score:drift.score})})
+      .then(function(r){if(!r.ok)throw new Error();return r.json();}).then(function(data){acceptRemotePlayers(data.players);}).catch(function(){updateMultiplayerStatus(0,'Brak połączenia z pokojem — ponawiam...');}).then(function(){multiplayerBusy=false;});
+  }
+  function startMultiplayer(){
+    clearInterval(multiplayerTimer);remotePlayers={};
+    if(!multiplayerEnabled){updateMultiplayerStatus(0);return;}
+    updateMultiplayerStatus(1,'Łączenie z pokojem '+multiplayerRoom()+'...');syncMultiplayer();
+    multiplayerTimer=setInterval(syncMultiplayer,300);
+  }
+  function stopMultiplayer(sendLeave){
+    clearInterval(multiplayerTimer);multiplayerTimer=0;multiplayerBusy=false;remotePlayers={};
+    if(sendLeave&&multiplayerEnabled){
+      fetch('/api/room',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'leave',room:multiplayerRoom(),track:trackMode,id:multiplayerId})}).catch(function(){});
+    }
+  }
+  function renderGameModeChoice(){
+    btnSingleMode.classList.toggle('selected',!multiplayerEnabled);
+    btnMultiMode.classList.toggle('selected',multiplayerEnabled);
+    multiRoomOptions.hidden=!multiplayerEnabled;
+    updateMultiplayerStatus(0);
+  }
+  btnSingleMode.addEventListener('click',function(){stopMultiplayer(true);multiplayerEnabled=false;try{localStorage.setItem('tkd_game_mode','single');}catch(e){}renderGameModeChoice();});
+  btnMultiMode.addEventListener('click',function(){multiplayerEnabled=true;try{localStorage.setItem('tkd_game_mode','multi');}catch(e){}renderGameModeChoice();});
+  roomInput.addEventListener('input',function(){this.value=multiplayerRoom();try{localStorage.setItem('tkd_room',this.value);}catch(e){}updateMultiplayerStatus(0);});
+  window.addEventListener('beforeunload',function(){stopMultiplayer(true);});
+  renderGameModeChoice();
+
   nickInput.addEventListener('blur', function(){ loadProfile(false); });
   btnRondo.addEventListener('click', function(){ ensureAudio(); trackMode = 'rondo'; loadProfile(false).then(startPump); });
   btnOsemka.addEventListener('click', function(){ ensureAudio(); trackMode = 'osemka'; loadProfile(false).then(startPump); });
   function showMainMenu(){
+    stopMultiplayer(true);
     STATE = 'title';
     clearTimeout(giftPopupTimer);keys={}; gameActions.hidden=true; cardModal.hidden=true; scoreGiftPopup.hidden=true;
     cardGalleryEnd.classList.remove('card-attention');if(cardClickHint)cardClickHint.style.display='none';
@@ -1108,6 +1182,7 @@
     renderCardGallery();
   }
   function showGarage(){
+    stopMultiplayer(true);
     clearTimeout(giftPopupTimer);STATE='title'; keys={}; gameActions.hidden=true; cardModal.hidden=true; scoreGiftPopup.hidden=true;
     cardGalleryEnd.classList.remove('card-attention');if(cardClickHint)cardClickHint.style.display='none';
     screenTitle.hidden=true;screenEnd.hidden=true;screenGarage.hidden=false;screenGarage.scrollTop=0;
@@ -1424,6 +1499,7 @@
     });
     lastLoopIndex = -1; lastLoopTime = -999;
     quoteTimer = 2.5;
+    startMultiplayer();
   }
 
   function setupTrack(){
@@ -1582,6 +1658,25 @@
     ctx.fillStyle = '#f4f2ec';
     ctx.fillRect(-8,-2,16,4);
     ctx.restore();
+  }
+
+  function updateAndDrawRemoteCars(dt){
+    var now=performance.now();
+    Object.keys(remotePlayers).forEach(function(id){
+      var p=remotePlayers[id];
+      if(now-(p.seenAt||0)>5000){delete remotePlayers[id];return;}
+      var blend=1-Math.pow(0.002,dt);
+      p.x+=(p.targetX-p.x)*blend;p.y+=(p.targetY-p.y)*blend;
+      var da=Math.atan2(Math.sin(p.targetAngle-p.angle),Math.cos(p.targetAngle-p.angle));p.angle+=da*blend;
+      var model=CAR_MODELS[p.car]||CAR_MODELS.e36_touring;
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle);ctx.globalAlpha=.78;
+      ctx.shadowColor=model.color;ctx.shadowBlur=14;ctx.fillStyle='#08090c';
+      ctx.fillRect(-17,-15,9,5);ctx.fillRect(9,-15,9,5);ctx.fillRect(-17,10,9,5);ctx.fillRect(9,10,9,5);
+      ctx.fillStyle=model.color;ctx.fillRect(-22,-10,44,20);ctx.strokeStyle='#ffffffaa';ctx.lineWidth=1.5;ctx.strokeRect(-22,-10,44,20);
+      ctx.fillStyle='#263140';ctx.fillRect(-8,-7,17,14);ctx.fillStyle='#fff3bd';ctx.fillRect(-22,-8,4,5);ctx.fillRect(-22,3,4,5);
+      ctx.restore();
+      ctx.save();ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=5;ctx.fillStyle='#fff';ctx.font='900 12px Arial';ctx.fillText(p.name||'Gracz',p.x,p.y-24);ctx.fillStyle='#ffd65a';ctx.font='800 10px Consolas,monospace';ctx.fillText(Math.round(p.score||0)+' pkt',p.x,p.y-12);ctx.restore();
+    });
   }
 
   function drawCarE36(x,y,angle,driftAmt){
@@ -1964,6 +2059,7 @@
 
   function endGame(){
     STATE = 'end';
+    stopMultiplayer(true);
     gameActions.hidden = true;
     if (tireGain && audioCtx) tireGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
     if (engineGain && audioCtx) engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.08);
@@ -2069,6 +2165,7 @@
       updateDrift(dt);
       cones.forEach(drawCone);
       updateParticles(dt); drawParticles();
+      updateAndDrawRemoteCars(dt);
       if (car){ drawCarE36(car.x, car.y, car.angle, car._driftAmt||0); }
       if (performance.now() > quoteShownUntil){ quoteBubble.classList.remove('show'); }
     } else if (STATE === 'paused'){
@@ -2076,6 +2173,7 @@
       drawTrack();
       cones.forEach(drawCone);
       drawParticles();
+      updateAndDrawRemoteCars(dt);
       if (car){ drawCarE36(car.x, car.y, car.angle, car._driftAmt||0); }
       ctx.fillStyle='#05070ab8'; ctx.fillRect(0,0,W,H);
       ctx.textAlign='center'; ctx.fillStyle='#f4f2ec'; ctx.font='900 italic 42px Arial Narrow,Arial';
