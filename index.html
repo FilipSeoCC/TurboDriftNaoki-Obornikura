@@ -1014,6 +1014,7 @@
   function startPump(){
     STATE = 'pump';
     gameActions.hidden = true;
+    screenGarage.hidden = true;
     pump.meter = 0; pump.wobble = 0; pump.turboSpin = 0;
     particles = [];
     if (window.speechSynthesis) window.speechSynthesis.cancel();
