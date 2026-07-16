@@ -613,6 +613,7 @@
     ctx.save();
     ctx.translate(x,y);
     ctx.rotate(angle);
+    ctx.scale(-1,1); // local +x is the direction of travel; mirror so the nose (headlights) faces forward and the wing/wagon end faces the rear
 
     // neon underglow (anime JDM)
     var glowPulse = 0.55 + Math.sin(car.wheelSpin*2)*0.15;
@@ -732,13 +733,16 @@
     var maxSpeed = 260;
     var decel = throttle ? 0 : (brake ? 50 : 150);
     car.speed = clamp(car.speed + (throttle? 220*dt : -decel*dt), 0, maxSpeed);
-    var grip = brake ? 0.22 : 0.5;
-    var turnRate = (0.9 + car.speed/300) * (brake ? 1.6 : 1.15);
+    // gripRate is a per-second convergence rate (frame-rate independent), not a per-frame blend —
+    // low values let the velocity vector lag well behind the heading for a long, aggressive slide
+    var gripRate = brake ? 0.9 : 2.0;
+    var blend = 1 - Math.exp(-gripRate*dt);
+    var turnRate = (1.1 + car.speed/260) * (brake ? 2.0 : 1.4);
     car.angle += steer * turnRate * dt;
 
     var heading = { x: Math.cos(car.angle), y: Math.sin(car.angle) };
-    car.vx = car.vx*(1-grip) + heading.x*car.speed*grip;
-    car.vy = car.vy*(1-grip) + heading.y*car.speed*grip;
+    car.vx += (heading.x*car.speed - car.vx) * blend;
+    car.vy += (heading.y*car.speed - car.vy) * blend;
 
     car.x += car.vx*dt;
     car.y += car.vy*dt;
@@ -762,11 +766,17 @@
       var gain = driftAmt * (car.speed/maxSpeed) * dt * 26;
       drift.score += gain * SCORE_MULT;
       drift.heat = clamp(drift.heat + gain*0.9, 0, 100);
-      if (Math.random() < dt*10){
+      // smoke from under the tires (mostly the rear pair, occasionally the front)
+      if (Math.random() < dt*16*(0.4+0.6*driftAmt)){
+        var ca = heading.x, sa = heading.y;
+        var side = Math.random()<0.5 ? -15 : 15;
+        var lx = Math.random()<0.7 ? -18 : 16;
+        var wx = car.x + lx*ca - side*sa;
+        var wy = car.y + lx*sa + side*ca;
         particles.push({
-          x: car.x - Math.cos(car.angle)*20 + rand(-4,4),
-          y: car.y - Math.sin(car.angle)*20 + rand(-4,4),
-          vx: rand(-20,20), vy: rand(-20,20), life: rand(0.5,0.9), age:0, color:'#c9c9c9', smoke:true
+          x: wx + rand(-4,4), y: wy + rand(-4,4),
+          vx: rand(-30,30), vy: rand(-30,30),
+          life: rand(0.4,0.7), age:0, color:'#c9c9c9', smoke:true
         });
       }
     }
