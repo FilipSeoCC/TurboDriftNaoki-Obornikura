@@ -51,7 +51,7 @@ git push -u origin main
 - Spacja — pompowanie turbiny / hydrołapa (hydrauliczny hamulec ręczny) podczas jazdy
 - W / Strzałka w górę — gaz
 - Strzałki w lewo/prawo lub A/D — skręt; hydrołapa zrywa przyczepność i pogłębia poślizg
-- Samo dryfowanie nie daje już punktów — liczy się tylko przejazd jak najbliżej pachołka (bez uderzenia), z bonusem x2 zależnym od bliskości. Bez przyrostu geometrycznego — bonus jest płaski, nie rośnie z każdym kolejnym pachołkiem
+- Punkty wpadają wyłącznie podczas driftu po animowanej, świecącej czerwonej linii. Wynik rośnie wraz z prędkością, kątem poślizgu i dokładnością utrzymania auta na linii. Na rondzie linia biegnie dookoła ronda, a na drugim torze tworzy cyfrę 8
 - Uderzenie w mur (skraj areny) odbiera połowę dotychczas zdobytych punktów — bądź precyzyjny
 - Pełna pętla pokazuje komunikat "PĘTLA!", a przejechanie obu pętli ósemki pod rząd pokazuje "ÓSEMKA!" — te komunikaty nie dodają punktów
 - Pachołki stoją w dwóch pierścieniach — na wewnętrznej i zewnętrznej krawędzi pasa driftu — więc jedziesz środkiem między nimi, nie przez nie
