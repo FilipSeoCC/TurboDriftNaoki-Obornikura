@@ -166,6 +166,9 @@
   .spec-label{ color:var(--grey); font-size:9px; text-transform:uppercase; }
   .spec-value{ color:var(--orange-2); font:900 16px Consolas,monospace; }
   .garage-notice{ min-height:18px; color:#ffd65a; font-size:12px; font-weight:700; margin:0 0 8px; }
+  .panel-nav{ display:flex; flex-wrap:wrap; justify-content:center; gap:9px; margin-top:14px; }
+  .panel-nav .btn{ flex:1 1 140px; max-width:210px; padding:11px 14px; font-size:12px; }
+  .btn-secondary{ color:var(--white); background:linear-gradient(180deg,#353c48,#20252e); box-shadow:0 4px 0 #090b0f,0 8px 16px #0007; }
   .card{
     background:linear-gradient(180deg, var(--panel), #14171c);
     border:2px solid var(--orange); border-radius:10px;
@@ -398,7 +401,7 @@
         <p class="field-label">Tuning — każdy Stage kosztuje 500 🔩</p>
         <div class="garage-notice" id="garageNotice"></div>
         <div class="tuning-list" id="tuningList"></div>
-        <button class="btn" id="btnGarageBack" type="button">Wróć do menu</button>
+        <div class="panel-nav"><button class="btn btn-secondary" id="btnGarageBack" type="button">← Menu główne</button></div>
         <p class="profile-note">Nick nie ma hasła. Gracze używający tego samego nicku współdzielą samochód, tuning i śrubki.</p>
       </div>
     </div>
@@ -423,7 +426,11 @@
           <div class="lb-rows" id="lbRowsBottom"></div>
           <p class="lb-note">Wynik widoczny dla wszystkich graczy</p>
         </div>
-        <button class="btn" id="btnRetry">Jeszcze raz</button>
+        <div class="panel-nav">
+          <button class="btn" id="btnRetry">Zagraj ponownie</button>
+          <button class="btn btn-secondary" id="btnEndGarage" type="button">🔧 Garaż</button>
+          <button class="btn btn-secondary" id="btnEndMenu" type="button">⌂ Menu główne</button>
+        </div>
       </div>
     </div>
   </div>
@@ -454,6 +461,8 @@
   var btnOsemka = document.getElementById('btnOsemka');
   var btnGarage = document.getElementById('btnGarage');
   var btnGarageBack = document.getElementById('btnGarageBack');
+  var btnEndGarage = document.getElementById('btnEndGarage');
+  var btnEndMenu = document.getElementById('btnEndMenu');
   var titleBalance = document.getElementById('titleBalance');
   var garageBalance = document.getElementById('garageBalance');
   var endBalance = document.getElementById('endBalance');
@@ -949,16 +958,22 @@
   nickInput.addEventListener('blur', function(){ loadProfile(false); });
   btnRondo.addEventListener('click', function(){ ensureAudio(); trackMode = 'rondo'; loadProfile(false).then(startPump); });
   btnOsemka.addEventListener('click', function(){ ensureAudio(); trackMode = 'osemka'; loadProfile(false).then(startPump); });
-  btnGarage.addEventListener('click', function(){ loadProfile(false).then(function(){ screenTitle.hidden=true; screenGarage.hidden=false; screenGarage.scrollTop=0; }); });
-  btnGarageBack.addEventListener('click', function(){ screenGarage.hidden=true; screenTitle.hidden=false; });
-  loadProfile(false);
-  btnRetry.addEventListener('click', function(){
-    ensureAudio();
+  function showMainMenu(){
     STATE = 'title';
-    screenEnd.hidden = true;
-    screenTitle.hidden = false;
+    keys={}; gameActions.hidden=true; cardModal.hidden=true; goodScoreReward.classList.remove('reward-popup');
+    screenEnd.hidden=true; screenGarage.hidden=true; screenTitle.hidden=false;
     renderCardGallery();
-  });
+  }
+  function showGarage(){
+    STATE='title'; keys={}; gameActions.hidden=true; cardModal.hidden=true; goodScoreReward.classList.remove('reward-popup');
+    return loadProfile(true).then(function(){screenTitle.hidden=true;screenEnd.hidden=true;screenGarage.hidden=false;screenGarage.scrollTop=0;});
+  }
+  btnGarage.addEventListener('click', showGarage);
+  btnEndGarage.addEventListener('click', showGarage);
+  btnEndMenu.addEventListener('click', showMainMenu);
+  btnGarageBack.addEventListener('click', showMainMenu);
+  loadProfile(false);
+  btnRetry.addEventListener('click', function(){ ensureAudio(); showMainMenu(); });
   btnPause.addEventListener('click', function(){ ensureAudio(); togglePause(); });
   btnRestart.addEventListener('click', function(){ ensureAudio(); restartRun(); });
 
