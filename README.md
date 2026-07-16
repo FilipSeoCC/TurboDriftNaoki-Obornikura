@@ -32,7 +32,7 @@ Można też wejść na [vercel.com/new](https://vercel.com/new), zaimportować t
 - `GET /api/scores` → `{ top: [...5 najlepszych], bottom: [...5 najgorszych] }`
 - `POST /api/scores` z body `{ name, score, mode }` → zapisuje wynik i zwraca to samo co GET
 
-**Ograniczenia, o których warto wiedzieć:** to prosty, nieuwierzytelniony endpoint — każdy, kto zna adres, może wysłać dowolny wynik bezpośrednio przez API (z pominięciem samej gry). Funkcja waliduje typy i utnie absurdalne wartości (limit 500 000 000 pkt, nick maks. 16 znaków, oczyszczony ze znaków HTML), ale to nie jest pełny anti-cheat — dla żartobliwej gry ze znajomymi to akceptowalne ryzyko, ale nie polegaj na tym rankingu jako na czymś odpornym na złośliwe wpisy.
+**Ograniczenia, o których warto wiedzieć:** to prosty, nieuwierzytelniony endpoint — każdy, kto zna adres, może wysłać dowolny wynik bezpośrednio przez API (z pominięciem samej gry). Funkcja waliduje typy i utnie absurdalne wartości (limit 200 000 pkt — realne wyniki w grze mieszczą się w setkach/tysiącach, więc to tylko siatka bezpieczeństwa; nick maks. 16 znaków, oczyszczony ze znaków HTML), ale to nie jest pełny anti-cheat — dla żartobliwej gry ze znajomymi to akceptowalne ryzyko, ale nie polegaj na tym rankingu jako na czymś odpornym na złośliwe wpisy.
 
 Jeśli strona jest otwarta poza Vercelem (np. w podglądzie artefaktu albo lokalnie z pliku), `/api/scores` nie istnieje — front łapie błąd i po cichu przełącza się na tablicę zapisywaną w `localStorage` przeglądarki, żeby gra dalej działała.
 
@@ -51,8 +51,8 @@ git push -u origin main
 - Spacja — pompowanie turbiny / mocniejszy drift w trybie jazdy
 - W / Strzałka w górę — gaz
 - Strzałki w lewo/prawo lub A/D — skręt (auto samo driftuje w zakrętach, spacja to wzmacnia)
-- Dryfowanie daje 10 pkt/s (x2 mnożnik bazowy), a przejazd jak najbliżej pachołka bez uderzenia daje dodatkowy bonus zależny od bliskości
-- Każde uderzenie w pachołek podwaja twój mnożnik combo (x2, x4, x8...) — działa na wszystkie kolejne punkty; uderzenie w mur zeruje combo
+- Samo dryfowanie nie daje już punktów — liczy się tylko przejazd jak najbliżej pachołka (bez uderzenia), z bonusem x2 zależnym od bliskości. Bez przyrostu geometrycznego — bonus jest płaski, nie rośnie z każdym kolejnym pachołkiem
+- Uderzenie w mur (skraj areny) odbiera połowę dotychczas zdobytych punktów — bądź precyzyjny
 - Pełna pętla wokół rondo/pętli daje bonus "PĘTLA!"; w trybie ósemki przejechanie obu pętli pod rząd (w ciągu 7s) daje dodatkowy bonus "ÓSEMKA!"
 - Pachołki stoją w dwóch pierścieniach — na wewnętrznej i zewnętrznej krawędzi pasa driftu — więc jedziesz środkiem między nimi, nie przez nie
 
@@ -60,7 +60,7 @@ git push -u origin main
 
 Na ekranie startowym wybierasz tor (**Rondo** — jedna pętla, albo **Ósemka** — dwie) i wpisujesz nick. Po rundzie ekran końcowy pokazuje **globalny** ranking — TOP 5 najlepszych wyników i 5 najgorszych, widoczne dla wszystkich graczy (Twój aktualny wynik podświetlony), zapisywane we wspólnej bazie Redis (patrz sekcja o backendzie wyżej).
 
-Na ekranie startowym widać też galerię kart Bukovskiego, odblokowywanych za wynik: 10 000 000 pkt = "Bukovski Bojowy", 20 000 000 pkt = "Bukovski Legenda". Odblokowaną kartę można kliknąć — pokazuje obrazek i krótki żartobliwy "raport" z podziękowaniem za wkurwienie Bukovskiego. (Poproszono kiedyś o karty w bardziej rozebranej wersji Bukovskiego — celowo tego nie zrobiłem, bo to realna, nazwana osoba, i nie tworzę seksualizowanych wizerunków bez jej zgody; obie karty są w pełni ubrane, w tym samym żartobliwym klimacie co reszta gry.)
+Na ekranie startowym widać też galerię kart Bukovskiego, odblokowywanych za wynik: 1500 pkt = "Bukovski Bojowy", 3500 pkt = "Bukovski Legenda" (progi dobrane pod nową, trudniejszą punktację — dobra runda to raczej setki/tysiące punktów niż miliony). Odblokowaną kartę można kliknąć — pokazuje obrazek i krótki żartobliwy "raport" z podziękowaniem za wkurwienie Bukovskiego. (Poproszono kiedyś o karty w bardziej rozebranej wersji Bukovskiego — celowo tego nie zrobiłem, bo to realna, nazwana osoba, i nie tworzę seksualizowanych wizerunków bez jej zgody; obie karty są w pełni ubrane, w tym samym żartobliwym klimacie co reszta gry.)
 
 **Telefon/tablet:** na urządzeniach dotykowych klawiatura jest automatycznie zastępowana wirtualnymi przyciskami (◀ ▶ w lewym dolnym rogu, GAZ i POMPUJ/DRIFT w prawym) — działa w pionie i poziomie, wspiera notch/safe-area na iOS. Dotknięcie ekranu w fazie pompowania też działa, na wypadek gdyby wykrywanie dotyku zawiodło.
 
@@ -68,7 +68,7 @@ Na ekranie startowym widać też galerię kart Bukovskiego, odblokowywanych za w
 
 Cały dźwięk jest syntezowany w locie przez Web Audio API — brak plików audio, więc strona zostaje lekka i samowystarczalna:
 - pisk opon narasta i cichnie razem z intensywnością driftu
-- uderzenie w pachołek i utrata combo mają własne efekty dźwiękowe
+- uderzenie w pachołek i uderzenie w mur (utrata połowy punktów) mają własne efekty dźwiękowe
 - kwestie Bukovskiego są też **mówione na głos** przez wbudowaną syntezę mowy przeglądarki (Web Speech API, głos polski), z tempem i wysokością rosnącymi wraz z jego wkurwieniem
 
 Przycisk 🔊/🔇 w prawym górnym rogu HUD wycisza wszystko naraz (w tym mowę).
