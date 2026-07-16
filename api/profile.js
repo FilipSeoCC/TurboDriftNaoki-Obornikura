@@ -76,33 +76,93 @@ local encoded = cjson.encode(p)
 redis.call('SET', KEYS[1], encoded)
 return encoded`;
 
+function emptyMods() {
+  return Object.fromEntries(CATEGORIES.map((category) => [category, 0]));
+}
+
+function normalizeMods(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  const mods = emptyMods();
+  for (const category of CATEGORIES) {
+    const tier = Number(source[category]);
+    mods[category] = Number.isFinite(tier) ? Math.max(0, Math.min(3, Math.floor(tier))) : 0;
+  }
+  return mods;
+}
+
+function normalizeProfile(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  const car = CARS.includes(source.car) ? source.car : 'e36_touring';
+  const carMods = {};
+  if (source.carMods && typeof source.carMods === 'object') {
+    for (const id of CARS) if (source.carMods[id]) carMods[id] = normalizeMods(source.carMods[id]);
+  }
+  if (!Object.keys(carMods).length) carMods[car] = normalizeMods(source.mods);
+  if (!carMods[car]) carMods[car] = emptyMods();
+  return { currency: Math.max(0, Number(source.currency) || 0), shareRewarded: source.shareRewarded === true, car, carMods, mods: carMods[car] };
+}
+
+async function readProfile(key) {
+  const result = await redis(['GET', key]);
+  if (!result.result) return normalizeProfile({});
+  try { return normalizeProfile(JSON.parse(result.result)); } catch (_) { return normalizeProfile({}); }
+}
+
+async function writeProfile(key, profile) {
+  profile.carMods[profile.car] = normalizeMods(profile.mods);
+  profile.mods = profile.carMods[profile.car];
+  await redis(['SET', key, JSON.stringify(profile)]);
+  return profile;
+}
+
+function actionError(error, required) {
+  const value = { error };
+  if (required) value.required = required;
+  return value;
+}
+
 module.exports = async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   if (!REDIS_URL || !REDIS_TOKEN) return res.status(500).json({ error: 'database_not_configured' });
   const body = typeof req.body === 'string' ? (() => { try { return JSON.parse(req.body); } catch (_) { return {}; } })() : (req.body || {});
   const rawName = req.method === 'GET' ? req.query && req.query.name : body.name;
   const name = sanitizeName(rawName);
   const key = 'tkd:profile:' + name;
   try {
-    if (req.method === 'GET') {
-      const result = await redis(['EVAL', MUTATE_SCRIPT, '1', key, 'load', '']);
-      return res.status(200).json(JSON.parse(result.result));
-    }
-    if (req.method === 'POST') {
-      const action = body.action;
-      let value = '';
-      if (action === 'buy') {
-        if (!CATEGORIES.includes(body.category)) return res.status(400).json({ error: 'invalid_category' });
-        value = body.category;
-      } else if (action === 'select_car') {
-        if (!CARS.includes(body.car)) return res.status(400).json({ error: 'invalid_car' });
-        value = body.car;
-      } else if (action !== 'earn' && action !== 'share_reward') return res.status(400).json({ error: 'invalid_action' });
-      const result = await redis(['EVAL', MUTATE_SCRIPT, '1', key, action, value]);
-      const profile = JSON.parse(result.result);
-      if (profile.error) return res.status(400).json(profile);
-      return res.status(200).json(profile);
-    }
-    return res.status(405).json({ error: 'method_not_allowed' });
+    const profile = await readProfile(key);
+    if (req.method === 'GET') return res.status(200).json(await writeProfile(key, profile));
+    if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+
+    if (body.action === 'earn') profile.currency += ROUND_REWARD;
+    else if (body.action === 'share_reward') {
+      if (profile.shareRewarded) return res.status(400).json(actionError('share_reward_claimed'));
+      profile.currency += SHARE_REWARD; profile.shareRewarded = true;
+    } else if (body.action === 'select_car') {
+      if (!CARS.includes(body.car)) return res.status(400).json(actionError('invalid_car'));
+      profile.carMods[profile.car] = normalizeMods(profile.mods);
+      profile.car = body.car;
+      if (!profile.carMods[profile.car]) profile.carMods[profile.car] = emptyMods();
+      profile.mods = profile.carMods[profile.car];
+    } else if (body.action === 'buy') {
+      const category = body.category;
+      if (!CATEGORIES.includes(category)) return res.status(400).json(actionError('invalid_category'));
+      const tier = profile.mods[category] || 0, nextTier = tier + 1;
+      if (tier >= 3) return res.status(400).json(actionError('max_tier'));
+      if (profile.currency < PRICE) return res.status(400).json(actionError('not_enough_currency'));
+      if (category === 'turbo') {
+        if (profile.mods.supercharger > 0) return res.status(400).json(actionError('boost_conflict'));
+        if (profile.mods.clutch < nextTier) return res.status(400).json(actionError('requires_clutch', nextTier));
+        if (profile.mods.injectors < nextTier) return res.status(400).json(actionError('requires_injectors', nextTier));
+        if (profile.mods.fuelpump < nextTier) return res.status(400).json(actionError('requires_fuelpump', nextTier));
+      }
+      if (category === 'supercharger') {
+        if (profile.mods.turbo > 0) return res.status(400).json(actionError('boost_conflict'));
+        if (profile.mods.clutch < nextTier) return res.status(400).json(actionError('requires_clutch', nextTier));
+      }
+      profile.currency -= PRICE; profile.mods[category] = nextTier;
+    } else return res.status(400).json(actionError('invalid_action'));
+
+    return res.status(200).json(await writeProfile(key, profile));
   } catch (_) {
     return res.status(500).json({ error: 'server_error' });
   }
