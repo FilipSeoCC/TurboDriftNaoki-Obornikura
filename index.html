@@ -134,6 +134,13 @@
     background-repeat:no-repeat;
   }
   .screen[hidden]{ display:none; }
+  #screenEnd{
+    align-items:flex-start; overflow-y:auto; overflow-x:hidden; touch-action:pan-y;
+    -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
+    padding-top:calc(18px + env(safe-area-inset-top));
+    padding-bottom:calc(28px + env(safe-area-inset-bottom));
+  }
+  #screenEnd .card{ flex:0 0 auto; margin:0 auto; }
   .card{
     background:linear-gradient(180deg, var(--panel), #14171c);
     border:2px solid var(--orange); border-radius:10px;
@@ -309,6 +316,8 @@
     .track-choice{ gap:6px; }
     .btn-track{ font-size:11px; padding:10px 6px; }
     .buko-card{ width:48px; height:48px; }
+    #screenEnd{ padding-left:10px; padding-right:10px; }
+    #screenEnd .card{ max-width:100%; width:100%; }
   }
 </style>
 </head>
@@ -1682,6 +1691,7 @@
     }
 
     screenEnd.hidden = false;
+    screenEnd.scrollTop = 0;
 
     if (newCards.length && finalScore < GOOD_SCORE_REWARD.threshold){
       setTimeout(function(){ openCardModal(newCards[0]); }, 700);
