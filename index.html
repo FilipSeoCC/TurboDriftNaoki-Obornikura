@@ -165,6 +165,9 @@
   .tuning-list{ display:grid; gap:8px; margin:10px 0 18px; }
   .tuning-row{ display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:10px; padding:10px; background:#090b10aa; border-radius:8px; text-align:left; }
   .tuning-name{ color:var(--white); font-weight:900; font-size:13px; }
+  .tuning-info{ position:relative; display:inline-flex; align-items:center; justify-content:center; width:19px; height:19px; margin-left:6px; padding:0; border:1px solid var(--teal); border-radius:50%; background:#071619; color:var(--teal); font:900 11px/1 Arial; cursor:help; vertical-align:middle; }
+  .tuning-info::after{ content:attr(data-tip); position:absolute; z-index:20; left:0; bottom:calc(100% + 8px); width:220px; padding:8px 10px; border:1px solid #23d1b577; border-radius:7px; background:#05080ddd; color:var(--white); font:600 11px/1.35 "Segoe UI",Arial; box-shadow:0 8px 20px #000b; opacity:0; visibility:hidden; transform:translateY(4px); transition:.15s; pointer-events:none; }
+  .tuning-info:hover::after,.tuning-info:focus::after,.tuning-info:active::after{ opacity:1; visibility:visible; transform:translateY(0); }
   .tuning-tier{ color:var(--teal); font:700 12px Consolas,monospace; }
   .buy-btn{ padding:8px 12px; font-size:11px; }
   .buy-btn:disabled{ filter:grayscale(1); opacity:.45; cursor:not-allowed; box-shadow:none; }
@@ -596,6 +599,7 @@
   var pump = { meter:0, wobble:0, lastPumpAt:-999, turboSpin:0 };
   var transformT = 0;
   var drift = { time:60, score:0, heat:0, maxHeat:0, lineStreak:0, lastLinePopupAt:0, bonusZone:-1, bonusUntil:0 };
+  var ghostBest = null, ghostRun = [], ghostLastSample = -1, ghostCursor = 0;
   var car = null;
   var cones = [];
   var particles = [];
@@ -626,6 +630,7 @@
   var ENGINE_TIERS=[1,1.08,1.16,1.25];
   var GEARBOX_DECEL=[1,.88,.76,.64], TIRE_GRIP=[1,1.08,1.17,1.27];
   var TUNING_NAMES={clutch:'Sprzęgło',injectors:'Wtryski',fuelpump:'Pompa paliwa',engine:'Silnik',turbo:'Turbo',supercharger:'Kompresor',gearbox:'Skrzynia',tires:'Opony'};
+  var TUNING_EFFECTS={clutch:'Odblokowuje kolejne poziomy turbo i kompresora.',injectors:'Wymagane do mocniejszego turbo; przygotowują układ paliwowy.',fuelpump:'Wymagana do mocniejszego turbo; zapewnia paliwo pod obciążeniem.',engine:'Zwiększa moc, moment, przyspieszenie i prędkość maksymalną.',turbo:'Podnosi moc, moment i przyspieszenie przy wyższych obrotach.',supercharger:'Daje moc i szybszą reakcję na gaz już od niskiej prędkości.',gearbox:'Zmniejsza wytracanie prędkości po puszczeniu gazu.',tires:'Zwiększają przyczepność i stabilność auta podczas jazdy bokiem.'};
   var TUNING_ORDER=['clutch','injectors','fuelpump','engine','turbo','supercharger','gearbox','tires'];
 
   function profileNick(){ return (nickInput.value||'').trim().slice(0,14)||'Anonim'; }
@@ -743,7 +748,7 @@
       '<div class="spec-item"><div class="spec-label">Moment</div><div class="spec-value">'+selectedOutput.nm+' Nm</div></div>'+
       '<div class="spec-item"><div class="spec-label">Doładowanie</div><div class="spec-value" style="font-size:12px">'+boost+'</div></div>'+
       '<div class="spec-item"><div class="spec-label">Sprzęgło</div><div class="spec-value">Stage '+mods.clutch+'</div></div></div>';
-    tuningList.innerHTML=''; TUNING_ORDER.forEach(function(cat){var tier=mods[cat]||0,row=document.createElement('div');row.className='tuning-row';var req=cat==='turbo'?' · wymaga sprzęgła, wtrysków i pompy':(cat==='supercharger'?' · wymaga sprzęgła':'');row.innerHTML='<div class="tuning-name">'+TUNING_NAMES[cat]+'<small style="display:block;color:var(--grey);font-weight:400">'+req+'</small></div><div class="tuning-tier">Stage '+tier+'/3</div>';var buy=document.createElement('button');buy.className='btn buy-btn';buy.type='button';buy.textContent=tier>=3?'MAX':'KUP 500';buy.disabled=tier>=3||currentProfile.currency<500;buy.addEventListener('click',function(){var token=++garageActionToken;garageNotice.textContent='Kupuję '+TUNING_NAMES[cat]+' dla '+selected.name+'...';profileAction('buy',{category:cat}).then(function(){if(token===garageActionToken)garageNotice.textContent='Kupiono '+TUNING_NAMES[cat]+' · zapisano dla '+selected.name;}).catch(function(err){if(token!==garageActionToken)return;var messages={requires_clutch:'Najpierw kup sprzęgło Stage '+(err.required||tier+1),requires_injectors:'Najpierw kup wtryski Stage '+(err.required||tier+1),requires_fuelpump:'Najpierw kup pompę paliwa Stage '+(err.required||tier+1),boost_conflict:'Wybierz jedną ścieżkę: turbo albo kompresor.',not_enough_currency:'Za mało śrubek.',max_tier:'Ta część ma już maksymalny Stage.'};garageNotice.textContent=messages[err&&err.error]||'Zakup nie powiódł się.';});});row.appendChild(buy);tuningList.appendChild(row);});
+    tuningList.innerHTML=''; TUNING_ORDER.forEach(function(cat){var tier=mods[cat]||0,row=document.createElement('div');row.className='tuning-row';var req=cat==='turbo'?' · wymaga sprzęgła, wtrysków i pompy':(cat==='supercharger'?' · wymaga sprzęgła':'');row.innerHTML='<div class="tuning-name">'+TUNING_NAMES[cat]+'<button class="tuning-info" type="button" data-tip="'+TUNING_EFFECTS[cat]+'" aria-label="Co zmienia '+TUNING_NAMES[cat]+'?">?</button><small style="display:block;color:var(--grey);font-weight:400">'+req+'</small></div><div class="tuning-tier">Stage '+tier+'/3</div>';var buy=document.createElement('button');buy.className='btn buy-btn';buy.type='button';buy.textContent=tier>=3?'MAX':'KUP 500';buy.disabled=tier>=3||currentProfile.currency<500;buy.addEventListener('click',function(){var token=++garageActionToken;garageNotice.textContent='Kupuję '+TUNING_NAMES[cat]+' dla '+selected.name+'...';profileAction('buy',{category:cat}).then(function(){if(token===garageActionToken)garageNotice.textContent='Kupiono '+TUNING_NAMES[cat]+' · zapisano dla '+selected.name;}).catch(function(err){if(token!==garageActionToken)return;var messages={requires_clutch:'Najpierw kup sprzęgło Stage '+(err.required||tier+1),requires_injectors:'Najpierw kup wtryski Stage '+(err.required||tier+1),requires_fuelpump:'Najpierw kup pompę paliwa Stage '+(err.required||tier+1),boost_conflict:'Wybierz jedną ścieżkę: turbo albo kompresor.',not_enough_currency:'Za mało śrubek.',max_tier:'Ta część ma już maksymalny Stage.'};garageNotice.textContent=messages[err&&err.error]||'Zakup nie powiódł się.';});});row.appendChild(buy);tuningList.appendChild(row);});
   }
 
   // ---------- nickname, leaderboard, unlockable cards (all via localStorage) ----------
@@ -850,7 +855,6 @@
   var scoreGiftPopup = document.getElementById('scoreGiftPopup');
   var scoreGiftButton = document.getElementById('scoreGiftButton');
   var cardClickHint = document.getElementById('cardClickHint');
-  var giftPopupTimer = 0;
   var SCORE_GIFT = {title:'Nagroda Specjalna',img:'assets/nagroda-100-punktow.png',reward:'Nagroda za dobry wynik. Zdobądź więcej punktów, by zobaczyć więcej dupeczek XD'};
   function openCardModal(c){
     var words = c.title.split(' ');
@@ -874,7 +878,7 @@
     },80);
   }
   function closeScoreGift(){
-    clearTimeout(giftPopupTimer);scoreGiftPopup.hidden=true;encourageCardClick();
+    scoreGiftPopup.hidden=true;encourageCardClick();
   }
   scoreGiftButton.addEventListener('click', function(){ closeScoreGift(); openCardModal(SCORE_GIFT); });
 
@@ -1196,14 +1200,14 @@
     stopMultiplayer(true);
     STATE = 'title';
     updateTouchControls();
-    clearTimeout(giftPopupTimer);keys={}; gameActions.hidden=true; cardModal.hidden=true; scoreGiftPopup.hidden=true;
+    keys={}; gameActions.hidden=true; cardModal.hidden=true; scoreGiftPopup.hidden=true;
     cardGalleryEnd.classList.remove('card-attention');if(cardClickHint)cardClickHint.style.display='none';
     screenEnd.hidden=true; screenGarage.hidden=true; screenTitle.hidden=false;
     renderCardGallery();
   }
   function showGarage(){
     stopMultiplayer(true);
-    clearTimeout(giftPopupTimer);STATE='title'; updateTouchControls(); keys={}; gameActions.hidden=true; cardModal.hidden=true; scoreGiftPopup.hidden=true;
+    STATE='title'; updateTouchControls(); keys={}; gameActions.hidden=true; cardModal.hidden=true; scoreGiftPopup.hidden=true;
     cardGalleryEnd.classList.remove('card-attention');if(cardClickHint)cardClickHint.style.display='none';
     screenTitle.hidden=true;screenEnd.hidden=true;screenGarage.hidden=false;screenGarage.scrollTop=0;
     renderGarage();
@@ -1488,6 +1492,34 @@
   }
 
   // ---------- phase: drift ----------
+  function ghostStorageKey(){return 'tkd_ghost_v1_'+profileNick().toLowerCase().replace(/[^a-z0-9_-]/g,'_')+'_'+trackMode;}
+  function loadBestGhost(){
+    ghostBest=null;ghostCursor=0;
+    try{var saved=JSON.parse(localStorage.getItem(ghostStorageKey()));if(saved&&Number(saved.score)>0&&Array.isArray(saved.points)&&saved.points.length>1)ghostBest=saved;}catch(e){}
+  }
+  function recordGhostPoint(){
+    var elapsed=40-drift.time;
+    if(!car||elapsed-ghostLastSample<.08)return;
+    ghostLastSample=elapsed;
+    ghostRun.push({t:Math.round(elapsed*1000)/1000,x:Math.round(car.x/Math.max(W,1)*10000)/10000,y:Math.round(car.y/Math.max(H,1)*10000)/10000,a:Math.round(car.angle*1000)/1000});
+  }
+  function saveBestGhost(score){
+    if(score<=0||ghostRun.length<2||(ghostBest&&score<=Number(ghostBest.score)))return false;
+    ghostBest={score:score,car:currentProfile.car,points:ghostRun};
+    try{localStorage.setItem(ghostStorageKey(),JSON.stringify(ghostBest));}catch(e){}
+    return true;
+  }
+  function drawBestGhost(){
+    if(!ghostBest||!ghostBest.points||ghostBest.points.length<2)return;
+    var points=ghostBest.points,elapsed=40-drift.time;
+    while(ghostCursor<points.length-2&&points[ghostCursor+1].t<elapsed)ghostCursor++;
+    if(elapsed<points[0].t||elapsed>points[points.length-1].t)return;
+    var p=points[ghostCursor],n=points[Math.min(ghostCursor+1,points.length-1)],mix=clamp((elapsed-p.t)/Math.max(n.t-p.t,.001),0,1);
+    var x=(p.x+(n.x-p.x)*mix)*W,y=(p.y+(n.y-p.y)*mix)*H;
+    var da=Math.atan2(Math.sin(n.a-p.a),Math.cos(n.a-p.a)),angle=p.a+da*mix;
+    ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.globalAlpha=.42;ctx.shadowColor='#23d1b5';ctx.shadowBlur=18;ctx.fillStyle='#23d1b555';ctx.strokeStyle='#8dfff0';ctx.lineWidth=2;roundedPath(-22,-11,44,22,6);ctx.fill();ctx.stroke();ctx.fillStyle='#dffffa';ctx.fillRect(-19,-8,4,5);ctx.fillRect(-19,3,4,5);ctx.restore();
+    ctx.save();ctx.globalAlpha=.8;ctx.textAlign='center';ctx.fillStyle='#8dfff0';ctx.font='900 10px Consolas,monospace';ctx.fillText('DUCH REKORDU · '+ghostBest.score+' PKT',x,y-19);ctx.restore();
+  }
   function startDrift(){
     STATE = 'drift';
     updateTouchControls();
@@ -1505,6 +1537,7 @@
       supercharger:mods.supercharger||0
     };
     drift.time = 40; drift.score = 0; drift.heat = 0; drift.maxHeat = 0; drift.lineStreak = 0; drift.lastLinePopupAt = 0; drift.bonusZone = -1; drift.bonusUntil = 0;
+    ghostRun=[];ghostLastSample=-1;loadBestGhost();
     timerPanel.hidden = false;
     leftLabel.textContent = 'Prędkość';
     hint.innerHTML = '<b>W / &uarr;</b> gaz &middot; <b>&larr; &rarr;</b> skręt &middot; <b>SPACJA</b> = HYDROŁAPA &middot; trzymaj czerwoną linię i przejeżdżaj przez pola <b>x2</b>!';
@@ -1930,6 +1963,7 @@
       popups.push({x:car.x, y:car.y-20, text:'-'+lost+' (ŚCIANA!)', age:0, life:1.2, big:true});
       playTone(200, 45, 0.3, 0.3, 'sawtooth');
     }
+    recordGhostPoint();
 
     var moveAngle = Math.atan2(car.vy, car.vx);
     var diff = Math.atan2(Math.sin(car.angle-moveAngle), Math.cos(car.angle-moveAngle));
@@ -2099,6 +2133,7 @@
     if (engineGain && audioCtx) engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.08);
     if (engineSampleGain && audioCtx) engineSampleGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.08);
     var finalScore = Math.floor(drift.score);
+    var newGhostRecord = saveBestGhost(finalScore);
     document.getElementById('endScore').textContent = finalScore;
     document.getElementById('endRage').textContent = Math.round(drift.maxHeat)+'%';
     var verdict, title;
@@ -2106,7 +2141,7 @@
     else if (drift.maxHeat < 70){ title='Solidnie Wkurzony'; verdict='Bukovski biega po podwórku i szuka kreta z widłami w ręku.'; }
     else { title='Totalna Furia'; verdict='BUKOVSKI WRZESZCZY NA CAŁĄ ULICĘ: GÓWNIARZU ZASRANY ZAJEBANY!!! Misja zaliczona.'; }
     document.getElementById('endTitle').innerHTML = title.split(' ').map(function(w,i){return i===title.split(' ').length-1? '<span>'+w+'</span>':w;}).join(' ');
-    document.getElementById('endVerdict').textContent = verdict;
+    document.getElementById('endVerdict').textContent = verdict+(newGhostRecord?' NOWY REKORD — duch tego przejazdu pojawi się w następnej próbie!':'');
 
     var nick = (nickInput.value || '').trim().slice(0,14) || 'Anonim';
     submitScore(nick, finalScore, trackMode, { name: nick, score: finalScore, mode: trackMode });
@@ -2128,7 +2163,7 @@
     if(cardClickHint) cardClickHint.style.display='none';
 
     if (finalScore >= 100){
-      setTimeout(function(){ scoreGiftPopup.hidden=false;giftPopupTimer=setTimeout(closeScoreGift,2000); }, 450);
+      setTimeout(function(){ scoreGiftPopup.hidden=false; }, 450);
     } else if (newCards.length){
       setTimeout(function(){ openCardModal(newCards[0]); }, 700);
     }
@@ -2199,6 +2234,7 @@
       updateDrift(dt);
       cones.forEach(drawCone);
       updateParticles(dt); drawParticles();
+      drawBestGhost();
       updateAndDrawRemoteCars(dt);
       if (car){ drawCarE36(car.x, car.y, car.angle, car._driftAmt||0); }
       if (performance.now() > quoteShownUntil){ quoteBubble.classList.remove('show'); }
@@ -2207,6 +2243,7 @@
       drawTrack();
       cones.forEach(drawCone);
       drawParticles();
+      drawBestGhost();
       updateAndDrawRemoteCars(dt);
       if (car){ drawCarE36(car.x, car.y, car.angle, car._driftAmt||0); }
       ctx.fillStyle='#05070ab8'; ctx.fillRect(0,0,W,H);
