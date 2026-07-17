@@ -23,59 +23,6 @@ function sanitizeName(value) {
   return (value.replace(/[<>&"'`]/g, '').trim().slice(0, 16) || 'Anonim').toLowerCase();
 }
 
-const MUTATE_SCRIPT = `
-local raw = redis.call('GET', KEYS[1])
-local p
-if raw then p = cjson.decode(raw) else p = {currency=0,mods={engine=0,turbo=0,supercharger=0,injectors=0,fuelpump=0,clutch=0,gearbox=0,tires=0},car='e36_touring'} end
-local fields = {'engine','turbo','supercharger','injectors','fuelpump','clutch','gearbox','tires'}
-local function normalizeMods(mods)
-  mods = mods or {}
-  for _, field in ipairs(fields) do mods[field] = tonumber(mods[field]) or 0 end
-  return mods
-end
-p.car = p.car or 'e36_touring'
-p.carMods = p.carMods or {}
--- Migrate the old global tuning once, assigning it to the currently selected car.
-if next(p.carMods) == nil then p.carMods[p.car] = normalizeMods(p.mods) end
-for carId, mods in pairs(p.carMods) do p.carMods[carId] = normalizeMods(mods) end
-if not p.carMods[p.car] then p.carMods[p.car] = normalizeMods({}) end
-p.mods = p.carMods[p.car]
-p.shareRewarded = p.shareRewarded == true
-local action = ARGV[1]
-if action == 'earn' then
-  p.currency = (tonumber(p.currency) or 0) + ${ROUND_REWARD}
-elseif action == 'share_reward' then
-  if p.shareRewarded then return cjson.encode({error='share_reward_claimed'}) end
-  p.currency = (tonumber(p.currency) or 0) + ${SHARE_REWARD}
-  p.shareRewarded = true
-elseif action == 'buy' then
-  local category = ARGV[2]
-  local tier = tonumber(p.mods[category]) or 0
-  local nextTier = tier + 1
-  if tier >= 3 then return cjson.encode({error='max_tier'}) end
-  if (tonumber(p.currency) or 0) < ${PRICE} then return cjson.encode({error='not_enough_currency'}) end
-  if category == 'turbo' then
-    if p.mods.supercharger > 0 then return cjson.encode({error='boost_conflict'}) end
-    if p.mods.clutch < nextTier then return cjson.encode({error='requires_clutch',required=nextTier}) end
-    if p.mods.injectors < nextTier then return cjson.encode({error='requires_injectors',required=nextTier}) end
-    if p.mods.fuelpump < nextTier then return cjson.encode({error='requires_fuelpump',required=nextTier}) end
-  elseif category == 'supercharger' then
-    if p.mods.turbo > 0 then return cjson.encode({error='boost_conflict'}) end
-    if p.mods.clutch < nextTier then return cjson.encode({error='requires_clutch',required=nextTier}) end
-  end
-  p.currency = tonumber(p.currency) - ${PRICE}
-  p.mods[category] = tier + 1
-elseif action == 'select_car' then
-  p.carMods[p.car] = p.mods
-  p.car = ARGV[2]
-  if not p.carMods[p.car] then p.carMods[p.car] = normalizeMods({}) end
-  p.mods = p.carMods[p.car]
-end
-p.carMods[p.car] = p.mods
-local encoded = cjson.encode(p)
-redis.call('SET', KEYS[1], encoded)
-return encoded`;
-
 function emptyMods() {
   return Object.fromEntries(CATEGORIES.map((category) => [category, 0]));
 }
@@ -99,7 +46,7 @@ function normalizeProfile(value) {
   }
   if (!Object.keys(carMods).length) carMods[car] = normalizeMods(source.mods);
   if (!carMods[car]) carMods[car] = emptyMods();
-  return { currency: Math.max(0, Number(source.currency) || 0), shareRewarded: source.shareRewarded === true, car, carMods, mods: carMods[car] };
+  return { currency: Math.max(0, Number(source.currency) || 0), shareRewarded: source.shareRewarded === true, car, carMods };
 }
 
 async function readProfile(key) {
@@ -109,8 +56,6 @@ async function readProfile(key) {
 }
 
 async function writeProfile(key, profile) {
-  profile.carMods[profile.car] = normalizeMods(profile.mods);
-  profile.mods = profile.carMods[profile.car];
   await redis(['SET', key, JSON.stringify(profile)]);
   return profile;
 }
@@ -139,27 +84,29 @@ module.exports = async (req, res) => {
       profile.currency += SHARE_REWARD; profile.shareRewarded = true;
     } else if (body.action === 'select_car') {
       if (!CARS.includes(body.car)) return res.status(400).json(actionError('invalid_car'));
-      profile.carMods[profile.car] = normalizeMods(profile.mods);
       profile.car = body.car;
       if (!profile.carMods[profile.car]) profile.carMods[profile.car] = emptyMods();
-      profile.mods = profile.carMods[profile.car];
     } else if (body.action === 'buy') {
       const category = body.category;
       if (!CATEGORIES.includes(category)) return res.status(400).json(actionError('invalid_category'));
-      const tier = profile.mods[category] || 0, nextTier = tier + 1;
+      if (body.car !== undefined && !CARS.includes(body.car)) return res.status(400).json(actionError('invalid_car'));
+      if (body.car) profile.car = body.car;
+      if (!profile.carMods[profile.car]) profile.carMods[profile.car] = emptyMods();
+      const mods = profile.carMods[profile.car];
+      const tier = mods[category] || 0, nextTier = tier + 1;
       if (tier >= 3) return res.status(400).json(actionError('max_tier'));
       if (profile.currency < PRICE) return res.status(400).json(actionError('not_enough_currency'));
       if (category === 'turbo') {
-        if (profile.mods.supercharger > 0) return res.status(400).json(actionError('boost_conflict'));
-        if (profile.mods.clutch < nextTier) return res.status(400).json(actionError('requires_clutch', nextTier));
-        if (profile.mods.injectors < nextTier) return res.status(400).json(actionError('requires_injectors', nextTier));
-        if (profile.mods.fuelpump < nextTier) return res.status(400).json(actionError('requires_fuelpump', nextTier));
+        if (mods.supercharger > 0) return res.status(400).json(actionError('boost_conflict'));
+        if (mods.clutch < nextTier) return res.status(400).json(actionError('requires_clutch', nextTier));
+        if (mods.injectors < nextTier) return res.status(400).json(actionError('requires_injectors', nextTier));
+        if (mods.fuelpump < nextTier) return res.status(400).json(actionError('requires_fuelpump', nextTier));
       }
       if (category === 'supercharger') {
-        if (profile.mods.turbo > 0) return res.status(400).json(actionError('boost_conflict'));
-        if (profile.mods.clutch < nextTier) return res.status(400).json(actionError('requires_clutch', nextTier));
+        if (mods.turbo > 0) return res.status(400).json(actionError('boost_conflict'));
+        if (mods.clutch < nextTier) return res.status(400).json(actionError('requires_clutch', nextTier));
       }
-      profile.currency -= PRICE; profile.mods[category] = nextTier;
+      profile.currency -= PRICE; mods[category] = nextTier;
     } else return res.status(400).json(actionError('invalid_action'));
 
     return res.status(200).json(await writeProfile(key, profile));

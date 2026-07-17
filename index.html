@@ -623,7 +623,7 @@
     mazda_mx5:{name:'Mazda MX-5',color:'#d52d3f',speed:.94,accel:1.06,grip:1.08,turn:1.12,hp:200,nm:210,stockBoost:'Wolnossący'},
     bmw_e46_checker:{name:'E46 Coorvibonk',color:'#101217',speed:1.01,accel:1.01,grip:1.03,turn:.99,hp:230,nm:300,stockBoost:'Wolnossący'}
   };
-  var ENGINE_TIERS=[1,1.08,1.16,1.25], TURBO_TIERS=[1,1.04,1.09,1.15];
+  var ENGINE_TIERS=[1,1.08,1.16,1.25];
   var GEARBOX_DECEL=[1,.88,.76,.64], TIRE_GRIP=[1,1.08,1.17,1.27];
   var TUNING_NAMES={clutch:'Sprzęgło',injectors:'Wtryski',fuelpump:'Pompa paliwa',engine:'Silnik',turbo:'Turbo',supercharger:'Kompresor',gearbox:'Skrzynia',tires:'Opony'};
   var TUNING_ORDER=['clutch','injectors','fuelpump','engine','turbo','supercharger','gearbox','tires'];
@@ -635,36 +635,36 @@
     catch(e){ return normalizeProfile(DEFAULT_PROFILE); }
   }
   function writeLocalProfile(profile){
-    try{ localStorage.setItem(localProfileKey(),JSON.stringify(profile)); }catch(e){}
+    try{var stored={currency:profile.currency,shareRewarded:profile.shareRewarded,car:profile.car,carMods:profile.carMods};localStorage.setItem(localProfileKey(),JSON.stringify(stored));}catch(e){}
     return profile;
   }
   function localProfileAction(action,extra){
-    var p=readLocalProfile(),cat,tier,nextTier;
+    var p=readLocalProfile(),cat,tier,nextTier,mods=p.carMods[p.car];
     if(action==='earn') p.currency+=1000;
     else if(action==='share_reward'){
       if(p.shareRewarded) return Promise.reject({error:'share_reward_claimed'});
       p.currency+=100000;p.shareRewarded=true;
     }
     else if(action==='select_car' && CAR_MODELS[extra.car]){
-      p.carMods[p.car]=normalizeMods(p.mods);p.car=extra.car;
+      p.carMods[p.car]=normalizeMods(mods);p.car=extra.car;
       if(!p.carMods[p.car])p.carMods[p.car]=normalizeMods(EMPTY_MODS);
-      p.mods=p.carMods[p.car];
+      mods=p.carMods[p.car];
     }
     else if(action==='buy'){
-      cat=extra.category;tier=p.mods[cat]||0;nextTier=tier+1;
+      cat=extra.category;tier=mods[cat]||0;nextTier=tier+1;
       if(tier>=3) return Promise.reject({error:'max_tier'});
       if(p.currency<500) return Promise.reject({error:'not_enough_currency'});
       if(cat==='turbo'){
-        if(p.mods.supercharger>0) return Promise.reject({error:'boost_conflict'});
-        if(p.mods.clutch<nextTier) return Promise.reject({error:'requires_clutch',required:nextTier});
-        if(p.mods.injectors<nextTier) return Promise.reject({error:'requires_injectors',required:nextTier});
-        if(p.mods.fuelpump<nextTier) return Promise.reject({error:'requires_fuelpump',required:nextTier});
+        if(mods.supercharger>0) return Promise.reject({error:'boost_conflict'});
+        if(mods.clutch<nextTier) return Promise.reject({error:'requires_clutch',required:nextTier});
+        if(mods.injectors<nextTier) return Promise.reject({error:'requires_injectors',required:nextTier});
+        if(mods.fuelpump<nextTier) return Promise.reject({error:'requires_fuelpump',required:nextTier});
       }
       if(cat==='supercharger'){
-        if(p.mods.turbo>0) return Promise.reject({error:'boost_conflict'});
-        if(p.mods.clutch<nextTier) return Promise.reject({error:'requires_clutch',required:nextTier});
+        if(mods.turbo>0) return Promise.reject({error:'boost_conflict'});
+        if(mods.clutch<nextTier) return Promise.reject({error:'requires_clutch',required:nextTier});
       }
-      p.currency-=500;p.mods[cat]=nextTier;p.carMods[p.car]=p.mods;
+      p.currency-=500;mods[cat]=nextTier;p.carMods[p.car]=mods;
     }
     currentProfile=normalizeProfile(writeLocalProfile(p));loadedProfileName=profileNick().toLowerCase();showProfile();
     return Promise.resolve(currentProfile);
@@ -701,7 +701,7 @@
     }).catch(function(){ currentProfile=readLocalProfile(); loadedProfileName=name.toLowerCase(); showProfile(); return currentProfile; });
   }
   function profileAction(action,extra){
-    var payload={name:profileNick(),action:action}; Object.keys(extra||{}).forEach(function(k){payload[k]=extra[k];});
+    var payload={name:profileNick(),action:action}; Object.keys(extra||{}).forEach(function(k){payload[k]=extra[k];});if(action==='buy')payload.car=currentProfile.car;
     return fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(r){return r.json().then(function(j){if(!r.ok){j.httpStatus=r.status;throw j;}return j;});}).then(function(p){
       currentProfile=normalizeProfile(p); writeLocalProfile(currentProfile); loadedProfileName=profileNick().toLowerCase(); showProfile(); return currentProfile;
     }).catch(function(err){
@@ -718,14 +718,15 @@
     g.shadowColor=m.color;g.shadowBlur=13;g.fillStyle='#090a0d';
     g.fillRect(5,20,10,23);g.fillRect(59,20,10,23);g.fillRect(5,66,10,23);g.fillRect(59,66,10,23);
     if(mx5){g.save();g.translate(6,7);g.scale(.84,.9);}
-    g.fillStyle=m.color;g.beginPath();g.moveTo(24,5);g.quadraticCurveTo(37,0,50,5);g.lineTo(60,18);g.lineTo(58,88);g.quadraticCurveTo(37,102,16,88);g.lineTo(14,18);g.closePath();g.fill();
+    g.fillStyle=m.color;g.beginPath();g.moveTo(24,5);g.quadraticCurveTo(37,0,50,5);g.lineTo(60,18);g.lineTo(m3?54:58,m3?86:88);g.quadraticCurveTo(37,m3?98:102,m3?20:16,m3?86:88);g.lineTo(14,18);g.closePath();g.fill();
     g.shadowBlur=0;g.strokeStyle=m3?'#f1f3f5':'#7029bd';g.lineWidth=3;g.stroke();
-    g.fillStyle=mx5?'#090a0d':'#151a22';g.beginPath();g.moveTo(22,25);g.lineTo(52,25);g.lineTo(touring?55:50,touring?73:66);g.lineTo(touring?19:24,touring?73:66);g.closePath();g.fill();
-    g.fillStyle='#3f4a59';g.fillRect(24,29,26,16);g.fillRect(touring?22:27,50,touring?30:20,touring?18:13);
+    g.fillStyle=mx5?'#090a0d':'#151a22';g.beginPath();g.moveTo(m3?24:22,m3?27:25);g.lineTo(m3?50:52,m3?27:25);g.lineTo(touring?55:(m3?47:50),touring?73:(m3?69:66));g.lineTo(touring?19:(m3?27:24),touring?73:(m3?69:66));g.closePath();g.fill();
+    g.fillStyle='#3f4a59';g.fillRect(m3?26:24,m3?31:29,m3?22:26,m3?18:16);g.fillRect(touring?22:(m3?28:27),m3?52:50,touring?30:(m3?18:20),m3?14:13);
+    if(m3){g.fillStyle='#aeb5c0';g.fillRect(24,50,26,3);g.fillStyle='#111';g.fillRect(17,48,4,10);g.fillRect(53,48,4,10);}
     g.fillStyle='#fff4c4';g.fillRect(18,10,13,5);g.fillRect(43,10,13,5);
     g.fillStyle='#111';g.fillRect(33,8,3,8);g.fillRect(38,8,3,8); // BMW kidneys
     g.fillStyle='#ff2d52';g.fillRect(18,88,13,5);g.fillRect(43,88,13,5);
-    if(!touring){g.fillStyle=m3?'#5e6670':'#050608';g.fillRect(11,18,52,4);g.fillRect(12,84,50,3);}
+    if(!touring){g.fillStyle=m3?'#5e6670':'#050608';g.fillRect(11,18,52,4);g.fillRect(m3?18:12,m3?82:84,m3?38:50,3);}
     if(m3){g.fillStyle='#3a65bd';g.fillRect(33,4,3,90);g.fillStyle='#9a2ba8';g.fillRect(37,4,3,90);g.fillStyle='#d22f42';g.fillRect(41,4,3,90);}
     if(e46){for(var iy=0;iy<4;iy++){for(var ix=0;ix<3;ix++){g.fillStyle=(ix+iy)%2===0?'#f4f2ec':'#111';g.fillRect(24+ix*9,29+iy*9,9,9);}}}
     g.fillStyle=m.color;g.fillRect(10,92,54,5);g.fillStyle='#08090c';g.fillRect(9,97,56,4);
@@ -1739,6 +1740,12 @@
     ctx.fillStyle = bodyGrad;
     roundedPath(-30,-14,58,28,6); ctx.fill();
     ctx.fillRect(isTouring?18:20,-13,isTouring?10:8,26);
+    if(isM3){
+      // Coupé: tapered rear quarters and one long door per side instead of a sedan silhouette.
+      ctx.fillStyle=bodyDark;
+      ctx.beginPath();ctx.moveTo(18,-14);ctx.lineTo(28,-10);ctx.lineTo(28,-14);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.moveTo(18,14);ctx.lineTo(28,10);ctx.lineTo(28,14);ctx.closePath();ctx.fill();
+    }
     ctx.lineWidth = 2; ctx.strokeStyle = '#120a1f';
     roundedPath(-30,-14,58,28,6); ctx.stroke();
     if(!isTouring){
@@ -1754,12 +1761,16 @@
 
     // roof / glass (long touring roofline)
     ctx.fillStyle = '#1c1229';
-    roundedPath(-16,-9,isTouring?34:29,18,4); ctx.fill();
+    roundedPath(isM3?-14:-16,-9,isTouring?34:(isM3?25:29),18,4); ctx.fill();
     ctx.strokeStyle = '#120a1f'; ctx.lineWidth = 1.5;
-    roundedPath(-16,-9,isTouring?34:29,18,4); ctx.stroke();
+    roundedPath(isM3?-14:-16,-9,isTouring?34:(isM3?25:29),18,4); ctx.stroke();
     ctx.fillStyle = '#3a2a52';
-    ctx.fillRect(-14,-7,10,14); // windshield
-    ctx.fillRect(-2,-7,isTouring?16:11,14); // shorter sedan roof / long touring glass
+    ctx.fillRect(isM3?-12:-14,-7,isM3?9:10,14); // windshield
+    ctx.fillRect(isM3?-1:-2,-7,isTouring?16:(isM3?9:11),14); // compact coupé cabin / sedan / touring glass
+    if(isM3){
+      ctx.strokeStyle='#e2e5e8';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-5,-13);ctx.lineTo(13,-13);ctx.moveTo(-5,13);ctx.lineTo(13,13);ctx.stroke();
+      ctx.fillStyle='#252b34';ctx.fillRect(4,-15,7,2);ctx.fillRect(4,13,7,2); // two long-door handles
+    }
     if(isE46){
       for(var ryi=0;ryi<4;ryi++){for(var rxi=0;rxi<7;rxi++){ctx.fillStyle=(rxi+ryi)%2===0?'#f4f2ec':'#111';ctx.fillRect(-14+rxi*4,-8+ryi*4,4,4);}}
     }
