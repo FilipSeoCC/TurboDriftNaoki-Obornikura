@@ -38,6 +38,7 @@
   }
   #app{
     position:fixed; inset:0;
+    width:100%; height:100%; height:100dvh;
     display:flex; flex-direction:column;
     background:var(--ink);
   }
@@ -317,6 +318,7 @@
 
   /* ---------- touch controls ---------- */
   .tc-wrap{ position:absolute; inset:0; pointer-events:none; z-index:5; display:none; }
+  .tc-wrap.active{ display:block; }
   .tc-btn{
     position:absolute; width:64px; height:64px; border-radius:50%;
     background:linear-gradient(180deg, var(--panel), var(--panel-2));
@@ -335,7 +337,23 @@
     background:linear-gradient(180deg,var(--orange-2),var(--orange)); color:#170826; border-color:#5c1780;
   }
 
-  @media (max-width: 560px){
+  @media (max-width: 760px){
+    html,body{ min-width:0; }
+    #screenTitle{
+      align-items:flex-start; justify-content:flex-start; overflow-x:hidden; overflow-y:auto;
+      touch-action:pan-y; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
+      padding:calc(12px + env(safe-area-inset-top)) 10px calc(24px + env(safe-area-inset-bottom));
+    }
+    #screenTitle .card{
+      flex:0 0 auto; width:100%; max-width:100%; min-width:0; margin:0 auto;
+      padding:20px 14px; border-radius:9px;
+    }
+    #screenTitle .card h1{ font-size:clamp(27px,10vw,38px); line-height:1.05; }
+    #screenTitle .card p.sub{ margin-bottom:13px; font-size:10px; }
+    #screenTitle .card .lead{ margin-bottom:18px; font-size:12px; line-height:1.4; }
+    #screenTitle .share-box,#screenTitle .multi-box{ margin-bottom:13px; }
+    #screenTitle .card-gallery{ max-width:100%; flex-wrap:wrap; }
+    #screenTitle .mode-btn{ min-width:0; padding:11px 4px; font-size:10px; }
     .hud-panel{ min-width:0; padding:6px 8px; }
     .hud-label{ font-size:8px; }
     .meter{ width:88px; height:8px; }
@@ -553,9 +571,9 @@
   var tcRight = document.getElementById('tcRight');
   var tcGas = document.getElementById('tcGas');
   var tcSpace = document.getElementById('tcSpace');
-  if (isTouch){
-    tcWrap.style.display = 'block';
-    hint.style.display = 'none';
+  if (isTouch){ hint.style.display = 'none'; }
+  function updateTouchControls(){
+    tcWrap.classList.toggle('active',isTouch&&(STATE==='pump'||STATE==='drift'||STATE==='paused'));
   }
 
   var W = 0, H = 0, DPR = 1;
@@ -1176,6 +1194,7 @@
   function showMainMenu(){
     stopMultiplayer(true);
     STATE = 'title';
+    updateTouchControls();
     clearTimeout(giftPopupTimer);keys={}; gameActions.hidden=true; cardModal.hidden=true; scoreGiftPopup.hidden=true;
     cardGalleryEnd.classList.remove('card-attention');if(cardClickHint)cardClickHint.style.display='none';
     screenEnd.hidden=true; screenGarage.hidden=true; screenTitle.hidden=false;
@@ -1183,7 +1202,7 @@
   }
   function showGarage(){
     stopMultiplayer(true);
-    clearTimeout(giftPopupTimer);STATE='title'; keys={}; gameActions.hidden=true; cardModal.hidden=true; scoreGiftPopup.hidden=true;
+    clearTimeout(giftPopupTimer);STATE='title'; updateTouchControls(); keys={}; gameActions.hidden=true; cardModal.hidden=true; scoreGiftPopup.hidden=true;
     cardGalleryEnd.classList.remove('card-attention');if(cardClickHint)cardClickHint.style.display='none';
     screenTitle.hidden=true;screenEnd.hidden=true;screenGarage.hidden=false;screenGarage.scrollTop=0;
     renderGarage();
@@ -1271,6 +1290,7 @@
   // ---------- phase: pump ----------
   function startPump(){
     STATE = 'pump';
+    updateTouchControls();
     gameActions.hidden = true;
     screenGarage.hidden = true;
     pump.meter = 0; pump.wobble = 0; pump.turboSpin = 0;
@@ -1449,6 +1469,7 @@
   // ---------- phase: transform ----------
   function startTransform(){
     STATE = 'transform';
+    updateTouchControls();
     transformT = 0;
     hint.textContent = '';
     for (var i=0;i<40;i++){
@@ -1468,6 +1489,7 @@
   // ---------- phase: drift ----------
   function startDrift(){
     STATE = 'drift';
+    updateTouchControls();
     gameActions.hidden = false;
     var model=CAR_MODELS[currentProfile.car]||CAR_MODELS.e36_touring,mods=currentProfile.mods||DEFAULT_PROFILE.mods;
     var boostTier=(mods.turbo||0)+(mods.supercharger||0);
@@ -2059,6 +2081,7 @@
 
   function endGame(){
     STATE = 'end';
+    updateTouchControls();
     stopMultiplayer(true);
     gameActions.hidden = true;
     if (tireGain && audioCtx) tireGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
