@@ -12,7 +12,7 @@ wystarczy `[agent]`.
 
 ## In progress
 
-_(pusto)_
+- [codex / ja] Fast login przez Google (OAuth) - potwierdzone przez ja (2026-07-18). Backend/auth, poza obszarem Claude Code. Do wyjaśnienia przy implementacji: skąd/po co placeholder e-maila `email@lizmejaja.pl` wspomniany przez Codeksa - opisać w PR jaką rolę pełni, zanim wyląduje w kodzie.
 
 ## Done
 
@@ -24,6 +24,7 @@ _(pusto)_
 - [claude-code / ja] Trzeci tor "Uliczny" (prostokąt z szykaną) w `index.html` (2026-07-18)
 - [claude-code / ja] Konfiguracja infrastruktury współpracy: TASKS.md, CODEOWNERS, PR template (2026-07-18)
 - [claude-code / ja] Rozszerzenie infrastruktury o drugą osobę: format TASKS.md, PROJECT_SETUP.md, CONTRIBUTING.md (2026-07-18)
+- [claude-code / ja] Przebudowa nawigacji: login -> powitanie -> hub -> garaż -> tor -> tryb -> wyścig, globalny przycisk Menu, naprawa menedżera muzyki (visibilitychange) (2026-07-18)
 
 <!--
 Wpisy sprzed dołączenia kolegi do zespołu zostały bez przypisanej osoby

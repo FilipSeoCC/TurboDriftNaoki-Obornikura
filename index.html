@@ -144,6 +144,14 @@
     background-repeat:no-repeat;
   }
   .screen[hidden]{ display:none; }
+  .btn-back-home{
+    position:absolute; z-index:60;
+    top:calc(8px + env(safe-area-inset-top)); left:calc(8px + env(safe-area-inset-left));
+    padding:7px 12px; border:1px solid #ffffff33; border-radius:7px;
+    background:#090b10cc; color:var(--white); font:900 11px Arial Narrow,Arial;
+    cursor:pointer; backdrop-filter:blur(3px);
+  }
+  .btn-back-home[hidden]{ display:none; }
   #screenEnd{
     align-items:flex-start; overflow-y:auto; overflow-x:hidden; touch-action:pan-y;
     -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
@@ -443,6 +451,8 @@
   <div id="stage">
     <canvas id="game"></canvas>
 
+    <button class="btn-back-home" id="btnBackHome" type="button" aria-label="Powrót do menu głównego" hidden>⌂ Menu</button>
+
     <div id="hud">
       <div class="hud-panel" id="leftPanel">
         <div class="hud-label" id="leftLabel">Turbina</div>
@@ -485,22 +495,10 @@
         <p class="card-modal-text" id="cardModalText"></p>
       </div>
     </div>
-    <div class="screen" id="screenTitle">
+    <div class="screen" id="screenLogin">
       <div class="card">
         <p class="sub">Operacja Wkurw</p>
         <h1>Turbo <span>Kret</span> Drift</h1>
-        <p class="lead">Bukovski ma w gaciach małego kreta.<br>Napompuj mu turbinę, zamień kreta w bestię i trzymaj obroty na świecącej czerwonej linii —<br>im szybciej, bardziej bokiem i dokładniej po linii jedziesz, tym więcej zdobywasz punktów.</p>
-        <div class="multi-box">
-          <p class="field-label">Wybierz tryb gry</p>
-          <div class="mode-choice">
-            <button class="mode-btn selected" id="btnSingleMode" type="button">👤 SINGLEPLAYER</button>
-            <button class="mode-btn" id="btnMultiMode" type="button">👥 MULTIPLAYER</button>
-          </div>
-          <div class="multi-room-options" id="multiRoomOptions" hidden>
-            <input class="room-input" id="roomInput" maxlength="12" value="PUBLIC" aria-label="Kod pokoju multiplayer">
-            <p class="multi-note" id="multiplayerStatus">Pokój PUBLIC · maks. 8 graczy · bez kolizji</p>
-          </div>
-        </div>
         <div class="player-box">
           <p class="field-label">Wprowadź nick</p>
           <input type="text" id="nickInput" class="nick-input" maxlength="14" placeholder="Twój nick">
@@ -508,22 +506,37 @@
           <input type="email" id="emailInput" class="nick-input" maxlength="254" autocomplete="email" inputmode="email" placeholder="email@przyklad.pl">
           <label class="email-consent"><input type="checkbox" id="emailConsent"> <span>Akceptuję <a href="#" data-legal="terms">Regulamin</a>, znam <a href="#" data-legal="privacy">Politykę prywatności</a> i zgadzam się na zapis e-maila.</span></label>
           <p class="email-status" id="emailStatus">E-mail nie będzie widoczny w rankingu ani publicznym profilu.</p>
-          <div class="balance" id="titleBalance">🔩 0 śrubek</div>
-          <button class="btn garage-btn" id="btnGarage" type="button">Garaż</button>
-          <button class="btn garage-btn" id="btnCasino" type="button" style="margin-top:8px;background:#7a2fd1;">🎰 Kasyno · Blackjack</button>
         </div>
-        <p class="field-label">Wybierz tor</p>
-        <div class="track-choice">
-          <button class="btn btn-track" id="btnRondo" data-mode="rondo">Rondo</button>
-          <button class="btn btn-track" id="btnOsemka" data-mode="osemka">Ósemka</button>
-          <button class="btn btn-track" id="btnUlica" data-mode="ulica">Uliczny</button>
-        </div>
-        <p class="card-gallery-caption">Wykręć jak najlepszy wynik, żeby odblokować karty Bukovskiego!</p>
-        <div class="card-gallery" id="cardGallery"></div>
+        <div class="panel-nav"><button class="btn" id="btnLogin" type="button">Zaloguj →</button></div>
+        <div class="legal-links"><button type="button" data-legal="terms">Regulamin</button><button type="button" data-legal="privacy">Polityka prywatności</button><span>Gra 18+</span></div>
+      </div>
+    </div>
+
+    <div class="screen" id="screenWelcome" hidden>
+      <div class="card">
+        <p class="sub">Witaj z powrotem</p>
+        <h1>Turbo <span>Kret</span> Drift</h1>
+        <p class="lead">Bukovski ma w gaciach małego kreta.<br>Napompuj mu turbinę, zamień kreta w bestię i trzymaj obroty na świecącej czerwonej linii —<br>im szybciej, bardziej bokiem i dokładniej po linii jedziesz, tym więcej zdobywasz punktów.</p>
         <div class="share-box share-footer">
           <button class="btn" id="btnShare" type="button">📨 Poleć grę · +2000 🔩</button>
           <p class="share-note" id="shareNote">Udostępnij przez Messengera lub inną aplikację. Nagroda jest jednorazowa.</p>
         </div>
+        <div class="panel-nav"><button class="btn" id="btnWelcomeNext" type="button">Dalej →</button></div>
+      </div>
+    </div>
+
+    <div class="screen" id="screenTitle" hidden>
+      <div class="card">
+        <p class="sub">Menu główne</p>
+        <h1>Turbo <span>Kret</span> Drift</h1>
+        <div class="balance" id="titleBalance">🔩 0 śrubek</div>
+        <div class="panel-nav">
+          <button class="btn garage-btn" id="btnGarage" type="button">🔧 Garaż</button>
+          <button class="btn garage-btn" id="btnCasino" type="button" style="background:#7a2fd1;">🎰 Kasyno · Blackjack</button>
+          <button class="btn btn-secondary" id="btnSettingsOpen" type="button">⚙ Ustawienia</button>
+        </div>
+        <p class="card-gallery-caption">Wykręć jak najlepszy wynik, żeby odblokować karty Bukovskiego!</p>
+        <div class="card-gallery" id="cardGallery"></div>
         <div class="legal-links"><button type="button" data-legal="terms">Regulamin</button><button type="button" data-legal="privacy">Polityka prywatności</button><span>Gra 18+</span></div>
       </div>
     </div>
@@ -540,8 +553,55 @@
         <p class="profile-note">💾 Tuning i karta specyfikacji zapisują się automatycznie osobno dla każdego wybranego auta.</p>
         <div class="garage-notice" id="garageNotice"></div>
         <div class="tuning-list" id="tuningList"></div>
-        <div class="panel-nav"><button class="btn btn-secondary" id="btnGarageBack" type="button">← Menu główne</button></div>
+        <div class="panel-nav">
+          <button class="btn" id="btnGarageStartRace" type="button">Rozpocznij wyścig →</button>
+          <button class="btn btn-secondary" id="btnGarageBack" type="button">← Menu główne</button>
+        </div>
         <p class="profile-note">Nick nie ma hasła. Gracze używający tego samego nicku współdzielą samochód, tuning i śrubki.</p>
+      </div>
+    </div>
+
+    <div class="screen" id="screenTrackSelect" hidden>
+      <div class="card">
+        <p class="sub">Krok 2 z 3</p>
+        <h1>Wybierz <span>tor</span></h1>
+        <div class="track-choice">
+          <button class="btn btn-track" id="btnRondo" data-mode="rondo">Rondo</button>
+          <button class="btn btn-track" id="btnOsemka" data-mode="osemka">Ósemka</button>
+          <button class="btn btn-track" id="btnUlica" data-mode="ulica">Uliczny</button>
+        </div>
+        <div class="panel-nav"><button class="btn btn-secondary" id="btnTrackSelectBack" type="button">← Garaż</button></div>
+      </div>
+    </div>
+
+    <div class="screen" id="screenModeSelect" hidden>
+      <div class="card">
+        <p class="sub">Krok 3 z 3</p>
+        <h1>Wybierz <span>tryb</span></h1>
+        <div class="multi-box">
+          <p class="field-label">Wybierz tryb gry</p>
+          <div class="mode-choice">
+            <button class="mode-btn selected" id="btnSingleMode" type="button">👤 SINGLEPLAYER</button>
+            <button class="mode-btn" id="btnMultiMode" type="button">👥 MULTIPLAYER</button>
+          </div>
+          <div class="multi-room-options" id="multiRoomOptions" hidden>
+            <input class="room-input" id="roomInput" maxlength="12" value="PUBLIC" aria-label="Kod pokoju multiplayer">
+            <p class="multi-note" id="multiplayerStatus">Pokój PUBLIC · maks. 8 graczy · bez kolizji</p>
+          </div>
+        </div>
+        <div class="panel-nav">
+          <button class="btn" id="btnStartRace" type="button">🏁 Start wyścigu!</button>
+          <button class="btn btn-secondary" id="btnModeSelectBack" type="button">← Tor</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="screenSettings" hidden>
+      <div class="card">
+        <p class="sub">Menu główne</p>
+        <h1>Ustawie<span>nia</span></h1>
+        <p class="lead">Pełna konfiguracja pojawi się tutaj później. Na razie to tylko wejście do ekranu.</p>
+        <div class="panel-nav"><button class="btn btn-secondary" id="btnSettingsBack" type="button">← Menu główne</button></div>
       </div>
     </div>
 
@@ -671,9 +731,25 @@
   var hint = document.getElementById('hint');
   var quoteBubble = document.getElementById('quoteBubble');
 
+  var screenLogin = document.getElementById('screenLogin');
+  var screenWelcome = document.getElementById('screenWelcome');
   var screenTitle = document.getElementById('screenTitle');
   var screenEnd = document.getElementById('screenEnd');
   var screenGarage = document.getElementById('screenGarage');
+  var screenTrackSelect = document.getElementById('screenTrackSelect');
+  var screenModeSelect = document.getElementById('screenModeSelect');
+  var screenSettings = document.getElementById('screenSettings');
+  var ALL_SCREENS = [screenLogin, screenWelcome, screenTitle, screenGarage, screenTrackSelect, screenModeSelect, screenSettings, screenEnd];
+  function hideAllScreens(){ ALL_SCREENS.forEach(function(s){ s.hidden = true; }); }
+  var btnLogin = document.getElementById('btnLogin');
+  var btnWelcomeNext = document.getElementById('btnWelcomeNext');
+  var btnSettingsOpen = document.getElementById('btnSettingsOpen');
+  var btnSettingsBack = document.getElementById('btnSettingsBack');
+  var btnGarageStartRace = document.getElementById('btnGarageStartRace');
+  var btnTrackSelectBack = document.getElementById('btnTrackSelectBack');
+  var btnModeSelectBack = document.getElementById('btnModeSelectBack');
+  var btnStartRace = document.getElementById('btnStartRace');
+  var btnBackHome = document.getElementById('btnBackHome');
   var btnRondo = document.getElementById('btnRondo');
   var btnOsemka = document.getElementById('btnOsemka');
   var btnUlica = document.getElementById('btnUlica');
@@ -1326,10 +1402,18 @@
 
   window.addEventListener('pointerdown', function(){ ensureAudio(); }, {passive:true});
   window.addEventListener('pageshow', function(){ ensureMusic(); });
-  document.addEventListener('visibilitychange', function(){ if(!document.hidden) ensureMusic(); });
+  // Single global music switch: pause the soundtrack the instant the tab/app is
+  // hidden or minimized, resume it the instant it's visible again. Screen-to-screen
+  // navigation never touches this - only real visibility changes do.
+  document.addEventListener('visibilitychange', function(){
+    if (document.hidden){ if (musicSample && !musicSample.paused) musicSample.pause(); }
+    else { ensureMusic(); }
+  });
 
   // ---------- input ----------
   window.addEventListener('keydown', function(e){
+    var target = e.target;
+    if (target instanceof HTMLElement && target.matches('input, textarea, select, [contenteditable="true"]')) return;
     ensureAudio();
     var k = e.key;
     if ((k === 'p' || k === 'P' || k === 'Escape') && !e.repeat){
@@ -1414,30 +1498,45 @@
   nickInput.addEventListener('blur', function(){ loadProfile(false); });
   emailInput.addEventListener('blur', function(){ if(validPlayerEmail()&&emailConsent.checked)savePlayerEmail().catch(function(){}); });
   function ensurePlayerProfile(){ return loadProfile(false).then(savePlayerEmail); }
-  function startTrackWithProfile(mode){
-    ensureAudio(); trackMode=mode;
+  function selectTrack(mode){ trackMode = mode; showModeSelect(); }
+  btnRondo.addEventListener('click', function(){ selectTrack('rondo'); });
+  btnOsemka.addEventListener('click', function(){ selectTrack('osemka'); });
+  btnUlica.addEventListener('click', function(){ selectTrack('ulica'); });
+  btnStartRace.addEventListener('click', function(){
+    ensureAudio();
     ensurePlayerProfile().then(startPump).catch(function(){});
-  }
-  btnRondo.addEventListener('click', function(){ startTrackWithProfile('rondo'); });
-  btnOsemka.addEventListener('click', function(){ startTrackWithProfile('osemka'); });
-  btnUlica.addEventListener('click', function(){ startTrackWithProfile('ulica'); });
-  function showMainMenu(){
+  });
+  // Every menu/nav screen shares the same reset: stop multiplayer polling, go back
+  // to the idle STATE, clear any leftover in-race UI, then show exactly one screen.
+  function resetToMenuUi(){
     stopMultiplayer(true);
     STATE = 'title';
     updateTouchControls();
     keys={}; gameActions.hidden=true; cardModal.hidden=true;
-    cardGalleryEnd.classList.remove('card-attention');if(cardClickHint)cardClickHint.style.display='none';
-    screenEnd.hidden=true; screenGarage.hidden=true; screenTitle.hidden=false;
+    cardGalleryEnd.classList.remove('card-attention'); if(cardClickHint) cardClickHint.style.display='none';
+  }
+  function showLogin(){ resetToMenuUi(); hideAllScreens(); screenLogin.hidden=false; btnBackHome.hidden=true; }
+  function showWelcome(){ resetToMenuUi(); hideAllScreens(); screenWelcome.hidden=false; btnBackHome.hidden=false; }
+  function showMainMenu(){
+    resetToMenuUi(); hideAllScreens(); screenTitle.hidden=false; btnBackHome.hidden=false;
     renderCardGallery();
   }
   function showGarage(){
-    stopMultiplayer(true);
-    STATE='title'; updateTouchControls(); keys={}; gameActions.hidden=true; cardModal.hidden=true;
-    cardGalleryEnd.classList.remove('card-attention');if(cardClickHint)cardClickHint.style.display='none';
-    screenTitle.hidden=true;screenEnd.hidden=true;screenGarage.hidden=false;screenGarage.scrollTop=0;
+    resetToMenuUi(); hideAllScreens(); screenGarage.hidden=false; screenGarage.scrollTop=0; btnBackHome.hidden=false;
     renderGarage();
     loadProfile(true);
   }
+  function showTrackSelect(){ resetToMenuUi(); hideAllScreens(); screenTrackSelect.hidden=false; btnBackHome.hidden=false; }
+  function showModeSelect(){ resetToMenuUi(); hideAllScreens(); screenModeSelect.hidden=false; btnBackHome.hidden=false; }
+  function showSettings(){ resetToMenuUi(); hideAllScreens(); screenSettings.hidden=false; btnBackHome.hidden=false; }
+  btnLogin.addEventListener('click', function(){ ensureAudio(); ensurePlayerProfile().then(showWelcome).catch(function(){}); });
+  btnWelcomeNext.addEventListener('click', showMainMenu);
+  btnSettingsOpen.addEventListener('click', showSettings);
+  btnSettingsBack.addEventListener('click', showMainMenu);
+  btnGarageStartRace.addEventListener('click', showTrackSelect);
+  btnTrackSelectBack.addEventListener('click', showGarage);
+  btnModeSelectBack.addEventListener('click', showTrackSelect);
+  btnBackHome.addEventListener('click', showMainMenu);
   function referralLink(){
     var url=new URL(window.location.href);url.search='';url.hash='';url.searchParams.set('ref',profileNick());return url.toString();
   }
@@ -1667,12 +1766,12 @@
     STATE = 'pump';
     updateTouchControls();
     gameActions.hidden = true;
-    screenGarage.hidden = true;
+    hideAllScreens();
+    btnBackHome.hidden = false;
     pump.meter = 0; pump.wobble = 0; pump.turboSpin = 0;
     particles = [];
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     if (tireGain && audioCtx) tireGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
-    screenTitle.hidden = true; screenEnd.hidden = true;
     timerPanel.hidden = true;
     leftLabel.textContent = 'Turbina';
     hint.innerHTML = '<b>Kliknij</b>, żeby napompować turbinę w gaciach kreta';
