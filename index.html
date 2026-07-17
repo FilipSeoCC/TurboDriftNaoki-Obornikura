@@ -228,6 +228,24 @@
   }
   .nick-input::placeholder{ color:var(--grey); }
   .nick-input:focus{ outline:2px solid var(--teal); border-color:transparent; }
+  .email-consent{ max-width:300px; margin:-5px auto 8px; display:flex; align-items:flex-start; gap:7px; color:var(--grey); font-size:10px; line-height:1.35; text-align:left; }
+  .email-consent input{ width:17px; height:17px; margin:0; flex:0 0 auto; accent-color:var(--teal); }
+  .email-status{ min-height:14px; margin:0 0 8px; color:#ffd65a; font-size:10px; line-height:1.35; }
+  .email-consent a,.legal-links button{ color:var(--teal); text-decoration:underline; }
+  .legal-links{ display:flex; justify-content:center; flex-wrap:wrap; gap:8px 16px; margin:14px 0 0; font-size:11px; }
+  .legal-links button{ padding:3px; border:0; background:none; font:inherit; cursor:pointer; }
+  .legal-modal{ position:fixed; inset:0; z-index:80; display:flex; align-items:center; justify-content:center; padding:16px; background:#050309dd; backdrop-filter:blur(5px); }
+  .legal-modal[hidden]{ display:none; }
+  .legal-panel{ position:relative; width:min(94vw,760px); max-height:min(88vh,820px); overflow:auto; touch-action:pan-y; padding:26px; border:2px solid var(--orange); border-radius:12px; background:#171c24; color:#e8edf5; box-shadow:0 18px 70px #000; text-align:left; }
+  .legal-close{ position:sticky; top:0; float:right; width:40px; height:40px; margin:-12px -12px 4px 12px; border:1px solid #ffffff44; border-radius:50%; background:#090b10; color:#fff; font-size:24px; cursor:pointer; }
+  .legal-panel h2{ margin:0 45px 8px 0; font-size:27px; color:#fff; }
+  .legal-panel h3{ margin:20px 0 6px; color:var(--orange-2); font-size:16px; }
+  .legal-panel p,.legal-panel li{ font-size:13px; line-height:1.55; }
+  .legal-panel ul{ padding-left:20px; }
+  .legal-panel a{ color:var(--teal); }
+  .legal-date{ color:var(--grey); font-size:11px!important; }
+  .legal-delete{ margin-top:14px; padding:10px 14px; border:1px solid #ff6a6a; border-radius:7px; background:#35151a; color:#fff; font-weight:800; cursor:pointer; }
+  .legal-delete-status{ color:#ffd65a; font-size:11px!important; }
 
   .track-choice{ display:flex; gap:10px; justify-content:center; margin:0 0 18px; }
   .btn-track{ flex:1; padding:12px 10px; font-size:13px; }
@@ -486,6 +504,10 @@
         <div class="player-box">
           <p class="field-label">Wprowadź nick</p>
           <input type="text" id="nickInput" class="nick-input" maxlength="14" placeholder="Twój nick">
+          <p class="field-label">Twój e-mail</p>
+          <input type="email" id="emailInput" class="nick-input" maxlength="254" autocomplete="email" inputmode="email" placeholder="email@przyklad.pl">
+          <label class="email-consent"><input type="checkbox" id="emailConsent"> <span>Akceptuję <a href="#" data-legal="terms">Regulamin</a>, znam <a href="#" data-legal="privacy">Politykę prywatności</a> i zgadzam się na zapis e-maila.</span></label>
+          <p class="email-status" id="emailStatus">E-mail nie będzie widoczny w rankingu ani publicznym profilu.</p>
           <div class="balance" id="titleBalance">🔩 0 śrubek</div>
           <button class="btn garage-btn" id="btnGarage" type="button">Garaż</button>
           <button class="btn garage-btn" id="btnCasino" type="button" style="margin-top:8px;background:#7a2fd1;">🎰 Kasyno · Blackjack</button>
@@ -502,6 +524,7 @@
           <button class="btn" id="btnShare" type="button">📨 Poleć grę · +2000 🔩</button>
           <p class="share-note" id="shareNote">Udostępnij przez Messengera lub inną aplikację. Nagroda jest jednorazowa.</p>
         </div>
+        <div class="legal-links"><button type="button" data-legal="terms">Regulamin</button><button type="button" data-legal="privacy">Polityka prywatności</button><span>Gra 18+</span></div>
       </div>
     </div>
 
@@ -588,6 +611,48 @@
   </div>
 </div>
 
+<div class="legal-modal" id="legalModal" hidden role="dialog" aria-modal="true" aria-label="Dokumenty prawne">
+  <article class="legal-panel" id="legalPanel">
+    <button class="legal-close" id="legalClose" type="button" aria-label="Zamknij">&times;</button>
+    <section id="legalTerms" hidden>
+      <h2 id="legalTitle">Regulamin gry Turbo Kret Drift</h2>
+      <p class="legal-date">Obowiązuje od 18 lipca 2026 r.</p>
+      <h3>1. Operator i charakter gry</h3>
+      <p>Operatorem bezpłatnej gry przeglądarkowej Turbo Kret Drift jest twórca projektu działający jako <strong>FilipSeoCC</strong>. Kontakt jest możliwy przez <a href="https://github.com/FilipSeoCC" target="_blank" rel="noopener">profil operatora w GitHub</a>. Gra ma charakter rozrywkowy i żartobliwy.</p>
+      <h3>2. Wymagania i treści</h3>
+      <p>Gra jest przeznaczona wyłącznie dla osób, które ukończyły 18 lat. Zawiera wulgarny język, humor dla dorosłych, motywy erotyczne, hazard symulowany oraz głośne efekty dźwiękowe. Korzystając z gry, użytkownik potwierdza pełnoletność i akceptuje Regulamin.</p>
+      <h3>3. Profil gracza</h3>
+      <ul><li>Nick nie jest zabezpieczonym kontem i nie ma hasła. Osoby używające tego samego nicku mogą współdzielić profil, walutę i tuning.</li><li>Śrubki, samochody, tuning, karty i wyniki są wyłącznie elementami gry, nie mają wartości pieniężnej i nie podlegają wymianie na pieniądze.</li><li>Operator może poprawiać błędy, resetować nieuczciwe wyniki i zmieniać balans lub zasady gry.</li></ul>
+      <h3>4. Zasady korzystania</h3>
+      <p>Zabronione są: manipulowanie API lub wynikami, automatyczne obciążanie serwerów, podszywanie się pod inne osoby, publikowanie bezprawnych treści w nickach i pokojach oraz utrudnianie gry innym. Dostęp może zostać ograniczony w razie naruszeń.</p>
+      <h3>5. Dostępność i odpowiedzialność</h3>
+      <p>Gra jest udostępniana w aktualnym stanie, bez gwarancji nieprzerwanego działania lub zachowania postępu. Operator może czasowo wyłączyć albo zakończyć usługę. Nie ogranicza to praw, których zgodnie z prawem nie można wyłączyć.</p>
+      <h3>6. Prawa do gry i zmiany</h3>
+      <p>Kod, grafiki i pozostałe elementy podlegają prawom ich właścicieli oraz licencjom wskazanym w projekcie. Regulamin może zostać zmieniony wraz z rozwojem gry; nowa wersja będzie publikowana w aplikacji z datą obowiązywania.</p>
+    </section>
+    <section id="legalPrivacy" hidden>
+      <h2>Polityka prywatności</h2>
+      <p class="legal-date">Obowiązuje od 18 lipca 2026 r.</p>
+      <h3>1. Administrator</h3>
+      <p>Administratorem danych jest operator gry Turbo Kret Drift działający jako <strong>FilipSeoCC</strong>. Kontakt w sprawach danych: <a href="https://github.com/FilipSeoCC" target="_blank" rel="noopener">profil GitHub operatora</a>.</p>
+      <h3>2. Jakie dane są przetwarzane</h3>
+      <ul><li>nick i adres e-mail podany przez użytkownika;</li><li>wyniki, wybrany samochód, tuning, waluta i odblokowane elementy;</li><li>kod pokoju oraz chwilowy stan auta w trybie multiplayer;</li><li>techniczne dane połączenia i logi przetwarzane przez dostawców hostingu.</li></ul>
+      <h3>3. Cele i podstawy</h3>
+      <ul><li>prowadzenie profilu i udostępnienie funkcji gry — wykonanie usługi zgodnie z Regulaminem;</li><li>zapis e-maila — zgoda użytkownika, którą można wycofać;</li><li>ranking i multiplayer — realizacja funkcji wybranych przez użytkownika;</li><li>bezpieczeństwo, zapobieganie nadużyciom i diagnostyka — prawnie uzasadniony interes operatora.</li></ul>
+      <p>E-mail nie jest publikowany w rankingu ani zwracany przez publiczne API. Nie jest używany do marketingu bez osobnej zgody.</p>
+      <h3>4. Odbiorcy i transfery</h3>
+      <p>Dane mogą być przetwarzane przez <a href="https://vercel.com/legal/privacy-notice" target="_blank" rel="noopener">Vercel</a> (hosting) oraz <a href="https://upstash.com/docs/redis/help/compliance" target="_blank" rel="noopener">Upstash</a> (baza Redis). Dostawcy mogą przetwarzać dane poza Europejskim Obszarem Gospodarczym z użyciem właściwych mechanizmów prawnych, w tym standardowych klauzul umownych.</p>
+      <h3>5. Okres przechowywania</h3>
+      <p>E-mail jest automatycznie usuwany po 12 miesiącach od ostatniego potwierdzenia albo wcześniej po wycofaniu zgody. Profil i wyniki są przechowywane do czasu działania gry, resetu lub skutecznego żądania usunięcia. Dane chwilowe multiplayer wygasają po opuszczeniu pokoju, a logi techniczne zgodnie z okresami dostawców.</p>
+      <h3>6. Prawa użytkownika</h3>
+      <p>Użytkownik może żądać dostępu, sprostowania, usunięcia, ograniczenia lub przeniesienia danych, wnieść sprzeciw, wycofać zgodę oraz złożyć skargę do Prezesa Urzędu Ochrony Danych Osobowych. Wycofanie zgody nie wpływa na zgodność wcześniejszego przetwarzania.</p>
+      <p>Gra nie podejmuje decyzji wywołujących skutki prawne wyłącznie automatycznie. Podanie e-maila jest dobrowolne, lecz obecnie wymagane do uruchomienia funkcji profilu i rozgrywki.</p>
+      <button class="legal-delete" id="deleteEmailBtn" type="button">Usuń zapisany e-mail i wycofaj zgodę</button>
+      <p class="legal-delete-status" id="deleteEmailStatus"></p>
+    </section>
+  </article>
+</div>
+
 <script>
 (function(){
   "use strict";
@@ -630,6 +695,16 @@
   var btnPause = document.getElementById('btnPause');
   var btnRestart = document.getElementById('btnRestart');
   var nickInput = document.getElementById('nickInput');
+  var emailInput = document.getElementById('emailInput');
+  var emailConsent = document.getElementById('emailConsent');
+  var emailStatus = document.getElementById('emailStatus');
+  var legalModal = document.getElementById('legalModal');
+  var legalPanel = document.getElementById('legalPanel');
+  var legalTerms = document.getElementById('legalTerms');
+  var legalPrivacy = document.getElementById('legalPrivacy');
+  var legalClose = document.getElementById('legalClose');
+  var deleteEmailBtn = document.getElementById('deleteEmailBtn');
+  var deleteEmailStatus = document.getElementById('deleteEmailStatus');
   var cardGallery = document.getElementById('cardGallery');
   var cardGalleryEnd = document.getElementById('cardGalleryEnd');
   var unlockBanner = document.getElementById('unlockBanner');
@@ -693,7 +768,7 @@
   var lastLoopTime = -999;
 
   var EMPTY_MODS = {engine:0,turbo:0,supercharger:0,injectors:0,fuelpump:0,clutch:0,gearbox:0,tires:0};
-  var DEFAULT_PROFILE = {currency:0,shareRewarded:false,mods:JSON.parse(JSON.stringify(EMPTY_MODS)),carMods:{e36_touring:JSON.parse(JSON.stringify(EMPTY_MODS))},car:'e36_touring'};
+  var DEFAULT_PROFILE = {currency:0,shareRewarded:false,emailSaved:false,mods:JSON.parse(JSON.stringify(EMPTY_MODS)),carMods:{e36_touring:JSON.parse(JSON.stringify(EMPTY_MODS))},car:'e36_touring'};
   var currentProfile = JSON.parse(JSON.stringify(DEFAULT_PROFILE));
   var loadedProfileName = '';
   var garageActionToken = 0;
@@ -774,7 +849,7 @@
     // Migrate old browser/server profiles: their global tuning belongs to the selected car.
     if(!Object.keys(carMods).length)carMods[car]=normalizeMods(p.mods);
     if(!carMods[car])carMods[car]=normalizeMods(EMPTY_MODS);
-    return {currency:Math.max(0,Number(p.currency)||0),shareRewarded:p.shareRewarded===true,car:car,carMods:carMods,mods:carMods[car]};
+    return {currency:Math.max(0,Number(p.currency)||0),shareRewarded:p.shareRewarded===true,emailSaved:p.emailSaved===true,car:car,carMods:carMods,mods:carMods[car]};
   }
   function loadProfile(force){
     var name=profileNick();
@@ -789,6 +864,7 @@
       currentProfile=normalizeProfile(p); writeLocalProfile(currentProfile); loadedProfileName=profileNick().toLowerCase(); showProfile(); return currentProfile;
     }).catch(function(err){
       if(err&&err.httpStatus===400) return Promise.reject(err);
+      if(action==='set_email'||action==='delete_email') return Promise.reject({error:'email_action_failed'});
       return localProfileAction(action,extra||{});
     });
   }
@@ -833,6 +909,57 @@
   nickInput.value = (function(){ try{ return localStorage.getItem('tkd_nick') || ''; }catch(e){ return ''; } })();
   nickInput.addEventListener('input', function(){
     try{ localStorage.setItem('tkd_nick', nickInput.value); }catch(e){}
+  });
+  emailInput.value = (function(){ try{ return localStorage.getItem('tkd_email') || ''; }catch(e){ return ''; } })();
+  emailConsent.checked = (function(){ try{ return localStorage.getItem('tkd_email_consent') === '1'; }catch(e){ return false; } })();
+  emailInput.addEventListener('input', function(){
+    emailStatus.textContent='E-mail nie będzie widoczny w rankingu ani publicznym profilu.';
+    try{ localStorage.setItem('tkd_email', emailInput.value); }catch(e){}
+  });
+  emailConsent.addEventListener('change', function(){
+    try{ localStorage.setItem('tkd_email_consent', emailConsent.checked?'1':'0'); }catch(e){}
+  });
+  function validPlayerEmail(){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((emailInput.value||'').trim()); }
+  function savePlayerEmail(){
+    if(!validPlayerEmail()){
+      emailStatus.textContent='Wpisz poprawny adres e-mail.'; emailInput.focus();
+      return Promise.reject({error:'invalid_email'});
+    }
+    if(!emailConsent.checked){
+      emailStatus.textContent='Zaznacz zgodę na zapisanie e-maila.'; emailConsent.focus();
+      return Promise.reject({error:'email_consent_required'});
+    }
+    emailStatus.textContent='Zapisuję e-mail...';
+    return profileAction('set_email',{email:emailInput.value.trim(),consent:true}).then(function(profile){
+      emailStatus.textContent='✓ E-mail zapisany bezpiecznie.'; return profile;
+    }).catch(function(err){
+      if(err&&err.error==='invalid_email')emailStatus.textContent='Wpisz poprawny adres e-mail.';
+      else if(err&&err.error==='email_consent_required')emailStatus.textContent='Zaznacz zgodę na zapisanie e-maila.';
+      else emailStatus.textContent='Nie udało się zapisać e-maila. Sprawdź internet i spróbuj ponownie.';
+      throw err;
+    });
+  }
+  function openLegal(which){
+    legalTerms.hidden=which!=='terms'; legalPrivacy.hidden=which!=='privacy';
+    legalModal.hidden=false; legalPanel.scrollTop=0;
+    setTimeout(function(){legalClose.focus();},0);
+  }
+  function closeLegal(){ legalModal.hidden=true; }
+  document.querySelectorAll('[data-legal]').forEach(function(trigger){
+    trigger.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();openLegal(trigger.getAttribute('data-legal'));});
+  });
+  legalClose.addEventListener('click',closeLegal);
+  legalModal.addEventListener('click',function(e){if(e.target===legalModal)closeLegal();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!legalModal.hidden)closeLegal();});
+  deleteEmailBtn.addEventListener('click',function(){
+    deleteEmailBtn.disabled=true; deleteEmailStatus.textContent='Usuwam e-mail...';
+    profileAction('delete_email').then(function(){
+      emailInput.value=''; emailConsent.checked=false; currentProfile.emailSaved=false;
+      try{localStorage.removeItem('tkd_email');localStorage.removeItem('tkd_email_consent');}catch(e){}
+      emailStatus.textContent='E-mail został usunięty. Możesz podać nowy adres.';
+      deleteEmailStatus.textContent='✓ E-mail usunięty, zgoda wycofana.';
+    }).catch(function(){deleteEmailStatus.textContent='Nie udało się usunąć e-maila. Spróbuj ponownie.';})
+      .then(function(){deleteEmailBtn.disabled=false;});
   });
 
   // shared leaderboard: POST/GET against /api/scores (Vercel function + Upstash Redis).
@@ -1285,9 +1412,15 @@
   renderGameModeChoice();
 
   nickInput.addEventListener('blur', function(){ loadProfile(false); });
-  btnRondo.addEventListener('click', function(){ ensureAudio(); trackMode = 'rondo'; loadProfile(false).then(startPump); });
-  btnOsemka.addEventListener('click', function(){ ensureAudio(); trackMode = 'osemka'; loadProfile(false).then(startPump); });
-  btnUlica.addEventListener('click', function(){ ensureAudio(); trackMode = 'ulica'; loadProfile(false).then(startPump); });
+  emailInput.addEventListener('blur', function(){ if(validPlayerEmail()&&emailConsent.checked)savePlayerEmail().catch(function(){}); });
+  function ensurePlayerProfile(){ return loadProfile(false).then(savePlayerEmail); }
+  function startTrackWithProfile(mode){
+    ensureAudio(); trackMode=mode;
+    ensurePlayerProfile().then(startPump).catch(function(){});
+  }
+  btnRondo.addEventListener('click', function(){ startTrackWithProfile('rondo'); });
+  btnOsemka.addEventListener('click', function(){ startTrackWithProfile('osemka'); });
+  btnUlica.addEventListener('click', function(){ startTrackWithProfile('ulica'); });
   function showMainMenu(){
     stopMultiplayer(true);
     STATE = 'title';
@@ -1326,7 +1459,7 @@
     copied.then(function(){shareNote.textContent='Link skopiowany — wklej go znajomemu na Messengerze.';return grantShareReward();}).catch(function(){shareNote.textContent='Skopiuj link z paska adresu i wyślij go znajomemu.';});
   }
   window.showTurboGarage=showGarage;
-  btnGarage.addEventListener('click', showGarage);
+  btnGarage.addEventListener('click', function(){ ensurePlayerProfile().then(showGarage).catch(function(){}); });
 
   // ---------- blackjack ----------
   var bjModal=document.getElementById('bjModal'),bjCloseBtn=document.getElementById('bjCloseBtn');
@@ -1447,7 +1580,7 @@
     if(t>21){ bjMessageEl.textContent='Przebita 21 — kończę hand...'; setTimeout(bjResolve,500); }
     else if(t===21){ setTimeout(bjResolve,400); }
   }
-  if(btnCasino) btnCasino.addEventListener('click',bjOpen);
+  if(btnCasino) btnCasino.addEventListener('click',function(){ ensurePlayerProfile().then(bjOpen).catch(function(){}); });
   bjCloseBtn.addEventListener('click',bjClose);
   bjDealBtn.addEventListener('click',bjDeal);
   bjHitBtn.addEventListener('click',bjHit);
