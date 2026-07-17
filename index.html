@@ -244,6 +244,21 @@
     background:#0b0d10cc; backdrop-filter:blur(3px); padding:20px;
   }
   .card-modal[hidden]{ display:none; }
+  .score-gift-popup{
+    position:absolute; inset:0; z-index:24; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:#050309a6; backdrop-filter:blur(4px);
+  }
+  .score-gift-popup[hidden]{ display:none; }
+  .score-gift-box{
+    width:min(88vw,390px); padding:26px 20px; border:2px solid var(--orange); border-radius:16px;
+    background:linear-gradient(180deg,#242936,#11141b); color:var(--white); text-align:center;
+    box-shadow:0 0 42px #b043ff99,0 18px 50px #000; cursor:pointer;
+    animation:giftPulse .85s ease-in-out infinite alternate;
+  }
+  .score-gift-icon{ font-size:72px; line-height:1; filter:drop-shadow(0 0 18px #ffd65a); }
+  .score-gift-title{ margin:12px 0 6px; color:#ffd65a; font-size:24px; font-weight:900; text-transform:uppercase; }
+  .score-gift-text{ margin:0; color:var(--white); font-size:16px; font-weight:900; }
+  @keyframes giftPulse{ from{transform:scale(.96)} to{transform:scale(1.04)} }
   .card-modal-inner{
     position:relative; background:linear-gradient(180deg, var(--panel), #14171c);
     border:2px solid var(--orange); border-radius:12px; padding:20px; max-width:min(90vw,420px);
@@ -413,6 +428,13 @@
         <h3 class="card-modal-title" id="cardModalTitle"></h3>
         <p class="card-modal-text" id="cardModalText"></p>
       </div>
+    </div>
+    <div class="score-gift-popup" id="scoreGiftPopup" hidden>
+      <button class="score-gift-box" id="scoreGiftButton" type="button">
+        <div class="score-gift-icon">🎁</div>
+        <div class="score-gift-title">Nagroda za 100 punktów!</div>
+        <p class="score-gift-text">Kliknij, aby odebrać prezent</p>
+      </button>
     </div>
     <div class="screen" id="screenTitle">
       <div class="card">
@@ -838,7 +860,10 @@
   var cardModalImg = document.getElementById('cardModalImg');
   var cardModalTitle = document.getElementById('cardModalTitle');
   var cardModalText = document.getElementById('cardModalText');
+  var scoreGiftPopup = document.getElementById('scoreGiftPopup');
+  var scoreGiftButton = document.getElementById('scoreGiftButton');
   var cardClickHint = document.getElementById('cardClickHint');
+  var SCORE_GIFT = {title:'Nagroda Specjalna',img:'assets/nagroda-100-punktow.png',reward:'Nagroda za dobry wynik. Zdobądź więcej punktów, by zobaczyć więcej dupeczek XD'};
   function openCardModal(c){
     var words = c.title.split(' ');
     cardModalTitle.innerHTML = words.slice(0,-1).join(' ') + ' <span>' + words[words.length-1] + '</span>';
@@ -860,6 +885,8 @@
       try{ cardGalleryEnd.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
     },80);
   }
+  function closeScoreGift(){scoreGiftPopup.hidden=true;encourageCardClick();}
+  scoreGiftButton.addEventListener('click',function(){closeScoreGift();openCardModal(SCORE_GIFT);});
 
   function renderCardGalleryInto(container){
     if (!container) return;
@@ -1179,14 +1206,14 @@
     stopMultiplayer(true);
     STATE = 'title';
     updateTouchControls();
-    keys={}; gameActions.hidden=true; cardModal.hidden=true;
+    keys={}; gameActions.hidden=true; cardModal.hidden=true; scoreGiftPopup.hidden=true;
     cardGalleryEnd.classList.remove('card-attention');if(cardClickHint)cardClickHint.style.display='none';
     screenEnd.hidden=true; screenGarage.hidden=true; screenTitle.hidden=false;
     renderCardGallery();
   }
   function showGarage(){
     stopMultiplayer(true);
-    STATE='title'; updateTouchControls(); keys={}; gameActions.hidden=true; cardModal.hidden=true;
+    STATE='title'; updateTouchControls(); keys={}; gameActions.hidden=true; cardModal.hidden=true; scoreGiftPopup.hidden=true;
     cardGalleryEnd.classList.remove('card-attention');if(cardClickHint)cardClickHint.style.display='none';
     screenTitle.hidden=true;screenEnd.hidden=true;screenGarage.hidden=false;screenGarage.scrollTop=0;
     renderGarage();
@@ -2141,7 +2168,9 @@
     cardGalleryEnd.classList.remove('card-attention');
     if(cardClickHint) cardClickHint.style.display='none';
 
-    if (newCards.length){
+    if (finalScore >= 100){
+      setTimeout(function(){scoreGiftPopup.hidden=false;},450);
+    } else if (newCards.length){
       setTimeout(function(){ openCardModal(newCards[0]); }, 700);
       encourageCardClick();
     }
