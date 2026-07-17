@@ -931,6 +931,7 @@
   var audioCtx = null, masterGain = null, tireGain = null, tireFilter = null;
   var engineGain = null, engineOscLow = null, engineOscHigh = null, engineOscSub = null, engineFilter = null;
   var engineSample = null, engineSampleGain = null, engineSampleSource = null;
+  var stututuSample = null, stututuSampleGain = null, stututuSampleSource = null, lastStututuAt = 0;
   var musicSample = null;
   var muted = false;
   var muteBtn = document.getElementById('muteBtn');
@@ -1013,6 +1014,15 @@
       engineSampleSource.connect(engineSampleGain);
       engineSampleGain.connect(masterGain);
       engineSample.play().catch(function(){});
+
+      stututuSample = new Audio('assets/stututu-throttle-release.mp3');
+      stututuSample.preload = 'auto';
+      stututuSample.playsInline = true;
+      stututuSampleGain = audioCtx.createGain();
+      stututuSampleGain.gain.value = 0.9;
+      stututuSampleSource = audioCtx.createMediaElementSource(stututuSample);
+      stututuSampleSource.connect(stututuSampleGain);
+      stututuSampleGain.connect(masterGain);
 
     }catch(e){ audioCtx = null; }
   }
@@ -1944,6 +1954,10 @@
     if (keys['arrowright'] || keys['d']) steer += 1;
     var throttle = (keys['arrowup'] || keys['w']) ? 1 : 0;
     var handbrake = keys[' '] ? 1 : 0;
+    if (car._throttle && !throttle && car.speed > 60 && stututuSample && !muted){
+      var stututuNow = performance.now();
+      if (stututuNow - lastStututuAt > 400){ lastStututuAt = stututuNow; try{ stututuSample.currentTime = 0; stututuSample.play(); }catch(e){} }
+    }
     car._throttle = throttle;
 
     var maxSpeed = effectiveStats.maxSpeed;
