@@ -4,6 +4,7 @@
 const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 const CARS = ['e36_touring', 'e36_bodykit', 'e36_m3', 'mazda_mx5', 'bmw_e46_checker'];
+const TRACK_MODES = ['rondo', 'osemka', 'ulica'];
 const ACTIVE_WINDOW_MS = 12000;
 const HASH_TTL_SECONDS = 300;
 const MAX_PLAYERS = 8;
@@ -63,7 +64,7 @@ module.exports = async (req, res) => {
   body = body || {};
   const source = req.method === 'GET' ? (req.query || {}) : body;
   const room = clean(source.room, 'PUBLIC', 12).toUpperCase();
-  const track = source.track === 'rondo' ? 'rondo' : 'osemka';
+  const track = TRACK_MODES.includes(source.track) ? source.track : 'osemka';
   const key = roomKey(room, track);
   const now = Date.now();
 

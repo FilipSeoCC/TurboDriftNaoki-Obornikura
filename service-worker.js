@@ -7,7 +7,6 @@ const PRECACHE_URLS = [
   '/assets/bmw-upierdalanie-anthem.mp3',
   '/assets/mazda-rx8-dyno.mp3',
   '/assets/stututu-throttle-release.mp3',
-  '/assets/nagroda-100-punktow.png',
   '/assets/icon-192.png',
   '/assets/icon-512.png',
   '/assets/icon-maskable-512.png',

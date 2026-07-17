@@ -11,6 +11,7 @@ const REDIS_TOKEN =
 
 // v3 starts a clean leaderboard after the requested results reset.
 const ZSET_KEY = 'tkd:scores:v3';
+const TRACK_MODES = ['rondo', 'osemka', 'ulica'];
 const MAX_ENTRIES = 200;
 const MAX_NAME_LEN = 16;
 const MAX_SCORE = 200000; // line-drift scoring (including x2 zones) stays safely below this cap
@@ -49,7 +50,7 @@ function parseWithScores(flatArr) {
     }
     out.push({
       name: entry.name || 'Anonim',
-      mode: entry.mode === 'rondo' ? 'rondo' : 'osemka',
+      mode: TRACK_MODES.includes(entry.mode) ? entry.mode : 'osemka',
       score: Math.round(Number(flatArr[i + 1])),
     });
   }
@@ -86,7 +87,7 @@ module.exports = async (req, res) => {
       body = body || {};
 
       const name = sanitizeName(body.name);
-      const mode = body.mode === 'rondo' ? 'rondo' : 'osemka';
+      const mode = TRACK_MODES.includes(body.mode) ? body.mode : 'osemka';
       let score = Number(body.score);
       if (!isFinite(score) || score < 0) {
         res.status(400).json({ error: 'invalid score' });

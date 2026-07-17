@@ -253,21 +253,6 @@
     background:#0b0d10cc; backdrop-filter:blur(3px); padding:20px;
   }
   .card-modal[hidden]{ display:none; }
-  .score-gift-popup{
-    position:absolute; inset:0; z-index:24; display:flex; align-items:center; justify-content:center;
-    padding:20px; background:#050309a6; backdrop-filter:blur(4px);
-  }
-  .score-gift-popup[hidden]{ display:none; }
-  .score-gift-box{
-    width:min(88vw,390px); padding:26px 20px; border:2px solid var(--orange); border-radius:16px;
-    background:linear-gradient(180deg,#242936,#11141b); color:var(--white); text-align:center;
-    box-shadow:0 0 42px #b043ff99,0 18px 50px #000; cursor:pointer;
-    animation:giftPulse .85s ease-in-out infinite alternate;
-  }
-  .score-gift-icon{ font-size:72px; line-height:1; filter:drop-shadow(0 0 18px #ffd65a); }
-  .score-gift-title{ margin:12px 0 6px; color:#ffd65a; font-size:24px; font-weight:900; text-transform:uppercase; }
-  .score-gift-text{ margin:0; color:var(--white); font-size:16px; font-weight:900; }
-  @keyframes giftPulse{ from{transform:scale(.96)} to{transform:scale(1.04)} }
   .card-modal-inner{
     position:relative; background:linear-gradient(180deg, var(--panel), #14171c);
     border:2px solid var(--orange); border-radius:12px; padding:20px; max-width:min(90vw,420px);
@@ -482,13 +467,6 @@
         <p class="card-modal-text" id="cardModalText"></p>
       </div>
     </div>
-    <div class="score-gift-popup" id="scoreGiftPopup" hidden>
-      <button class="score-gift-box" id="scoreGiftButton" type="button">
-        <div class="score-gift-icon">🎁</div>
-        <div class="score-gift-title">Nagroda za 100 punktów!</div>
-        <p class="score-gift-text">Kliknij, aby odebrać prezent</p>
-      </button>
-    </div>
     <div class="screen" id="screenTitle">
       <div class="card">
         <p class="sub">Operacja Wkurw</p>
@@ -516,6 +494,7 @@
         <div class="track-choice">
           <button class="btn btn-track" id="btnRondo" data-mode="rondo">Rondo</button>
           <button class="btn btn-track" id="btnOsemka" data-mode="osemka">Ósemka</button>
+          <button class="btn btn-track" id="btnUlica" data-mode="ulica">Uliczny</button>
         </div>
         <p class="card-gallery-caption">Wykręć jak najlepszy wynik, żeby odblokować karty Bukovskiego!</p>
         <div class="card-gallery" id="cardGallery"></div>
@@ -632,6 +611,7 @@
   var screenGarage = document.getElementById('screenGarage');
   var btnRondo = document.getElementById('btnRondo');
   var btnOsemka = document.getElementById('btnOsemka');
+  var btnUlica = document.getElementById('btnUlica');
   var btnGarage = document.getElementById('btnGarage');
   var btnShare = document.getElementById('btnShare');
   var shareNote = document.getElementById('shareNote');
@@ -706,6 +686,7 @@
   var DRIFT_MIN_SPEED = 40;
   var LOOPS = [];
   var SCORING_PATH = [];
+  var streetLap = { prevIdx: 0, accum: 0, active: false, laps: 0 };
   var BONUS_ZONES = [];
   var laps = [];
   var lastLoopIndex = -1;
@@ -949,10 +930,7 @@
   var cardModalImg = document.getElementById('cardModalImg');
   var cardModalTitle = document.getElementById('cardModalTitle');
   var cardModalText = document.getElementById('cardModalText');
-  var scoreGiftPopup = document.getElementById('scoreGiftPopup');
-  var scoreGiftButton = document.getElementById('scoreGiftButton');
   var cardClickHint = document.getElementById('cardClickHint');
-  var SCORE_GIFT = {title:'Nagroda Specjalna',img:'assets/nagroda-100-punktow.png',reward:'Nagroda za dobry wynik. Zdobądź więcej punktów, by zobaczyć więcej dupeczek XD'};
   function openCardModal(c){
     var words = c.title.split(' ');
     cardModalTitle.innerHTML = words.slice(0,-1).join(' ') + ' <span>' + words[words.length-1] + '</span>';
@@ -974,13 +952,9 @@
       try{ cardGalleryEnd.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
     },80);
   }
-  function closeScoreGift(){scoreGiftPopup.hidden=true;encourageCardClick();}
-  scoreGiftButton.addEventListener('click',function(){closeScoreGift();openCardModal(SCORE_GIFT);});
-  scoreGiftPopup.addEventListener('click',function(e){ if(e.target===scoreGiftPopup) closeScoreGift(); });
   document.addEventListener('keydown',function(e){
     if(e.key==='Escape'||e.key==='Esc'){
       if(!cardModal.hidden){ cardModal.hidden=true; }
-      else if(!scoreGiftPopup.hidden){ closeScoreGift(); }
     }
   });
 
@@ -1313,18 +1287,19 @@
   nickInput.addEventListener('blur', function(){ loadProfile(false); });
   btnRondo.addEventListener('click', function(){ ensureAudio(); trackMode = 'rondo'; loadProfile(false).then(startPump); });
   btnOsemka.addEventListener('click', function(){ ensureAudio(); trackMode = 'osemka'; loadProfile(false).then(startPump); });
+  btnUlica.addEventListener('click', function(){ ensureAudio(); trackMode = 'ulica'; loadProfile(false).then(startPump); });
   function showMainMenu(){
     stopMultiplayer(true);
     STATE = 'title';
     updateTouchControls();
-    keys={}; gameActions.hidden=true; cardModal.hidden=true; scoreGiftPopup.hidden=true;
+    keys={}; gameActions.hidden=true; cardModal.hidden=true;
     cardGalleryEnd.classList.remove('card-attention');if(cardClickHint)cardClickHint.style.display='none';
     screenEnd.hidden=true; screenGarage.hidden=true; screenTitle.hidden=false;
     renderCardGallery();
   }
   function showGarage(){
     stopMultiplayer(true);
-    STATE='title'; updateTouchControls(); keys={}; gameActions.hidden=true; cardModal.hidden=true; scoreGiftPopup.hidden=true;
+    STATE='title'; updateTouchControls(); keys={}; gameActions.hidden=true; cardModal.hidden=true;
     cardGalleryEnd.classList.remove('card-attention');if(cardClickHint)cardClickHint.style.display='none';
     screenTitle.hidden=true;screenEnd.hidden=true;screenGarage.hidden=false;screenGarage.scrollTop=0;
     renderGarage();
@@ -1817,23 +1792,56 @@
       lp.prevTheta = Math.atan2(car.y-LOOPS[idx].cy, car.x-LOOPS[idx].cx);
       lp.accum = 0; lp.active = false; lp.laps = 0;
     });
+    streetLap.prevIdx = startIndex; streetLap.accum = 0; streetLap.active = false; streetLap.laps = 0;
     lastLoopIndex = -1; lastLoopTime = -999;
     quoteTimer = 2.5;
     startMultiplayer();
   }
 
+  function resampleClosedPolygon(waypoints, count){
+    var segLens = [], total = 0;
+    for (var i=0;i<waypoints.length;i++){
+      var a = waypoints[i], b = waypoints[(i+1)%waypoints.length];
+      segLens.push(Math.hypot(b.x-a.x, b.y-a.y));
+      total += segLens[i];
+    }
+    var out = [];
+    var step = total/count;
+    var segIdx = 0, accum = 0;
+    for (var k=0;k<count;k++){
+      var target = k*step;
+      while (segIdx < waypoints.length-1 && accum+segLens[segIdx] < target){
+        accum += segLens[segIdx]; segIdx++;
+      }
+      var a2 = waypoints[segIdx], b2 = waypoints[(segIdx+1)%waypoints.length];
+      var segLen = segLens[segIdx] || 1;
+      var mix = clamp((target-accum)/segLen, 0, 1);
+      out.push({x:a2.x+(b2.x-a2.x)*mix, y:a2.y+(b2.y-a2.y)*mix});
+    }
+    return out;
+  }
+  function offsetPathPoint(path, i, offset){
+    var n = path.length;
+    var prev = path[(i-1+n)%n], next = path[(i+1)%n];
+    var tx = next.x-prev.x, ty = next.y-prev.y;
+    var len = Math.hypot(tx,ty) || 1;
+    var nx = -ty/len, ny = tx/len;
+    return { x: path[i].x + nx*offset, y: path[i].y + ny*offset };
+  }
   function setupTrack(){
     var cx = W/2, cy = H/2;
     if (trackMode === 'rondo'){
       var r1 = Math.max(80, Math.min(W,H)*0.3);
       LOOPS = [ { cx: cx, cy: cy, radius: r1 } ];
-    } else {
+    } else if (trackMode === 'osemka'){
       var r2 = Math.max(55, Math.min(W,H)*0.19);
       var sep = r2*1.5;
       LOOPS = [
         { cx: cx-sep/2, cy: cy, radius: r2 },
         { cx: cx+sep/2, cy: cy, radius: r2 }
       ];
+    } else {
+      LOOPS = [];
     }
     SCORING_PATH = [];
     var pathPoints = 180;
@@ -1842,7 +1850,7 @@
         var t = p/pathPoints*Math.PI*2;
         SCORING_PATH.push({ x:cx+Math.cos(t)*LOOPS[0].radius, y:cy+Math.sin(t)*LOOPS[0].radius });
       }
-    } else {
+    } else if (trackMode === 'osemka'){
       // Five-point pentagram: visit every second vertex of a regular pentagon.
       // Each arm is resampled so line scoring and vehicle spawning stay smooth.
       var starRx = Math.min(W*0.34, LOOPS[0].radius*2.35);
@@ -1861,6 +1869,20 @@
           SCORING_PATH.push({x:from.x+(to.x-from.x)*mix,y:from.y+(to.y-from.y)*mix});
         }
       }
+    } else {
+      // Street circuit: rectangular loop with one S-shaped chicane cut into the bottom side.
+      var halfW = Math.min(W*0.32, 230);
+      var halfH = Math.min(H*0.26, 160);
+      var dipIn = halfH*0.45, dipOut = halfH*0.28;
+      var waypoints = [
+        {x:cx-halfW, y:cy-halfH},
+        {x:cx+halfW, y:cy-halfH},
+        {x:cx+halfW, y:cy+halfH},
+        {x:cx+halfW*0.3, y:cy+halfH-dipIn},
+        {x:cx-halfW*0.3, y:cy+halfH+dipOut},
+        {x:cx-halfW, y:cy+halfH}
+      ];
+      SCORING_PATH = resampleClosedPolygon(waypoints, pathPoints);
     }
     BONUS_ZONES = [];
     var zoneCount = trackMode === 'rondo' ? 4 : 5;
@@ -1888,6 +1910,16 @@
         });
       }
     });
+    if (trackMode === 'ulica'){
+      var coneSamples = 10;
+      for (var cs=0;cs<coneSamples;cs++){
+        var ci = Math.floor(cs*SCORING_PATH.length/coneSamples);
+        var inner = offsetPathPoint(SCORING_PATH, ci, -55);
+        var outer = offsetPathPoint(SCORING_PATH, ci, 70);
+        cones.push({ x:inner.x, y:inner.y, hit:0, passing:false, minDist:Infinity, cooldown:0 });
+        cones.push({ x:outer.x, y:outer.y, hit:0, passing:false, minDist:Infinity, cooldown:0 });
+      }
+    }
   }
 
   function drawTrack(){
@@ -1904,6 +1936,20 @@
       ctx.beginPath(); ctx.arc(0,0,loop.radius*0.5,0,Math.PI*2); ctx.stroke();
       ctx.restore();
     });
+    if (trackMode === 'ulica' && SCORING_PATH.length){
+      ctx.save();
+      ctx.strokeStyle = '#f4f2ec4d'; ctx.lineWidth = 3; ctx.setLineDash([10,10]);
+      [-55,70].forEach(function(offset){
+        ctx.beginPath();
+        for (var i=0;i<SCORING_PATH.length;i++){
+          var p = offsetPathPoint(SCORING_PATH, i, offset);
+          if (i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
+        }
+        ctx.closePath(); ctx.stroke();
+      });
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
     if (SCORING_PATH.length){
       ctx.save();
       ctx.lineJoin = 'round'; ctx.lineCap = 'round';
@@ -1934,17 +1980,21 @@
     });
   }
 
-  function distanceToScoringPath(x, y){
-    var best = Infinity;
+  function nearestPathPoint(x, y){
+    var best = Infinity, bestIdx = 0;
     for (var i=0;i<SCORING_PATH.length;i++){
       var a = SCORING_PATH[i], b = SCORING_PATH[(i+1)%SCORING_PATH.length];
       var vx=b.x-a.x, vy=b.y-a.y, wx=x-a.x, wy=y-a.y;
       var len2=vx*vx+vy*vy;
       var u=len2 ? clamp((wx*vx+wy*vy)/len2,0,1) : 0;
       var dx=x-(a.x+vx*u), dy=y-(a.y+vy*u);
-      best=Math.min(best,Math.sqrt(dx*dx+dy*dy));
+      var d = Math.sqrt(dx*dx+dy*dy);
+      if (d<best){ best=d; bestIdx=i; }
     }
-    return best;
+    return { dist: best, index: bestIdx };
+  }
+  function distanceToScoringPath(x, y){
+    return nearestPathPoint(x, y).dist;
   }
 
   function drawArena(){
@@ -2399,6 +2449,35 @@
       }
     });
 
+    // street circuit has no circular LOOPS to track angle around, so a full lap is
+    // measured the same way but as progress along the SCORING_PATH index instead.
+    if (trackMode === 'ulica' && SCORING_PATH.length){
+      var pathLen = SCORING_PATH.length;
+      var nearestStreet = nearestPathPoint(car.x, car.y);
+      var idxDelta = nearestStreet.index - streetLap.prevIdx;
+      if (idxDelta > pathLen/2) idxDelta -= pathLen;
+      else if (idxDelta < -pathLen/2) idxDelta += pathLen;
+      streetLap.prevIdx = nearestStreet.index;
+      var inBandStreet = nearestStreet.dist < 90;
+      if (inBandStreet && isDrifting){
+        streetLap.accum += idxDelta;
+        streetLap.active = true;
+      } else {
+        streetLap.accum *= Math.max(0, 1 - dt*3);
+        if (Math.abs(streetLap.accum) < 2){ streetLap.accum = 0; streetLap.active = false; }
+      }
+      if (Math.abs(streetLap.accum) >= pathLen){
+        var sdir = streetLap.accum > 0 ? 1 : -1;
+        streetLap.accum -= sdir*pathLen;
+        streetLap.laps += 1;
+        drift.heat = clamp(drift.heat + 32, 0, 100);
+        popups.push({x:W/2, y:H/2-160, text:'PĘTLA!', age:0, life:1.3, big:true});
+        playChime();
+        showQuote(true);
+        quoteTimer = 1.4;
+      }
+    }
+
     drift.maxHeat = Math.max(drift.maxHeat, drift.heat);
     rageMeter.style.width = drift.heat.toFixed(0)+'%';
     scoreVal.textContent = Math.floor(drift.score);
@@ -2459,9 +2538,7 @@
     cardGalleryEnd.classList.remove('card-attention');
     if(cardClickHint) cardClickHint.style.display='none';
 
-    if (finalScore >= 100){
-      setTimeout(function(){scoreGiftPopup.hidden=false;},450);
-    } else if (newCards.length){
+    if (newCards.length){
       setTimeout(function(){ openCardModal(newCards[0]); }, 700);
       encourageCardClick();
     }
