@@ -228,6 +228,9 @@
   }
   .nick-input::placeholder{ color:var(--grey); }
   .nick-input:focus{ outline:2px solid var(--teal); border-color:transparent; }
+  .email-consent{ max-width:300px; margin:-5px auto 8px; display:flex; align-items:flex-start; gap:7px; color:var(--grey); font-size:10px; line-height:1.35; text-align:left; }
+  .email-consent input{ width:17px; height:17px; margin:0; flex:0 0 auto; accent-color:var(--teal); }
+  .email-status{ min-height:14px; margin:0 0 8px; color:#ffd65a; font-size:10px; line-height:1.35; }
 
   .track-choice{ display:flex; gap:10px; justify-content:center; margin:0 0 18px; }
   .btn-track{ flex:1; padding:12px 10px; font-size:13px; }
@@ -508,6 +511,10 @@
         <div class="player-box">
           <p class="field-label">Wprowadź nick</p>
           <input type="text" id="nickInput" class="nick-input" maxlength="14" placeholder="Twój nick">
+          <p class="field-label">Twój e-mail</p>
+          <input type="email" id="emailInput" class="nick-input" maxlength="254" autocomplete="email" inputmode="email" placeholder="email@przyklad.pl">
+          <label class="email-consent"><input type="checkbox" id="emailConsent"> <span>Zgadzam się na zapisanie adresu e-mail w profilu gry.</span></label>
+          <p class="email-status" id="emailStatus">E-mail nie będzie widoczny w rankingu ani publicznym profilu.</p>
           <div class="balance" id="titleBalance">🔩 0 śrubek</div>
           <button class="btn garage-btn" id="btnGarage" type="button">Garaż</button>
           <button class="btn garage-btn" id="btnCasino" type="button" style="margin-top:8px;background:#7a2fd1;">🎰 Kasyno · Blackjack</button>
@@ -650,6 +657,9 @@
   var btnPause = document.getElementById('btnPause');
   var btnRestart = document.getElementById('btnRestart');
   var nickInput = document.getElementById('nickInput');
+  var emailInput = document.getElementById('emailInput');
+  var emailConsent = document.getElementById('emailConsent');
+  var emailStatus = document.getElementById('emailStatus');
   var cardGallery = document.getElementById('cardGallery');
   var cardGalleryEnd = document.getElementById('cardGalleryEnd');
   var unlockBanner = document.getElementById('unlockBanner');
@@ -712,7 +722,7 @@
   var lastLoopTime = -999;
 
   var EMPTY_MODS = {engine:0,turbo:0,supercharger:0,injectors:0,fuelpump:0,clutch:0,gearbox:0,tires:0};
-  var DEFAULT_PROFILE = {currency:0,shareRewarded:false,mods:JSON.parse(JSON.stringify(EMPTY_MODS)),carMods:{e36_touring:JSON.parse(JSON.stringify(EMPTY_MODS))},car:'e36_touring'};
+  var DEFAULT_PROFILE = {currency:0,shareRewarded:false,emailSaved:false,mods:JSON.parse(JSON.stringify(EMPTY_MODS)),carMods:{e36_touring:JSON.parse(JSON.stringify(EMPTY_MODS))},car:'e36_touring'};
   var currentProfile = JSON.parse(JSON.stringify(DEFAULT_PROFILE));
   var loadedProfileName = '';
   var garageActionToken = 0;
@@ -793,7 +803,7 @@
     // Migrate old browser/server profiles: their global tuning belongs to the selected car.
     if(!Object.keys(carMods).length)carMods[car]=normalizeMods(p.mods);
     if(!carMods[car])carMods[car]=normalizeMods(EMPTY_MODS);
-    return {currency:Math.max(0,Number(p.currency)||0),shareRewarded:p.shareRewarded===true,car:car,carMods:carMods,mods:carMods[car]};
+    return {currency:Math.max(0,Number(p.currency)||0),shareRewarded:p.shareRewarded===true,emailSaved:p.emailSaved===true,car:car,carMods:carMods,mods:carMods[car]};
   }
   function loadProfile(force){
     var name=profileNick();
@@ -808,6 +818,7 @@
       currentProfile=normalizeProfile(p); writeLocalProfile(currentProfile); loadedProfileName=profileNick().toLowerCase(); showProfile(); return currentProfile;
     }).catch(function(err){
       if(err&&err.httpStatus===400) return Promise.reject(err);
+      if(action==='set_email') return Promise.reject({error:'email_save_failed'});
       return localProfileAction(action,extra||{});
     });
   }
@@ -853,6 +864,35 @@
   nickInput.addEventListener('input', function(){
     try{ localStorage.setItem('tkd_nick', nickInput.value); }catch(e){}
   });
+  emailInput.value = (function(){ try{ return localStorage.getItem('tkd_email') || ''; }catch(e){ return ''; } })();
+  emailConsent.checked = (function(){ try{ return localStorage.getItem('tkd_email_consent') === '1'; }catch(e){ return false; } })();
+  emailInput.addEventListener('input', function(){
+    emailStatus.textContent='E-mail nie będzie widoczny w rankingu ani publicznym profilu.';
+    try{ localStorage.setItem('tkd_email', emailInput.value); }catch(e){}
+  });
+  emailConsent.addEventListener('change', function(){
+    try{ localStorage.setItem('tkd_email_consent', emailConsent.checked?'1':'0'); }catch(e){}
+  });
+  function validPlayerEmail(){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((emailInput.value||'').trim()); }
+  function savePlayerEmail(){
+    if(!validPlayerEmail()){
+      emailStatus.textContent='Wpisz poprawny adres e-mail.'; emailInput.focus();
+      return Promise.reject({error:'invalid_email'});
+    }
+    if(!emailConsent.checked){
+      emailStatus.textContent='Zaznacz zgodę na zapisanie e-maila.'; emailConsent.focus();
+      return Promise.reject({error:'email_consent_required'});
+    }
+    emailStatus.textContent='Zapisuję e-mail...';
+    return profileAction('set_email',{email:emailInput.value.trim(),consent:true}).then(function(profile){
+      emailStatus.textContent='✓ E-mail zapisany bezpiecznie.'; return profile;
+    }).catch(function(err){
+      if(err&&err.error==='invalid_email')emailStatus.textContent='Wpisz poprawny adres e-mail.';
+      else if(err&&err.error==='email_consent_required')emailStatus.textContent='Zaznacz zgodę na zapisanie e-maila.';
+      else emailStatus.textContent='Nie udało się zapisać e-maila. Sprawdź internet i spróbuj ponownie.';
+      throw err;
+    });
+  }
 
   // shared leaderboard: POST/GET against /api/scores (Vercel function + Upstash Redis).
   // Falls back to a browser-local list when the API isn't reachable (e.g. testing the
@@ -1311,8 +1351,14 @@
   renderGameModeChoice();
 
   nickInput.addEventListener('blur', function(){ loadProfile(false); });
-  btnRondo.addEventListener('click', function(){ ensureAudio(); trackMode = 'rondo'; loadProfile(false).then(startPump); });
-  btnOsemka.addEventListener('click', function(){ ensureAudio(); trackMode = 'osemka'; loadProfile(false).then(startPump); });
+  emailInput.addEventListener('blur', function(){ if(validPlayerEmail()&&emailConsent.checked)savePlayerEmail().catch(function(){}); });
+  function ensurePlayerProfile(){ return loadProfile(false).then(savePlayerEmail); }
+  function startTrackWithProfile(mode){
+    ensureAudio(); trackMode=mode;
+    ensurePlayerProfile().then(startPump).catch(function(){});
+  }
+  btnRondo.addEventListener('click', function(){ startTrackWithProfile('rondo'); });
+  btnOsemka.addEventListener('click', function(){ startTrackWithProfile('osemka'); });
   function showMainMenu(){
     stopMultiplayer(true);
     STATE = 'title';
@@ -1351,7 +1397,7 @@
     copied.then(function(){shareNote.textContent='Link skopiowany — wklej go znajomemu na Messengerze.';return grantShareReward();}).catch(function(){shareNote.textContent='Skopiuj link z paska adresu i wyślij go znajomemu.';});
   }
   window.showTurboGarage=showGarage;
-  btnGarage.addEventListener('click', showGarage);
+  btnGarage.addEventListener('click', function(){ ensurePlayerProfile().then(showGarage).catch(function(){}); });
 
   // ---------- blackjack ----------
   var bjModal=document.getElementById('bjModal'),bjCloseBtn=document.getElementById('bjCloseBtn');
@@ -1472,7 +1518,7 @@
     if(t>21){ bjMessageEl.textContent='Przebita 21 — kończę hand...'; setTimeout(bjResolve,500); }
     else if(t===21){ setTimeout(bjResolve,400); }
   }
-  if(btnCasino) btnCasino.addEventListener('click',bjOpen);
+  if(btnCasino) btnCasino.addEventListener('click',function(){ ensurePlayerProfile().then(bjOpen).catch(function(){}); });
   bjCloseBtn.addEventListener('click',bjClose);
   bjDealBtn.addEventListener('click',bjDeal);
   bjHitBtn.addEventListener('click',bjHit);

@@ -23,6 +23,12 @@ function sanitizeName(value) {
   return (value.replace(/[<>&"'`]/g, '').trim().slice(0, 16) || 'Anonim').toLowerCase();
 }
 
+function sanitizeEmail(value) {
+  if (typeof value !== 'string') return '';
+  const email = value.trim().toLowerCase().slice(0, 254);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ? email : '';
+}
+
 function emptyMods() {
   return Object.fromEntries(CATEGORIES.map((category) => [category, 0]));
 }
@@ -73,11 +79,23 @@ module.exports = async (req, res) => {
   const rawName = req.method === 'GET' ? req.query && req.query.name : body.name;
   const name = sanitizeName(rawName);
   const key = 'tkd:profile:' + name;
+  const emailKey = 'tkd:email:' + name;
   try {
     const profile = await readProfile(key);
-    if (req.method === 'GET') return res.status(200).json(await writeProfile(key, profile));
+    if (req.method === 'GET') {
+      const saved = await writeProfile(key, profile);
+      const emailExists = await redis(['EXISTS', emailKey]);
+      return res.status(200).json(Object.assign({}, saved, { emailSaved: Number(emailExists.result) === 1 }));
+    }
     if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
+    if (body.action === 'set_email') {
+      const email = sanitizeEmail(body.email);
+      if (!email) return res.status(400).json(actionError('invalid_email'));
+      if (body.consent !== true) return res.status(400).json(actionError('email_consent_required'));
+      await redis(['SET', emailKey, JSON.stringify({ email, consentAt: new Date().toISOString() })]);
+      return res.status(200).json(Object.assign({}, profile, { emailSaved: true }));
+    }
     if (body.action === 'earn') profile.currency += ROUND_REWARD;
     else if (body.action === 'share_reward') {
       if (profile.shareRewarded) return res.status(400).json(actionError('share_reward_claimed'));
