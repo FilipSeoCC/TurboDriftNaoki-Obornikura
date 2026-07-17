@@ -1,0 +1,17 @@
+# Mapowanie katalogów na obszary odpowiedzialności.
+# UWAGA: `index.html` to jeden plik zawierający zarówno UI (ekrany, style, layout)
+# jak i logikę gry (fizyka, scoring, audio, klient multiplayer) - w tym repo nie da
+# się tego rozdzielić na poziomie ścieżek plików, więc plik jest oznaczony jako
+# wspólny (obie strony). Przy PR-ach dotyczących index.html sprawdzaj w opisie PR,
+# której części dotyczy zmiana, zamiast polegać wyłącznie na tym pliku.
+
+# Backend / logika gry / stan gracza (Codex)
+/api/                      @codex
+
+# Frontend / PWA infra (Claude Code)
+/assets/                   @claude-code
+/service-worker.js         @claude-code
+/manifest.webmanifest      @claude-code
+
+# Plik mieszany (UI + logika) - obie strony
+/index.html                @claude-code @codex
