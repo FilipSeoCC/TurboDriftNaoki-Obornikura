@@ -278,8 +278,9 @@
   .card-modal-title span{ color:var(--orange); }
   .card-modal-text{ margin:0; font-size:18px; font-weight:800; color:var(--white); line-height:1.45; text-shadow:0 0 12px #b043ff70; }
   .card-modal-close{
-    position:absolute; top:8px; right:8px; width:28px; height:28px; border-radius:50%;
-    background:#00000060; border:none; color:var(--white); font-size:18px; cursor:pointer; line-height:26px; padding:0;
+    position:absolute; top:8px; right:8px; width:32px; height:32px; border-radius:50%;
+    background:#00000060; border:none; color:var(--white); font-size:18px; cursor:pointer; line-height:30px; padding:0;
+    z-index:2;
   }
   .card-modal-close:hover{ background:#000000a0; }
 
@@ -966,6 +967,13 @@
   }
   function closeScoreGift(){scoreGiftPopup.hidden=true;encourageCardClick();}
   scoreGiftButton.addEventListener('click',function(){closeScoreGift();openCardModal(SCORE_GIFT);});
+  scoreGiftPopup.addEventListener('click',function(e){ if(e.target===scoreGiftPopup) closeScoreGift(); });
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'||e.key==='Esc'){
+      if(!cardModal.hidden){ cardModal.hidden=true; }
+      else if(!scoreGiftPopup.hidden){ closeScoreGift(); }
+    }
+  });
 
   function renderCardGalleryInto(container){
     if (!container) return;
