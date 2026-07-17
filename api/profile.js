@@ -107,6 +107,14 @@ module.exports = async (req, res) => {
         if (mods.clutch < nextTier) return res.status(400).json(actionError('requires_clutch', nextTier));
       }
       profile.currency -= PRICE; mods[category] = nextTier;
+    } else if (body.action === 'blackjack') {
+      const stake = Math.floor(Number(body.stake) || 0);
+      if (!Number.isFinite(stake) || stake < 10 || stake > 5000) return res.status(400).json(actionError('invalid_stake'));
+      if (profile.currency < stake) return res.status(400).json(actionError('not_enough_currency'));
+      const won = Math.random() < 0.25;
+      profile.currency += won ? stake : -stake;
+      const settled = await writeProfile(key, profile);
+      return res.status(200).json(Object.assign({}, settled, { blackjack: { won, stake } }));
     } else return res.status(400).json(actionError('invalid_action'));
 
     return res.status(200).json(await writeProfile(key, profile));
