@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Turbo Kret Drift</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#7a2fd1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Turbo Kret Drift">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/icon-512.png">
 <style>
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{
@@ -1172,7 +1181,7 @@
     if(!multiplayerStatus)return;
     multiplayerStatus.textContent=text||(multiplayerEnabled?'Pokój '+multiplayerRoom()+' · graczy online: '+count:'Multiplayer wyłączony');
   }
-  var REMOTE_RENDER_DELAY_MS=500;
+  var REMOTE_RENDER_DELAY_MS=750;
   var REMOTE_SNAPSHOT_KEEP_MS=1500;
   function acceptRemotePlayers(players){
     var seen={},now=performance.now();
@@ -2080,7 +2089,7 @@
       if (d < 26 && c.hit<=0){
         c.hit = 1;
         popups.push({x:c.x, y:c.y-20, text:'TRAFIONY!', age:0, life:1.0, big:true});
-        playTone(260, 70, 0.12, 0.35, 'square');
+        playTone(260, 70, 0.12, 0.28, 'square');
       }
     });
     cones.forEach(function(c){ if (c.hit>0){ c.hit = Math.max(0, c.hit - dt*0.7); } });
@@ -2319,6 +2328,13 @@
   }
   requestAnimationFrame(frame);
 })();
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('/service-worker.js').catch(function(){});
+    });
+  }
 </script>
 </body>
 </html>
