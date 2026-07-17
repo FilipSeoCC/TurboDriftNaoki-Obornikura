@@ -1,10 +1,11 @@
 // Lightweight same-track multiplayer presence using the existing Upstash Redis.
 // Cars are client-authoritative and have no collisions; stale players expire quickly.
+// Single Redis Hash per room+track; each request = 1 pipeline (HSET/HDEL + EXPIRE + HVALS).
 const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 const CARS = ['e36_touring', 'e36_bodykit', 'e36_m3', 'mazda_mx5', 'bmw_e46_checker'];
-const PLAYER_TTL_SECONDS = 15;
 const ACTIVE_WINDOW_MS = 12000;
+const HASH_TTL_SECONDS = 300;
 const MAX_PLAYERS = 8;
 
 async function redis(command) {
@@ -29,19 +30,29 @@ function number(value, min, max, fallback) {
   return Number.isFinite(parsed) ? Math.max(min, Math.min(max, parsed)) : fallback;
 }
 
-function roomKeys(room, track) {
-  const prefix = 'tkd:room:v1:' + track + ':' + room;
-  return { players: prefix + ':players', player: (id) => prefix + ':player:' + id };
+function roomKey(room, track) {
+  return 'tkd:room:v2:' + track + ':' + room;
 }
 
-async function listPlayers(keys, now) {
-  const idsResult = await redis(['ZREVRANGEBYSCORE', keys.players, '+inf', String(now - ACTIVE_WINDOW_MS), 'LIMIT', '0', String(MAX_PLAYERS)]);
-  const ids = idsResult.result || [];
-  if (!ids.length) return [];
-  const valuesResult = await redis(['MGET'].concat(ids.map(keys.player)));
-  return (valuesResult.result || []).map((raw) => {
-    try { return raw ? JSON.parse(raw) : null; } catch (_) { return null; }
-  }).filter(Boolean);
+function parseAndFilter(rawValues, now) {
+  const stale = [];
+  const active = [];
+  for (let i = 0; i < rawValues.length; i++) {
+    const raw = rawValues[i];
+    if (!raw) continue;
+    let player;
+    try { player = JSON.parse(raw); } catch (_) { continue; }
+    if (!player || typeof player.id !== 'string') continue;
+    if (now - (player.t || 0) > ACTIVE_WINDOW_MS) { stale.push(player.id); continue; }
+    active.push(player);
+  }
+  active.sort((a, b) => (b.t || 0) - (a.t || 0));
+  return { active: active.slice(0, MAX_PLAYERS), stale };
+}
+
+async function fireAndForgetCleanup(key, staleIds) {
+  if (!staleIds.length) return;
+  try { await redis([['HDEL', key].concat(staleIds)]); } catch (_) {}
 }
 
 module.exports = async (req, res) => {
@@ -53,17 +64,23 @@ module.exports = async (req, res) => {
   const source = req.method === 'GET' ? (req.query || {}) : body;
   const room = clean(source.room, 'PUBLIC', 12).toUpperCase();
   const track = source.track === 'rondo' ? 'rondo' : 'osemka';
-  const keys = roomKeys(room, track);
+  const key = roomKey(room, track);
   const now = Date.now();
 
   try {
-    if (req.method === 'GET') return res.status(200).json({ room, track, players: await listPlayers(keys, now) });
+    if (req.method === 'GET') {
+      const result = await redis(['HVALS', key]);
+      const parsed = parseAndFilter(result.result || [], now);
+      if (parsed.stale.length) fireAndForgetCleanup(key, parsed.stale);
+      return res.status(200).json({ room, track, players: parsed.active });
+    }
     if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
     const id = clean(body.id, '', 40);
     if (!id) return res.status(400).json({ error: 'invalid_player' });
+
     if (body.action === 'leave') {
-      await redis([['ZREM', keys.players, id], ['DEL', keys.player(id)]]);
+      await redis([['HDEL', key, id]]);
       return res.status(200).json({ ok: true });
     }
     if (body.action !== 'update') return res.status(400).json({ error: 'invalid_action' });
@@ -79,13 +96,15 @@ module.exports = async (req, res) => {
       score: Math.round(number(body.score, 0, 200000, 0)),
       t: now,
     };
-    await redis([
-      ['ZADD', keys.players, String(now), id],
-      ['ZREMRANGEBYSCORE', keys.players, '-inf', String(now - ACTIVE_WINDOW_MS)],
-      ['EXPIRE', keys.players, '120'],
-      ['SET', keys.player(id), JSON.stringify(player), 'EX', String(PLAYER_TTL_SECONDS)],
+    const result = await redis([
+      ['HSET', key, id, JSON.stringify(player)],
+      ['EXPIRE', key, String(HASH_TTL_SECONDS)],
+      ['HVALS', key],
     ]);
-    return res.status(200).json({ room, track, players: await listPlayers(keys, now) });
+    const rawValues = (result[2] && result[2].result) || [];
+    const parsed = parseAndFilter(rawValues, now);
+    if (parsed.stale.length) fireAndForgetCleanup(key, parsed.stale);
+    return res.status(200).json({ room, track, players: parsed.active });
   } catch (_) {
     return res.status(500).json({ error: 'server_error' });
   }

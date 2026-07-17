@@ -1167,9 +1167,19 @@
     (players||[]).forEach(function(p){
       if(!p||p.id===multiplayerId)return;
       seen[p.id]=true;
+      var nx=p.x*W,ny=p.y*H;
       var existing=remotePlayers[p.id];
-      if(!existing)existing=remotePlayers[p.id]={x:p.x*W,y:p.y*H,targetX:p.x*W,targetY:p.y*H,angle:p.angle,targetAngle:p.angle};
-      existing.targetX=p.x*W;existing.targetY=p.y*H;existing.targetAngle=p.angle;existing.name=p.name;existing.car=p.car;existing.score=p.score;existing.speed=p.speed;existing.seenAt=now;
+      if(!existing){
+        existing=remotePlayers[p.id]={x:nx,y:ny,angle:p.angle,recvX:nx,recvY:ny,recvAngle:p.angle,recvAt:now,vxPerMs:0,vyPerMs:0,anglePerMs:0};
+      }else{
+        var dt=Math.max(1,now-(existing.recvAt||now));
+        var dA=Math.atan2(Math.sin(p.angle-existing.recvAngle),Math.cos(p.angle-existing.recvAngle));
+        existing.vxPerMs=clamp((nx-existing.recvX)/dt,-3,3);
+        existing.vyPerMs=clamp((ny-existing.recvY)/dt,-3,3);
+        existing.anglePerMs=clamp(dA/dt,-0.02,0.02);
+        existing.recvX=nx;existing.recvY=ny;existing.recvAngle=p.angle;existing.recvAt=now;
+      }
+      existing.name=p.name;existing.car=p.car;existing.score=p.score;existing.speed=p.speed;existing.seenAt=now;
     });
     Object.keys(remotePlayers).forEach(function(id){if(!seen[id]&&now-(remotePlayers[id].seenAt||0)>2500)delete remotePlayers[id];});
     updateMultiplayerStatus(Object.keys(remotePlayers).length+1);
@@ -1749,9 +1759,13 @@
     Object.keys(remotePlayers).forEach(function(id){
       var p=remotePlayers[id];
       if(now-(p.seenAt||0)>5000){delete remotePlayers[id];return;}
+      var elapsed=Math.min(now-(p.recvAt||now),500);
+      var targetX=(p.recvX||p.x)+(p.vxPerMs||0)*elapsed;
+      var targetY=(p.recvY||p.y)+(p.vyPerMs||0)*elapsed;
+      var targetAngle=(p.recvAngle||p.angle)+(p.anglePerMs||0)*elapsed;
       var blend=1-Math.pow(0.002,dt);
-      p.x+=(p.targetX-p.x)*blend;p.y+=(p.targetY-p.y)*blend;
-      var da=Math.atan2(Math.sin(p.targetAngle-p.angle),Math.cos(p.targetAngle-p.angle));p.angle+=da*blend;
+      p.x+=(targetX-p.x)*blend;p.y+=(targetY-p.y)*blend;
+      var da=Math.atan2(Math.sin(targetAngle-p.angle),Math.cos(targetAngle-p.angle));p.angle+=da*blend;
       var model=CAR_MODELS[p.car]||CAR_MODELS.e36_touring;
       ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle);ctx.globalAlpha=.78;
       ctx.shadowColor=model.color;ctx.shadowBlur=14;ctx.fillStyle='#08090c';
