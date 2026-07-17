@@ -93,8 +93,12 @@ module.exports = async (req, res) => {
       const email = sanitizeEmail(body.email);
       if (!email) return res.status(400).json(actionError('invalid_email'));
       if (body.consent !== true) return res.status(400).json(actionError('email_consent_required'));
-      await redis(['SET', emailKey, JSON.stringify({ email, consentAt: new Date().toISOString() })]);
+      await redis(['SET', emailKey, JSON.stringify({ email, consentAt: new Date().toISOString() }), 'EX', 31536000]);
       return res.status(200).json(Object.assign({}, profile, { emailSaved: true }));
+    }
+    if (body.action === 'delete_email') {
+      await redis(['DEL', emailKey]);
+      return res.status(200).json(Object.assign({}, profile, { emailSaved: false }));
     }
     if (body.action === 'earn') profile.currency += ROUND_REWARD;
     else if (body.action === 'share_reward') {
