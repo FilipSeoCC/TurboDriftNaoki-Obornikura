@@ -145,10 +145,12 @@
   #screenGarage{ align-items:flex-start; overflow-y:auto; touch-action:pan-y; padding:18px 10px 30px; }
   #screenGarage .card{ width:min(94vw,620px); max-width:620px; margin:0 auto; padding:24px; }
   .balance{ color:#ffd65a; font-weight:900; font-size:16px; margin:8px 0 14px; }
-  .garage-btn{ margin-bottom:16px; }
+  .garage-btn{ margin-bottom:0; }
+  .player-box{ margin:0 0 18px; padding:14px; border:1px solid #ffffff22; border-radius:8px; background:#090b10aa; }
   .share-box{ margin:0 0 18px; padding:12px; border:1px solid #ffffff22; border-radius:8px; background:#090b10aa; }
   .share-box .btn{ width:100%; padding:11px 14px; font-size:12px; }
   .share-note{ min-height:16px; margin:7px 0 0; color:#ffd65a; font-size:10px; line-height:1.35; }
+  .share-footer{ margin:18px 0 0; }
   .multi-box{ margin:0 0 18px; padding:12px; border:1px solid #23d1b566; border-radius:8px; background:#071619cc; }
   .mode-choice{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   .mode-btn{ padding:12px 8px; border:2px solid #ffffff25; border-radius:7px; background:#090b10; color:var(--white); font:900 italic 12px Arial Narrow,Arial; cursor:pointer; }
@@ -339,7 +341,12 @@
     #screenTitle .card h1{ font-size:clamp(27px,10vw,38px); line-height:1.05; }
     #screenTitle .card p.sub{ margin-bottom:13px; font-size:10px; }
     #screenTitle .card .lead{ margin-bottom:18px; font-size:12px; line-height:1.4; }
-    #screenTitle .share-box,#screenTitle .multi-box{ margin-bottom:13px; }
+    #screenTitle .player-box,#screenTitle .multi-box{ margin-bottom:13px; }
+    #screenTitle .player-box,#screenTitle .share-box{ width:100%; padding:12px; }
+    #screenTitle .nick-input{ max-width:100%; min-height:44px; font-size:16px; }
+    #screenTitle .garage-btn{ width:100%; min-height:44px; }
+    #screenTitle .share-footer{ margin-top:16px; margin-bottom:0; }
+    #screenTitle .share-footer .btn{ min-height:44px; white-space:normal; }
     #screenTitle .card-gallery{ max-width:100%; flex-wrap:wrap; }
     #screenTitle .mode-btn{ min-width:0; padding:11px 4px; font-size:10px; }
     .hud-panel{ min-width:0; padding:6px 8px; }
@@ -412,14 +419,6 @@
         <p class="sub">Operacja Wkurw</p>
         <h1>Turbo <span>Kret</span> Drift</h1>
         <p class="lead">Bukovski ma w gaciach małego kreta.<br>Napompuj mu turbinę, zamień kreta w bestię i trzymaj obroty na świecącej czerwonej linii —<br>im szybciej, bardziej bokiem i dokładniej po linii jedziesz, tym więcej zdobywasz punktów.</p>
-        <p class="field-label">Wprowadź nick</p>
-        <input type="text" id="nickInput" class="nick-input" maxlength="14" placeholder="Twój nick">
-        <div class="balance" id="titleBalance">🔩 0 śrubek</div>
-        <button class="btn garage-btn" id="btnGarage" type="button">Garaż</button>
-        <div class="share-box">
-          <button class="btn" id="btnShare" type="button">📨 Poleć grę · +2000 🔩</button>
-          <p class="share-note" id="shareNote">Udostępnij przez Messengera lub inną aplikację. Nagroda jest jednorazowa.</p>
-        </div>
         <div class="multi-box">
           <p class="field-label">Wybierz tryb gry</p>
           <div class="mode-choice">
@@ -431,6 +430,12 @@
             <p class="multi-note" id="multiplayerStatus">Pokój PUBLIC · maks. 8 graczy · bez kolizji</p>
           </div>
         </div>
+        <div class="player-box">
+          <p class="field-label">Wprowadź nick</p>
+          <input type="text" id="nickInput" class="nick-input" maxlength="14" placeholder="Twój nick">
+          <div class="balance" id="titleBalance">🔩 0 śrubek</div>
+          <button class="btn garage-btn" id="btnGarage" type="button">Garaż</button>
+        </div>
         <p class="field-label">Wybierz tor</p>
         <div class="track-choice">
           <button class="btn btn-track" id="btnRondo" data-mode="rondo">Rondo</button>
@@ -438,6 +443,10 @@
         </div>
         <p class="card-gallery-caption">Wykręć jak najlepszy wynik, żeby odblokować karty Bukovskiego!</p>
         <div class="card-gallery" id="cardGallery"></div>
+        <div class="share-box share-footer">
+          <button class="btn" id="btnShare" type="button">📨 Poleć grę · +2000 🔩</button>
+          <p class="share-note" id="shareNote">Udostępnij przez Messengera lub inną aplikację. Nagroda jest jednorazowa.</p>
+        </div>
       </div>
     </div>
 
