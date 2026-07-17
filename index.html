@@ -1162,6 +1162,8 @@
     if(!multiplayerStatus)return;
     multiplayerStatus.textContent=text||(multiplayerEnabled?'Pokój '+multiplayerRoom()+' · graczy online: '+count:'Multiplayer wyłączony');
   }
+  var REMOTE_RENDER_DELAY_MS=500;
+  var REMOTE_SNAPSHOT_KEEP_MS=1500;
   function acceptRemotePlayers(players){
     var seen={},now=performance.now();
     (players||[]).forEach(function(p){
@@ -1169,16 +1171,9 @@
       seen[p.id]=true;
       var nx=p.x*W,ny=p.y*H;
       var existing=remotePlayers[p.id];
-      if(!existing){
-        existing=remotePlayers[p.id]={x:nx,y:ny,angle:p.angle,recvX:nx,recvY:ny,recvAngle:p.angle,recvAt:now,vxPerMs:0,vyPerMs:0,anglePerMs:0};
-      }else{
-        var dt=Math.max(1,now-(existing.recvAt||now));
-        var dA=Math.atan2(Math.sin(p.angle-existing.recvAngle),Math.cos(p.angle-existing.recvAngle));
-        existing.vxPerMs=clamp((nx-existing.recvX)/dt,-3,3);
-        existing.vyPerMs=clamp((ny-existing.recvY)/dt,-3,3);
-        existing.anglePerMs=clamp(dA/dt,-0.02,0.02);
-        existing.recvX=nx;existing.recvY=ny;existing.recvAngle=p.angle;existing.recvAt=now;
-      }
+      if(!existing)existing=remotePlayers[p.id]={x:nx,y:ny,angle:p.angle,snapshots:[]};
+      existing.snapshots.push({t:now,x:nx,y:ny,angle:p.angle});
+      while(existing.snapshots.length>1&&existing.snapshots[0].t<now-REMOTE_SNAPSHOT_KEEP_MS)existing.snapshots.shift();
       existing.name=p.name;existing.car=p.car;existing.score=p.score;existing.speed=p.speed;existing.seenAt=now;
     });
     Object.keys(remotePlayers).forEach(function(id){if(!seen[id]&&now-(remotePlayers[id].seenAt||0)>2500)delete remotePlayers[id];});
@@ -1755,17 +1750,21 @@
   }
 
   function updateAndDrawRemoteCars(dt){
-    var now=performance.now();
+    var now=performance.now(),renderTime=now-REMOTE_RENDER_DELAY_MS;
     Object.keys(remotePlayers).forEach(function(id){
       var p=remotePlayers[id];
       if(now-(p.seenAt||0)>5000){delete remotePlayers[id];return;}
-      var elapsed=Math.min(now-(p.recvAt||now),500);
-      var targetX=(p.recvX||p.x)+(p.vxPerMs||0)*elapsed;
-      var targetY=(p.recvY||p.y)+(p.vyPerMs||0)*elapsed;
-      var targetAngle=(p.recvAngle||p.angle)+(p.anglePerMs||0)*elapsed;
-      var blend=1-Math.pow(0.002,dt);
-      p.x+=(targetX-p.x)*blend;p.y+=(targetY-p.y)*blend;
-      var da=Math.atan2(Math.sin(targetAngle-p.angle),Math.cos(targetAngle-p.angle));p.angle+=da*blend;
+      var snaps=p.snapshots;
+      if(snaps&&snaps.length){
+        var s0=null,s1=null;
+        for(var i=snaps.length-1;i>=0;i--){if(snaps[i].t<=renderTime){s0=snaps[i];s1=snaps[i+1]||null;break;}}
+        if(s0&&s1){
+          var span=Math.max(1,s1.t-s0.t),alpha=Math.min(1,Math.max(0,(renderTime-s0.t)/span));
+          p.x=s0.x+(s1.x-s0.x)*alpha;p.y=s0.y+(s1.y-s0.y)*alpha;
+          var dA=Math.atan2(Math.sin(s1.angle-s0.angle),Math.cos(s1.angle-s0.angle));p.angle=s0.angle+dA*alpha;
+        }else if(s0){p.x=s0.x;p.y=s0.y;p.angle=s0.angle;}
+        else{p.x=snaps[0].x;p.y=snaps[0].y;p.angle=snaps[0].angle;}
+      }
       var model=CAR_MODELS[p.car]||CAR_MODELS.e36_touring;
       ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle);ctx.globalAlpha=.78;
       ctx.shadowColor=model.color;ctx.shadowBlur=14;ctx.fillStyle='#08090c';
