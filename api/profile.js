@@ -46,7 +46,7 @@ function normalizeProfile(value) {
   }
   if (!Object.keys(carMods).length) carMods[car] = normalizeMods(source.mods);
   if (!carMods[car]) carMods[car] = emptyMods();
-  return { currency: Math.max(0, Number(source.currency) || 0), shareRewarded: source.shareRewarded === true, car, carMods, mods: carMods[car] };
+  return { currency: Math.max(0, Number(source.currency) || 0), shareRewarded: source.shareRewarded === true, car, carMods };
 }
 
 async function readProfile(key) {
@@ -56,8 +56,6 @@ async function readProfile(key) {
 }
 
 async function writeProfile(key, profile) {
-  profile.carMods[profile.car] = normalizeMods(profile.mods);
-  profile.mods = profile.carMods[profile.car];
   await redis(['SET', key, JSON.stringify(profile)]);
   return profile;
 }
@@ -86,27 +84,29 @@ module.exports = async (req, res) => {
       profile.currency += SHARE_REWARD; profile.shareRewarded = true;
     } else if (body.action === 'select_car') {
       if (!CARS.includes(body.car)) return res.status(400).json(actionError('invalid_car'));
-      profile.carMods[profile.car] = normalizeMods(profile.mods);
       profile.car = body.car;
       if (!profile.carMods[profile.car]) profile.carMods[profile.car] = emptyMods();
-      profile.mods = profile.carMods[profile.car];
     } else if (body.action === 'buy') {
       const category = body.category;
       if (!CATEGORIES.includes(category)) return res.status(400).json(actionError('invalid_category'));
-      const tier = profile.mods[category] || 0, nextTier = tier + 1;
+      if (body.car !== undefined && !CARS.includes(body.car)) return res.status(400).json(actionError('invalid_car'));
+      if (body.car) profile.car = body.car;
+      if (!profile.carMods[profile.car]) profile.carMods[profile.car] = emptyMods();
+      const mods = profile.carMods[profile.car];
+      const tier = mods[category] || 0, nextTier = tier + 1;
       if (tier >= 3) return res.status(400).json(actionError('max_tier'));
       if (profile.currency < PRICE) return res.status(400).json(actionError('not_enough_currency'));
       if (category === 'turbo') {
-        if (profile.mods.supercharger > 0) return res.status(400).json(actionError('boost_conflict'));
-        if (profile.mods.clutch < nextTier) return res.status(400).json(actionError('requires_clutch', nextTier));
-        if (profile.mods.injectors < nextTier) return res.status(400).json(actionError('requires_injectors', nextTier));
-        if (profile.mods.fuelpump < nextTier) return res.status(400).json(actionError('requires_fuelpump', nextTier));
+        if (mods.supercharger > 0) return res.status(400).json(actionError('boost_conflict'));
+        if (mods.clutch < nextTier) return res.status(400).json(actionError('requires_clutch', nextTier));
+        if (mods.injectors < nextTier) return res.status(400).json(actionError('requires_injectors', nextTier));
+        if (mods.fuelpump < nextTier) return res.status(400).json(actionError('requires_fuelpump', nextTier));
       }
       if (category === 'supercharger') {
-        if (profile.mods.turbo > 0) return res.status(400).json(actionError('boost_conflict'));
-        if (profile.mods.clutch < nextTier) return res.status(400).json(actionError('requires_clutch', nextTier));
+        if (mods.turbo > 0) return res.status(400).json(actionError('boost_conflict'));
+        if (mods.clutch < nextTier) return res.status(400).json(actionError('requires_clutch', nextTier));
       }
-      profile.currency -= PRICE; profile.mods[category] = nextTier;
+      profile.currency -= PRICE; mods[category] = nextTier;
     } else return res.status(400).json(actionError('invalid_action'));
 
     return res.status(200).json(await writeProfile(key, profile));
