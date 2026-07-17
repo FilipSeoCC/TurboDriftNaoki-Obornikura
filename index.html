@@ -1412,6 +1412,8 @@
 
   // ---------- input ----------
   window.addEventListener('keydown', function(e){
+    var target = e.target;
+    if (target instanceof HTMLElement && target.matches('input, textarea, select, [contenteditable="true"]')) return;
     ensureAudio();
     var k = e.key;
     if ((k === 'p' || k === 'P' || k === 'Escape') && !e.repeat){
