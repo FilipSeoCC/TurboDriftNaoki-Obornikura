@@ -322,14 +322,19 @@
   }
 
   /* ---------- touch controls ---------- */
-  .tc-wrap{ position:absolute; inset:0; pointer-events:none; z-index:5; display:none; }
+  .tc-wrap{
+    position:absolute; inset:0; pointer-events:none; z-index:5; display:none;
+    touch-action:none; -ms-touch-action:none; overscroll-behavior:contain;
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+  }
   .tc-wrap.active{ display:block; }
   .tc-btn{
     position:absolute; width:64px; height:64px; border-radius:50%;
     background:linear-gradient(180deg, var(--panel), var(--panel-2));
     border:2px solid #00000080; color:var(--white); font-weight:900; font-size:12px;
     letter-spacing:0.03em; display:flex; align-items:center; justify-content:center;
-    pointer-events:auto; touch-action:none; user-select:none;
+    pointer-events:auto; touch-action:none; -ms-touch-action:none;
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
     box-shadow:0 3px 0 #000a, inset 0 1px 0 #ffffff1a; text-transform:uppercase;
   }
   .tc-btn.pressed{ transform:translateY(2px); box-shadow:0 1px 0 #000a; }
@@ -415,10 +420,10 @@
     <div id="hint"></div>
 
     <div class="tc-wrap" id="tcWrap">
-      <div class="tc-btn tc-left" id="tcLeft" role="button" aria-label="Skręt w lewo">&#9664;</div>
-      <div class="tc-btn tc-right2" id="tcRight" role="button" aria-label="Skręt w prawo">&#9654;</div>
-      <div class="tc-btn tc-gas" id="tcGas" role="button" aria-label="Gaz">GAZ</div>
-      <div class="tc-btn tc-space" id="tcSpace" role="button" aria-label="Pompuj / hydrołapa">POMPUJ</div>
+      <button class="tc-btn tc-left" id="tcLeft" type="button" aria-label="Skręt w lewo">&#9664;</button>
+      <button class="tc-btn tc-right2" id="tcRight" type="button" aria-label="Skręt w prawo">&#9654;</button>
+      <button class="tc-btn tc-gas" id="tcGas" type="button" aria-label="Gaz">GAZ</button>
+      <button class="tc-btn tc-space" id="tcSpace" type="button" aria-label="Pompuj / hydrołapa">POMPUJ</button>
     </div>
 
     <div class="card-modal" id="cardModal" hidden>
@@ -1273,18 +1278,35 @@
   // ---------- touch controls ----------
   function bindHold(el, onDown, onUp){
     if (!el) return;
+    var activePointer = null;
+    function release(e){
+      if (activePointer === null || (e && e.pointerId !== undefined && e.pointerId !== activePointer)) return;
+      activePointer = null;
+      el.classList.remove('pressed');
+      onUp();
+    }
     el.addEventListener('pointerdown', function(e){
       e.preventDefault();
+      e.stopPropagation();
+      if (activePointer !== null) return;
+      activePointer = e.pointerId;
       el.classList.add('pressed');
       ensureAudio();
       if (el.setPointerCapture){ try{ el.setPointerCapture(e.pointerId); }catch(err){} }
       onDown();
     }, {passive:false});
-    ['pointerup','pointercancel','pointerleave'].forEach(function(evt){
-      el.addEventListener(evt, function(){ el.classList.remove('pressed'); onUp(); });
+    ['pointerup','pointercancel','lostpointercapture'].forEach(function(evt){
+      el.addEventListener(evt, release, {passive:false});
     });
+    el.addEventListener('click', function(e){ e.preventDefault(); });
+    el.addEventListener('dblclick', function(e){ e.preventDefault(); });
+    el.addEventListener('selectstart', function(e){ e.preventDefault(); });
+    el.addEventListener('dragstart', function(e){ e.preventDefault(); });
     el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
   }
+  ['touchstart','touchmove','touchend','gesturestart','gesturechange'].forEach(function(evt){
+    tcWrap.addEventListener(evt, function(e){ e.preventDefault(); }, {passive:false});
+  });
   bindHold(tcLeft, function(){ keys['arrowleft'] = true; }, function(){ keys['arrowleft'] = false; });
   bindHold(tcRight, function(){ keys['arrowright'] = true; }, function(){ keys['arrowright'] = false; });
   bindHold(tcGas, function(){ keys['arrowup'] = true; }, function(){ keys['arrowup'] = false; });
