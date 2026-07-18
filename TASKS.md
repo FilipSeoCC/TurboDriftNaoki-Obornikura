@@ -13,6 +13,7 @@ wystarczy `[agent]`.
 ## In progress
 
 - [codex / ja] Fast login przez Google (OAuth) - potwierdzone przez ja (2026-07-18). Backend/auth, poza obszarem Claude Code. Do wyjaśnienia przy implementacji: skąd/po co placeholder e-maila `email@lizmejaja.pl` wspomniany przez Codeksa - opisać w PR jaką rolę pełni, zanim wyląduje w kodzie.
+- [codex] Rozszerz `api/scores.js` z top/bottom 5 na top/bottom 10 (ZREVRANGE/ZRANGE `0-4` -> `0-9`, w GET i POST). Frontend (`index.html`) już oczekuje 10 wyników (etykiety "TOP 10"/"OSTATNIE 10", nowy ekran Tabela Wyników) - patrz PR feat/claude-leaderboard-screen.
 
 ## Done
 
@@ -26,6 +27,8 @@ wystarczy `[agent]`.
 - [claude-code / ja] Konfiguracja infrastruktury współpracy: TASKS.md, CODEOWNERS, PR template (2026-07-18)
 - [claude-code / ja] Rozszerzenie infrastruktury o drugą osobę: format TASKS.md, PROJECT_SETUP.md, CONTRIBUTING.md (2026-07-18)
 - [claude-code / ja] Przebudowa nawigacji: login -> powitanie -> hub -> garaż -> tor -> tryb -> wyścig, globalny przycisk Menu, naprawa menedżera muzyki (visibilitychange) (2026-07-18)
+- [claude-code / ja] Przycisk "Rozpocznij grę" na hubie - skrót prosto do wyboru toru/trybu bez wchodzenia do Garażu (2026-07-18)
+- [claude-code / ja] Nowy ekran "Tabela wyników" dostępny z huba (podgląd rankingu bez rozgrywki) + etykiety TOP 10/OSTATNIE 10 na ekranie końcowym - wymaga zmiany w api/scores.js po stronie Codexa, patrz "In progress" (2026-07-18)
 - [claude-code / ja] CLAUDE.md + AGENTS.md: mechanizm delegacji zadań do Codexa (manualny relay przez użytkownika - brak bezpośredniego API/CLI między agentami w tym środowisku) (2026-07-18)
 
 <!--
