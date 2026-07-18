@@ -13,6 +13,7 @@ wystarczy `[agent]`.
 ## In progress
 
 - [codex / ja] Fast login przez Google (OAuth) - potwierdzone przez ja (2026-07-18). Backend/auth, poza obszarem Claude Code. Do wyjaśnienia przy implementacji: skąd/po co placeholder e-maila `email@lizmejaja.pl` wspomniany przez Codeksa - opisać w PR jaką rolę pełni, zanim wyląduje w kodzie.
+- [codex / ja] api/room.js: akcja `ready` + synchronizowany start wyścigu (pole `race: {status, startAt}` w odpowiedzi GET/POST). UI (poczekalnia, licznik startu) już gotowe w `feat/claude-multiplayer-lobby` i degraduje się bezpiecznie (start natychmiast po "Gotowy!") dopóki tej akcji nie ma - pełny prompt w historii sesji.
 
 ## Done
 
@@ -25,6 +26,7 @@ wystarczy `[agent]`.
 - [claude-code / ja] Konfiguracja infrastruktury współpracy: TASKS.md, CODEOWNERS, PR template (2026-07-18)
 - [claude-code / ja] Rozszerzenie infrastruktury o drugą osobę: format TASKS.md, PROJECT_SETUP.md, CONTRIBUTING.md (2026-07-18)
 - [claude-code / ja] Przebudowa nawigacji: login -> powitanie -> hub -> garaż -> tor -> tryb -> wyścig, globalny przycisk Menu, naprawa menedżera muzyki (visibilitychange) (2026-07-18)
+- [claude-code / ja] Poczekalnia multiplayer (lista graczy, "Gotowy!", odliczanie do startu) + panel wyniku rundy pokoju na ekranie końcowym. Degraduje się bezpiecznie do natychmiastowego startu dopóki Codex nie doda akcji `ready`/pola `race` w api/room.js (2026-07-18)
 
 <!--
 Wpisy sprzed dołączenia kolegi do zespołu zostały bez przypisanej osoby
