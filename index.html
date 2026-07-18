@@ -153,7 +153,7 @@
     top:calc(8px + env(safe-area-inset-top)); left:calc(8px + env(safe-area-inset-left));
     padding:7px 12px; border:1px solid #ffffff33; border-radius:7px;
     background:#090b10cc; color:var(--white); font:900 11px Arial Narrow,Arial;
-    cursor:pointer; backdrop-filter:blur(3px);
+    min-height:44px; cursor:pointer; backdrop-filter:blur(3px);
   }
   .btn-back-home[hidden]{ display:none; }
   #screenEnd{
@@ -259,8 +259,13 @@
   .legal-delete{ margin-top:14px; padding:10px 14px; border:1px solid #ff6a6a; border-radius:7px; background:#35151a; color:#fff; font-weight:800; cursor:pointer; }
   .legal-delete-status{ color:#ffd65a; font-size:11px!important; }
 
-  .track-choice{ display:flex; gap:10px; justify-content:center; margin:0 0 18px; }
-  .btn-track{ flex:1; padding:12px 10px; font-size:13px; }
+  .race-setup-card{ width:min(92vw,560px); max-width:560px; }
+  .setup-section{ margin:0 0 16px; padding:14px; border:1px solid #ffffff20; border-radius:9px; background:#090b10aa; }
+  .setup-section .field-label{ margin:0 0 10px; }
+  .track-choice{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:0; }
+  .btn-track{ min-width:0; padding:12px 8px; font-size:13px; border:2px solid transparent; }
+  .btn-track.selected{ border-color:var(--teal); color:var(--teal); box-shadow:0 0 14px #23d1b555; }
+  .race-setup-summary{ min-height:18px; margin:2px 0 0; color:var(--grey); font-size:11px; line-height:1.35; }
 
   .card-gallery-caption{ font-size:11px; color:var(--grey); margin:0 0 8px; }
   .card-gallery{ display:flex; gap:12px; justify-content:center; margin-top:2px; }
@@ -388,7 +393,7 @@
     .menu-screen{
       align-items:flex-start; justify-content:flex-start; overflow-x:hidden; overflow-y:auto;
       touch-action:pan-y; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
-      padding:calc(12px + env(safe-area-inset-top)) 10px calc(24px + env(safe-area-inset-bottom));
+      padding:calc(54px + env(safe-area-inset-top)) 10px calc(24px + env(safe-area-inset-bottom));
     }
     .menu-screen .card{
       flex:0 0 auto; width:100%; max-width:100%; min-width:0; margin:0 auto;
@@ -400,12 +405,16 @@
     .menu-screen .player-box,.menu-screen .multi-box{ margin-bottom:13px; }
     .menu-screen .player-box,.menu-screen .share-box{ width:100%; padding:12px; }
     .menu-screen .nick-input{ max-width:100%; min-height:44px; font-size:16px; }
-    .menu-screen .garage-btn{ width:100%; min-height:44px; }
-    .menu-screen .panel-nav .btn{ min-height:44px; }
+    .menu-screen .garage-btn{ width:100%; min-height:50px; }
+    .menu-screen .panel-nav .btn{ min-height:50px; }
     .menu-screen .share-footer{ margin-top:16px; margin-bottom:0; }
     .menu-screen .share-footer .btn{ min-height:44px; white-space:normal; }
     .menu-screen .card-gallery{ max-width:100%; flex-wrap:wrap; }
     .menu-screen .mode-btn{ min-width:0; padding:11px 4px; font-size:10px; }
+    .menu-screen .race-setup-card{ width:100%; }
+    .menu-screen .setup-section{ padding:12px; margin-bottom:12px; }
+    .menu-screen .track-choice{ gap:6px; }
+    .menu-screen .btn-track,.menu-screen .mode-btn{ min-height:48px; }
     .hud-panel{ min-width:0; padding:6px 8px; }
     .hud-label{ font-size:8px; }
     .meter{ width:88px; height:8px; }
@@ -415,11 +424,24 @@
     #hud{ gap:8px; }
     .card{ padding:24px 20px; }
     .card .lead{ font-size:13px; }
-    .track-choice{ gap:6px; }
-    .btn-track{ font-size:11px; padding:10px 6px; }
+    .btn-track{ font-size:11px; padding:10px 5px; }
     .buko-card{ width:76px; height:72px; }
     #screenEnd{ padding-left:10px; padding-right:10px; }
     #screenEnd .card{ max-width:100%; width:100%; }
+  }
+  @media (max-width:520px){
+    #screenGarage .car-choice{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    #screenGarage .car-option{ min-height:152px; }
+    #screenGarage .buy-btn{ min-height:48px; min-width:94px; }
+  }
+  @media (max-height:620px){
+    .menu-screen{
+      align-items:flex-start; justify-content:flex-start; overflow-x:hidden; overflow-y:auto;
+      touch-action:pan-y; -webkit-overflow-scrolling:touch;
+      padding:calc(52px + env(safe-area-inset-top)) 10px calc(18px + env(safe-area-inset-bottom));
+    }
+    .menu-screen .card{ flex:0 0 auto; margin:0 auto; padding-top:20px; padding-bottom:20px; }
+    .menu-screen .card h1{ font-size:clamp(26px,8vh,38px); margin-bottom:14px; }
   }
   /* ---------- blackjack ---------- */
   #bjModal{ position:fixed; inset:0; background:#000000d0; z-index:120; display:flex; align-items:center; justify-content:center; padding:12px; }
@@ -574,36 +596,32 @@
     </div>
 
     <div class="screen menu-screen" id="screenTrackSelect" hidden>
-      <div class="card">
-        <p class="sub">Krok 2 z 3</p>
-        <h1>Wybierz <span>tor</span></h1>
-        <div class="track-choice">
-          <button class="btn btn-track" id="btnRondo" data-mode="rondo">Rondo</button>
-          <button class="btn btn-track" id="btnOsemka" data-mode="osemka">Ósemka</button>
-          <button class="btn btn-track" id="btnUlica" data-mode="ulica">Uliczny</button>
-        </div>
-        <div class="panel-nav"><button class="btn btn-secondary" id="btnTrackSelectBack" type="button">← Garaż</button></div>
-      </div>
-    </div>
-
-    <div class="screen menu-screen" id="screenModeSelect" hidden>
-      <div class="card">
-        <p class="sub">Krok 3 z 3</p>
-        <h1>Wybierz <span>tryb</span></h1>
-        <div class="multi-box">
+      <div class="card race-setup-card">
+        <p class="sub">Konfiguracja wyścigu</p>
+        <h1>Ustaw <span>wyścig</span></h1>
+        <section class="setup-section" aria-labelledby="trackChoiceLabel">
+          <p class="field-label" id="trackChoiceLabel">Wybierz tor</p>
+          <div class="track-choice" role="group" aria-label="Tor wyścigu">
+            <button class="btn btn-track" id="btnRondo" data-mode="rondo" type="button" aria-pressed="false">Rondo</button>
+            <button class="btn btn-track" id="btnOsemka" data-mode="osemka" type="button" aria-pressed="false">Ósemka</button>
+            <button class="btn btn-track" id="btnUlica" data-mode="ulica" type="button" aria-pressed="false">Uliczny</button>
+          </div>
+        </section>
+        <div class="multi-box setup-section">
           <p class="field-label">Wybierz tryb gry</p>
           <div class="mode-choice">
-            <button class="mode-btn selected" id="btnSingleMode" type="button">👤 SINGLEPLAYER</button>
-            <button class="mode-btn" id="btnMultiMode" type="button">👥 MULTIPLAYER</button>
+            <button class="mode-btn selected" id="btnSingleMode" type="button" aria-pressed="true">👤 SINGLEPLAYER</button>
+            <button class="mode-btn" id="btnMultiMode" type="button" aria-pressed="false">👥 MULTIPLAYER</button>
           </div>
           <div class="multi-room-options" id="multiRoomOptions" hidden>
             <input class="room-input" id="roomInput" maxlength="12" value="PUBLIC" aria-label="Kod pokoju multiplayer">
             <p class="multi-note" id="multiplayerStatus">Pokój PUBLIC · maks. 8 graczy · bez kolizji</p>
           </div>
         </div>
+        <p class="race-setup-summary" id="raceSetupSummary" aria-live="polite"></p>
         <div class="panel-nav">
           <button class="btn" id="btnStartRace" type="button">🏁 Start wyścigu!</button>
-          <button class="btn btn-secondary" id="btnModeSelectBack" type="button">← Tor</button>
+          <button class="btn btn-secondary" id="btnTrackSelectBack" type="button">← Wróć</button>
         </div>
       </div>
     </div>
@@ -795,11 +813,10 @@
   var screenEnd = document.getElementById('screenEnd');
   var screenGarage = document.getElementById('screenGarage');
   var screenTrackSelect = document.getElementById('screenTrackSelect');
-  var screenModeSelect = document.getElementById('screenModeSelect');
   var screenSettings = document.getElementById('screenSettings');
   var screenLobby = document.getElementById('screenLobby');
   var screenLeaderboard = document.getElementById('screenLeaderboard');
-  var ALL_SCREENS = [screenLogin, screenWelcome, screenTitle, screenGarage, screenTrackSelect, screenModeSelect, screenLobby, screenSettings, screenLeaderboard, screenEnd];
+  var ALL_SCREENS = [screenLogin, screenWelcome, screenTitle, screenGarage, screenTrackSelect, screenLobby, screenSettings, screenLeaderboard, screenEnd];
   function hideAllScreens(){ ALL_SCREENS.forEach(function(s){ s.hidden = true; }); }
   var btnLogin = document.getElementById('btnLogin');
   var btnWelcomeNext = document.getElementById('btnWelcomeNext');
@@ -812,7 +829,6 @@
   var btnQuickStart = document.getElementById('btnQuickStart');
   var btnGarageStartRace = document.getElementById('btnGarageStartRace');
   var btnTrackSelectBack = document.getElementById('btnTrackSelectBack');
-  var btnModeSelectBack = document.getElementById('btnModeSelectBack');
   var btnStartRace = document.getElementById('btnStartRace');
   var lobbyRoomName = document.getElementById('lobbyRoomName');
   var lobbyPlayersEl = document.getElementById('lobbyPlayers');
@@ -867,7 +883,10 @@
   var multiRoomOptions = document.getElementById('multiRoomOptions');
   var roomInput = document.getElementById('roomInput');
   var multiplayerStatus = document.getElementById('multiplayerStatus');
+  var raceSetupSummary = document.getElementById('raceSetupSummary');
   var trackMode = 'osemka';
+  var raceSetupOrigin = 'menu';
+  var raceStartPending = false;
   var multiplayerId = (function(){try{var id=sessionStorage.getItem('tkd_multi_id');if(!id){id='p_'+Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('tkd_multi_id',id);}return id;}catch(e){return 'p_'+Math.random().toString(36).slice(2);}})();
   var multiplayerTimer = 0, multiplayerBusy = false, remotePlayers = {}, multiplayerEnabled = false;
   try{multiplayerEnabled=localStorage.getItem('tkd_game_mode')==='multi';roomInput.value=localStorage.getItem('tkd_room')||'PUBLIC';}catch(e){}
@@ -1640,7 +1659,7 @@
       .catch(function(){ lobbyStatusEl.textContent = 'Brak połączenia z pokojem — ponawiam...'; });
   }
   function showLobby(){
-    resetToMenuUi(); hideAllScreens(); screenLobby.hidden = false; btnBackHome.hidden = false;
+    openMenuScreen(screenLobby, true);
     lobbyRoomName.textContent = multiplayerRoom();
     lobbyReady = false; lobbyRaceTriggered = false;
     btnLobbyReady.textContent = 'Gotowy!'; btnLobbyReady.classList.remove('selected');
@@ -1666,56 +1685,87 @@
         else lobbyStatusEl.textContent = 'Brak połączenia — spróbuj ponownie.';
       });
   });
-  btnLobbyBack.addEventListener('click', function(){ stopLobbyPolling(); showModeSelect(); });
+  btnLobbyBack.addEventListener('click', function(){ stopLobbyPolling(); showRaceSetup(raceSetupOrigin); });
   function startMultiplayerRace(){ startPump(); startTransform(); }
   function renderGameModeChoice(){
     btnSingleMode.classList.toggle('selected',!multiplayerEnabled);
     btnMultiMode.classList.toggle('selected',multiplayerEnabled);
+    btnSingleMode.setAttribute('aria-pressed',String(!multiplayerEnabled));
+    btnMultiMode.setAttribute('aria-pressed',String(multiplayerEnabled));
     multiRoomOptions.hidden=!multiplayerEnabled;
+    btnStartRace.textContent=multiplayerEnabled?'Przejdź do lobby →':'🏁 Start wyścigu!';
     updateMultiplayerStatus(0);
+    renderRaceSetupSummary();
   }
   btnSingleMode.addEventListener('click',function(){stopMultiplayer(true);multiplayerEnabled=false;try{localStorage.setItem('tkd_game_mode','single');}catch(e){}renderGameModeChoice();});
   btnMultiMode.addEventListener('click',function(){multiplayerEnabled=true;try{localStorage.setItem('tkd_game_mode','multi');}catch(e){}renderGameModeChoice();});
-  roomInput.addEventListener('input',function(){this.value=multiplayerRoom();try{localStorage.setItem('tkd_room',this.value);}catch(e){}updateMultiplayerStatus(0);});
+  roomInput.addEventListener('input',function(){this.value=multiplayerRoom();try{localStorage.setItem('tkd_room',this.value);}catch(e){}updateMultiplayerStatus(0);renderRaceSetupSummary();});
   window.addEventListener('beforeunload',function(){stopMultiplayer(true);});
   renderGameModeChoice();
 
   nickInput.addEventListener('blur', function(){ loadProfile(false); });
   emailInput.addEventListener('blur', function(){ if(validPlayerEmail()&&emailConsent.checked)savePlayerEmail().catch(function(){}); });
   function ensurePlayerProfile(){ return loadProfile(false).then(savePlayerEmail); }
-  function selectTrack(mode){ trackMode = mode; showModeSelect(); }
+  function trackLabel(mode){ return mode==='rondo'?'Rondo':mode==='ulica'?'Uliczny':'Ósemka'; }
+  function renderRaceSetupSummary(){
+    [btnRondo,btnOsemka,btnUlica].forEach(function(btn){
+      var selected=btn.dataset.mode===trackMode;
+      btn.classList.toggle('selected',selected);
+      btn.setAttribute('aria-pressed',String(selected));
+    });
+    if(raceSetupSummary)raceSetupSummary.textContent=trackLabel(trackMode)+' · '+(multiplayerEnabled?'Multiplayer · pokój '+multiplayerRoom():'Singleplayer');
+  }
+  function selectTrack(mode){ trackMode = mode; renderRaceSetupSummary(); }
   btnRondo.addEventListener('click', function(){ selectTrack('rondo'); });
   btnOsemka.addEventListener('click', function(){ selectTrack('osemka'); });
   btnUlica.addEventListener('click', function(){ selectTrack('ulica'); });
   btnStartRace.addEventListener('click', function(){
+    if(raceStartPending)return;
     ensureAudio();
-    ensurePlayerProfile().then(function(){ if (multiplayerEnabled) showLobby(); else startPump(); }).catch(function(){});
+    raceStartPending=true; btnStartRace.disabled=true; btnStartRace.textContent='Ładowanie...';
+    ensurePlayerProfile().then(function(){
+      if(multiplayerEnabled)showLobby();else startPump();
+    }).catch(function(){
+      raceSetupSummary.textContent='Nie udało się połączyć z profilem. Sprawdź internet i spróbuj ponownie.';
+      btnStartRace.textContent='Spróbuj ponownie';
+    }).then(function(){
+      raceStartPending=false; btnStartRace.disabled=false;
+    });
   });
   // Every menu/nav screen shares the same reset: stop multiplayer polling, go back
   // to the idle STATE, clear any leftover in-race UI, then show exactly one screen.
   function resetToMenuUi(){
+    stopLobbyPolling();
     stopMultiplayer(true);
     STATE = 'title';
     updateTouchControls();
     keys={}; gameActions.hidden=true; cardModal.hidden=true;
     cardGalleryEnd.classList.remove('card-attention'); if(cardClickHint) cardClickHint.style.display='none';
   }
-  function showLogin(){ resetToMenuUi(); hideAllScreens(); screenLogin.hidden=false; btnBackHome.hidden=true; }
-  function showWelcome(){ resetToMenuUi(); hideAllScreens(); screenWelcome.hidden=false; btnBackHome.hidden=false; }
+  function openMenuScreen(screen, showHomeButton){
+    resetToMenuUi(); hideAllScreens(); screen.hidden=false; screen.scrollTop=0; btnBackHome.hidden=!showHomeButton;
+  }
+  function showLogin(){ openMenuScreen(screenLogin, false); }
+  function showWelcome(){ openMenuScreen(screenWelcome, true); }
   function showMainMenu(){
-    resetToMenuUi(); hideAllScreens(); screenTitle.hidden=false; btnBackHome.hidden=false;
+    openMenuScreen(screenTitle, true);
     renderCardGallery();
   }
   function showGarage(){
-    resetToMenuUi(); hideAllScreens(); screenGarage.hidden=false; screenGarage.scrollTop=0; btnBackHome.hidden=false;
+    openMenuScreen(screenGarage, true);
     renderGarage();
     loadProfile(true);
   }
-  function showTrackSelect(){ resetToMenuUi(); hideAllScreens(); screenTrackSelect.hidden=false; btnBackHome.hidden=false; }
-  function showModeSelect(){ resetToMenuUi(); hideAllScreens(); screenModeSelect.hidden=false; btnBackHome.hidden=false; }
-  function showSettings(){ resetToMenuUi(); hideAllScreens(); screenSettings.hidden=false; btnBackHome.hidden=false; }
+  function showRaceSetup(origin){
+    raceSetupOrigin=origin||raceSetupOrigin||'menu';
+    openMenuScreen(screenTrackSelect, true);
+    raceStartPending=false; btnStartRace.disabled=false;
+    btnTrackSelectBack.textContent=raceSetupOrigin==='garage'?'← Garaż':'← Menu główne';
+    renderGameModeChoice();
+  }
+  function showSettings(){ openMenuScreen(screenSettings, true); }
   function showLeaderboard(){
-    resetToMenuUi(); hideAllScreens(); screenLeaderboard.hidden=false; btnBackHome.hidden=false;
+    openMenuScreen(screenLeaderboard, true);
     loadLeaderboardInto(lbRowsTopHub, lbRowsBottomHub);
   }
   btnLogin.addEventListener('click', function(){ ensureAudio(); ensurePlayerProfile().then(showWelcome).catch(function(){}); });
@@ -1724,10 +1774,9 @@
   btnSettingsBack.addEventListener('click', showMainMenu);
   btnLeaderboardOpen.addEventListener('click', showLeaderboard);
   btnLeaderboardBack.addEventListener('click', showMainMenu);
-  btnQuickStart.addEventListener('click', showTrackSelect);
-  btnGarageStartRace.addEventListener('click', showTrackSelect);
-  btnTrackSelectBack.addEventListener('click', showGarage);
-  btnModeSelectBack.addEventListener('click', showTrackSelect);
+  btnQuickStart.addEventListener('click', function(){ showRaceSetup('menu'); });
+  btnGarageStartRace.addEventListener('click', function(){ showRaceSetup('garage'); });
+  btnTrackSelectBack.addEventListener('click', function(){ if(raceSetupOrigin==='garage')showGarage();else showMainMenu(); });
   btnBackHome.addEventListener('click', showMainMenu);
   function referralLink(){
     var url=new URL(window.location.href);url.search='';url.hash='';url.searchParams.set('ref',profileNick());return url.toString();

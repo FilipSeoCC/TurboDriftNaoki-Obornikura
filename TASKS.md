@@ -17,6 +17,7 @@ wystarczy `[agent]`.
 
 ## Done
 
+- [codex / ja] Połączenie wyboru toru i trybu w jeden panel oraz audyt UX/UI mobile i desktop (2026-07-18)
 - [codex] Worker GitHub Actions 24/7 dla issues `codex` + `logika/backend` (2026-07-18)
 - [codex] Synchronizowany start wyścigu multiplayer i gotowość graczy (2026-07-18)
 - [codex] Backendowa akcja `delete_profile` kasująca stan gracza z Redis (2026-07-18)
