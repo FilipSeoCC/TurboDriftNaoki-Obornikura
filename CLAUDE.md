@@ -30,6 +30,28 @@ Gdy stwierdzisz, że fragment zadania należy do obszaru backendu/logiki gry:
 5. Nie zgaduj ani nie kontynuuj tej części zadania samodzielnie w
    międzyczasie, nawet "tymczasowo".
 
+## Kolejność pracy przy zadaniach mieszanych (UI + logika)
+
+Zanim napiszesz jakikolwiek kod, ZAWSZE najpierw zrób rozbiórkę całego
+zadania: co jest UI (Twoje), co jest logika/backend (Codexa).
+
+Jeśli zadanie ma jakąkolwiek część dla Codexa:
+
+1. NIE zaczynaj pisać swojej części najpierw.
+2. Na samym początku odpowiedzi wypisz KOMPLETNY, gotowy do wklejenia
+   prompt dla Codexa (rola, zadanie, oczekiwany kontrakt danych/API).
+3. Wprost napisz: "Wklej to do Codexa TERAZ, ja w tym czasie zaczynam
+   swoją część UI równolegle."
+4. Dopiero po tym zacznij pracować nad swoją częścią (UI), używając na
+   razie zamockowanych danych zgodnych z kontraktem, który właśnie
+   zleciłeś Codexowi.
+5. Nie czekaj na wynik Codexa żeby zacząć — pracuj równolegle na mockach.
+   Podłączenie realnego API zrobisz jako osobny, mały krok na końcu, gdy
+   Ty potwierdzisz że Codex skończył.
+
+Innymi słowy: prompt dla Codexa to zawsze PIERWSZA rzecz w odpowiedzi przy
+zadaniach mieszanych, nie ostatnia.
+
 ## Zasada potwierdzania pracy
 
 Nigdy nie mów "zrobione" bez pokazania realnych dowodów:
