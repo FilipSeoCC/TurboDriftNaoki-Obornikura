@@ -332,8 +332,10 @@
   .lb-row.lb-you{ background:#b043ff26; border:1px solid var(--orange); }
   .lb-rank{ width:18px; color:var(--grey); font-weight:700; }
   .lb-name{ flex:1; color:var(--white); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lb-track{ width:52px; flex:0 0 auto; color:var(--grey); font-size:11px; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .lb-score{ color:var(--orange-2); font-family:"Consolas","Menlo",monospace; font-weight:700; font-variant-numeric:tabular-nums; }
   .lb-empty{ text-align:center; color:var(--grey); font-size:12px; padding:8px; }
+  .lb-header{ display:flex; align-items:center; gap:8px; padding:0 10px 4px; font-size:9px; text-transform:uppercase; letter-spacing:.06em; color:var(--grey); opacity:.75; }
   .field-label{
     font-size:10px; letter-spacing:0.1em; color:var(--grey); text-transform:uppercase;
     font-weight:700; margin:0 0 6px; text-align:center;
@@ -657,8 +659,10 @@
         </div>
         <div class="leaderboard">
           <div class="lb-title">TOP 10</div>
+          <div class="lb-header"><span class="lb-rank"></span><span class="lb-name">Nick</span><span class="lb-track">Tor</span><span class="lb-score">Wynik</span></div>
           <div class="lb-rows" id="lbRowsTop"></div>
           <div class="lb-title lb-title-worst">OSTATNIE 10</div>
+          <div class="lb-header"><span class="lb-rank"></span><span class="lb-name">Nick</span><span class="lb-track">Tor</span><span class="lb-score">Wynik</span></div>
           <div class="lb-rows" id="lbRowsBottom"></div>
           <p class="lb-note">Wynik widoczny dla wszystkich graczy</p>
         </div>
@@ -676,8 +680,10 @@
         <h1>Tabela <span>Wyników</span></h1>
         <div class="leaderboard">
           <div class="lb-title">TOP 10</div>
+          <div class="lb-header"><span class="lb-rank"></span><span class="lb-name">Nick</span><span class="lb-track">Tor</span><span class="lb-score">Wynik</span></div>
           <div class="lb-rows" id="lbRowsTopHub"></div>
           <div class="lb-title lb-title-worst">OSTATNIE 10</div>
+          <div class="lb-header"><span class="lb-rank"></span><span class="lb-name">Nick</span><span class="lb-track">Tor</span><span class="lb-score">Wynik</span></div>
           <div class="lb-rows" id="lbRowsBottomHub"></div>
           <p class="lb-note">Wynik widoczny dla wszystkich graczy</p>
         </div>
@@ -1176,6 +1182,8 @@
   function isSameEntry(e, hi){
     return !!hi && e.name === hi.name && e.score === hi.score && e.mode === hi.mode;
   }
+  var TRACK_LABELS = { rondo:'Rondo', osemka:'\u00d3semka', ulica:'Uliczny' };
+  function trackModeLabel(mode){ return TRACK_LABELS[mode] || '\u2014'; }
   function renderRows(container, list, highlightEntry){
     container.innerHTML = '';
     if (!list.length){
@@ -1190,8 +1198,9 @@
       row.className = 'lb-row' + (isSameEntry(e, highlightEntry) ? ' lb-you' : '');
       var rank = document.createElement('span'); rank.className = 'lb-rank'; rank.textContent = (i+1) + '.';
       var name = document.createElement('span'); name.className = 'lb-name'; name.textContent = e.name;
+      var track = document.createElement('span'); track.className = 'lb-track'; track.textContent = trackModeLabel(e.mode);
       var score = document.createElement('span'); score.className = 'lb-score'; score.textContent = Math.round(e.score);
-      row.appendChild(rank); row.appendChild(name); row.appendChild(score);
+      row.appendChild(rank); row.appendChild(name); row.appendChild(track); row.appendChild(score);
       container.appendChild(row);
     });
   }
