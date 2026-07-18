@@ -1,0 +1,246 @@
+name: Codex backend issue worker
+
+on:
+  issues:
+    types: [opened, labeled, reopened]
+
+concurrency:
+  group: codex-issue-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  implement:
+    if: >-
+      (github.event.action != 'labeled' || github.event.label.name == 'codex' || github.event.label.name == 'logika/backend') &&
+      contains(github.event.issue.labels.*.name, 'codex') &&
+      contains(github.event.issue.labels.*.name, 'logika/backend') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Require OpenAI API key
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "Missing repository secret OPENAI_API_KEY"
+            exit 1
+          fi
+
+      - name: Claim issue and reject duplicate work
+        id: claim
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue = context.payload.issue;
+            const branch = `feat/codex-issue-${issue.number}-${context.runId}`;
+            const freshIssue = await github.rest.issues.get({ owner, repo, issue_number: issue.number });
+            const currentLabels = freshIssue.data.labels.map((label) => typeof label === 'string' ? label : label.name);
+
+            const labelDefinitions = [
+              { name: 'codex-in-progress', color: 'FBCA04', description: 'Codex pracuje nad zadaniem' },
+              { name: 'codex-review', color: '1D76DB', description: 'Draft PR Codexa czeka na review' },
+              { name: 'codex-blocked', color: 'B60205', description: 'Automatyczny worker Codexa jest zablokowany' },
+            ];
+            for (const label of labelDefinitions) {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name: label.name });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+                await github.rest.issues.createLabel({ owner, repo, ...label });
+              }
+            }
+
+            if (currentLabels.some((name) => ['codex-in-progress', 'codex-review'].includes(name))) {
+              core.notice('Issue is already being processed or waiting for review.');
+              core.setOutput('should-run', 'false');
+              return;
+            }
+
+            const pulls = await github.paginate(github.rest.pulls.list, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existingPull = pulls.find((pull) =>
+              pull.head.ref.startsWith(`feat/codex-issue-${issue.number}-`) ||
+              String(pull.body || '').includes(`Closes #${issue.number}`)
+            );
+            if (existingPull) {
+              await github.rest.issues.addLabels({ owner, repo, issue_number: issue.number, labels: ['codex-review'] });
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issue.number,
+                body: `Istnieje już PR dla tego zadania: ${existingPull.html_url}`,
+              });
+              core.setOutput('should-run', 'false');
+              return;
+            }
+
+            if (currentLabels.includes('codex-blocked')) {
+              await github.rest.issues.removeLabel({ owner, repo, issue_number: issue.number, name: 'codex-blocked' });
+            }
+            await github.rest.issues.addLabels({ owner, repo, issue_number: issue.number, labels: ['codex-in-progress'] });
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: issue.number,
+              body: `Codex podjął zadanie. Branch: \`${branch}\`. Po wykonaniu otworzy draft PR; merge pozostaje ręczny.`,
+            });
+            core.setOutput('should-run', 'true');
+            core.setOutput('branch', branch);
+
+      - name: Check out main
+        if: steps.claim.outputs.should-run == 'true'
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Create task branch
+        if: steps.claim.outputs.should-run == 'true'
+        env:
+          BRANCH: ${{ steps.claim.outputs.branch }}
+        run: git switch -c "$BRANCH"
+
+      - name: Build trusted prompt with untrusted issue context
+        if: steps.claim.outputs.should-run == 'true'
+        uses: actions/github-script@v7
+        env:
+          PROMPT_FILE: ${{ runner.temp }}/codex-issue-prompt.md
+        with:
+          script: |
+            const fs = require('fs');
+            const base = fs.readFileSync('.github/codex/prompts/backend-issue-worker.md', 'utf8');
+            const issue = context.payload.issue;
+            const title = String(issue.title || '').slice(0, 500);
+            const body = String(issue.body || '').slice(0, 12000);
+            const contextBlock = [
+              '',
+              '## Untrusted issue specification',
+              '',
+              `Issue: #${issue.number}`,
+              `Author association: ${issue.author_association}`,
+              `Title: ${title}`,
+              '',
+              '<issue-body>',
+              body,
+              '</issue-body>',
+            ].join('\n');
+            fs.writeFileSync(process.env.PROMPT_FILE, base + contextBlock, 'utf8');
+
+      - name: Implement issue with Codex
+        if: steps.claim.outputs.should-run == 'true'
+        id: codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: ${{ runner.temp }}/codex-issue-prompt.md
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+          codex-args: '["--ephemeral"]'
+          output-file: ${{ runner.temp }}/codex-final.md
+
+      - name: Enforce backend-only scope
+        if: steps.claim.outputs.should-run == 'true'
+        run: |
+          allowed='^(api/|test/|tests/|docs/|lib/|src/(game|backend)/|TASKS\.md$|package\.json$|package-lock\.json$)'
+          bad=0
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            if ! printf '%s\n' "$file" | grep -Eq "$allowed"; then
+              echo "Out-of-scope change: $file"
+              bad=1
+            fi
+          done < <(git status --porcelain=v1 | cut -c4-)
+          exit "$bad"
+
+      - name: Detect changes
+        if: steps.claim.outputs.should-run == 'true'
+        id: changes
+        run: |
+          if git diff --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+            echo "has-changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has-changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate implementation
+        if: steps.changes.outputs.has-changes == 'true'
+        run: |
+          find api -name '*.js' -print0 2>/dev/null | xargs -0 -r -n1 node --check
+          if node -e "const p=require('./package.json');process.exit(p.scripts&&p.scripts.test?0:1)"; then
+            npm test
+          fi
+          git diff --check
+
+      - name: Commit, push and open draft PR
+        if: steps.changes.outputs.has-changes == 'true'
+        id: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.claim.outputs.branch }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: |
+          git config user.name "codex-issue-worker[bot]"
+          git config user.email "codex-issue-worker[bot]@users.noreply.github.com"
+          git add -A
+          git -c core.hooksPath=/dev/null commit -m "Implement issue #${ISSUE_NUMBER}"
+          gh auth setup-git
+          git push --set-upstream origin "$BRANCH"
+          printf 'Closes #%s\n\nAutomatyczna implementacja backendowa. Wymagane ludzkie review; workflow nigdy nie wykonuje merge.\n' "$ISSUE_NUMBER" > "$RUNNER_TEMP/pr-body.md"
+          pr_url=$(gh pr create \
+            --draft \
+            --base main \
+            --head "$BRANCH" \
+            --title "Codex: ${ISSUE_TITLE}" \
+            --label codex \
+            --label 'logika/backend' \
+            --body-file "$RUNNER_TEMP/pr-body.md")
+          echo "pr-url=$pr_url" >> "$GITHUB_OUTPUT"
+
+      - name: Mark issue ready for review
+        if: steps.publish.outputs.pr-url != ''
+        uses: actions/github-script@v7
+        env:
+          PR_URL: ${{ steps.publish.outputs.pr-url }}
+        with:
+          script: |
+            const params = { owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number };
+            try { await github.rest.issues.removeLabel({ ...params, name: 'codex-in-progress' }); } catch (error) { if (error.status !== 404) throw error; }
+            await github.rest.issues.addLabels({ ...params, labels: ['codex-review'] });
+            await github.rest.issues.createComment({ ...params, body: `Implementacja gotowa do review: ${process.env.PR_URL}` });
+
+      - name: Report no implementation
+        if: steps.claim.outputs.should-run == 'true' && steps.changes.outputs.has-changes == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const params = { owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number };
+            try { await github.rest.issues.removeLabel({ ...params, name: 'codex-in-progress' }); } catch (error) { if (error.status !== 404) throw error; }
+            await github.rest.issues.addLabels({ ...params, labels: ['codex-blocked'] });
+            await github.rest.issues.createComment({ ...params, body: 'Codex nie utworzył zmian. Sprawdź wynik uruchomienia workflow i doprecyzuj issue.' });
+
+      - name: Mark failed run as blocked
+        if: failure() && steps.claim.outputs.should-run == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const params = { owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number };
+            try { await github.rest.issues.removeLabel({ ...params, name: 'codex-in-progress' }); } catch (error) { if (error.status !== 404) throw error; }
+            await github.rest.issues.addLabels({ ...params, labels: ['codex-blocked'] });
+            await github.rest.issues.createComment({
+              ...params,
+              body: `Automatyczny worker został zablokowany. Log: https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
