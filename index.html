@@ -531,6 +531,9 @@
         <h1>Turbo <span>Kret</span> Drift</h1>
         <div class="balance" id="titleBalance">🔩 0 śrubek</div>
         <div class="panel-nav">
+          <button class="btn" id="btnQuickStart" type="button">🏁 Rozpocznij grę</button>
+        </div>
+        <div class="panel-nav">
           <button class="btn garage-btn" id="btnGarage" type="button">🔧 Garaż</button>
           <button class="btn garage-btn" id="btnCasino" type="button" style="background:#7a2fd1;">🎰 Kasyno · Blackjack</button>
           <button class="btn btn-secondary" id="btnSettingsOpen" type="button">⚙ Ustawienia</button>
@@ -745,6 +748,7 @@
   var btnWelcomeNext = document.getElementById('btnWelcomeNext');
   var btnSettingsOpen = document.getElementById('btnSettingsOpen');
   var btnSettingsBack = document.getElementById('btnSettingsBack');
+  var btnQuickStart = document.getElementById('btnQuickStart');
   var btnGarageStartRace = document.getElementById('btnGarageStartRace');
   var btnTrackSelectBack = document.getElementById('btnTrackSelectBack');
   var btnModeSelectBack = document.getElementById('btnModeSelectBack');
@@ -1533,6 +1537,7 @@
   btnWelcomeNext.addEventListener('click', showMainMenu);
   btnSettingsOpen.addEventListener('click', showSettings);
   btnSettingsBack.addEventListener('click', showMainMenu);
+  btnQuickStart.addEventListener('click', showTrackSelect);
   btnGarageStartRace.addEventListener('click', showTrackSelect);
   btnTrackSelectBack.addEventListener('click', showGarage);
   btnModeSelectBack.addEventListener('click', showTrackSelect);
