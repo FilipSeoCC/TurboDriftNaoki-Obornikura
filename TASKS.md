@@ -26,6 +26,7 @@ wystarczy `[agent]`.
 - [claude-code / ja] Konfiguracja infrastruktury współpracy: TASKS.md, CODEOWNERS, PR template (2026-07-18)
 - [claude-code / ja] Rozszerzenie infrastruktury o drugą osobę: format TASKS.md, PROJECT_SETUP.md, CONTRIBUTING.md (2026-07-18)
 - [claude-code / ja] Przebudowa nawigacji: login -> powitanie -> hub -> garaż -> tor -> tryb -> wyścig, globalny przycisk Menu, naprawa menedżera muzyki (visibilitychange) (2026-07-18)
+- [claude-code / ja] CLAUDE.md + AGENTS.md: mechanizm delegacji zadań do Codexa (manualny relay przez użytkownika - brak bezpośredniego API/CLI między agentami w tym środowisku) (2026-07-18)
 
 <!--
 Wpisy sprzed dołączenia kolegi do zespołu zostały bez przypisanej osoby
