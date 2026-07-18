@@ -14,10 +14,10 @@ wystarczy `[agent]`.
 
 
 - [codex / ja] Fast login przez Google (OAuth) - potwierdzone przez ja (2026-07-18). Backend/auth, poza obszarem Claude Code. Do wyjaśnienia przy implementacji: skąd/po co placeholder e-maila `email@lizmejaja.pl` wspomniany przez Codeksa - opisać w PR jaką rolę pełni, zanim wyląduje w kodzie.
-- [codex / ja] Nowa akcja `delete_profile` w `api/profile.js` (kasowanie całego profilu: waluta, auto, tuning dla danego nicku) - UI już gotowe w Settings (`feat/claude-settings-legal`), obecnie dostaje `invalid_action` bo akcja nie istnieje.
 
 ## Done
 
+- [codex] Backendowa akcja `delete_profile` kasująca stan gracza z Redis (2026-07-18)
 - [codex] Spójne rozliczanie blackjacka: win/lose/push, 40% wygranej i wypłata x10 (2026-07-18)
 - [codex] Rozszerzenie rankingu do TOP 10 / OSTATNIE 10 (2026-07-18)
 - [codex] Logika garażu, wyboru toru/trybu, lobby multiplayer i bezpiecznej mini-gry kasynowej (2026-07-18)

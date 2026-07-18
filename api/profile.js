@@ -1,7 +1,7 @@
 // Shared garage profile backed by Upstash Redis. A nickname is only a shared
 // profile key, not authentication: anyone using the same nickname shares it.
 const { CAR_BY_ID, uniqueKnownCars } = require('./_lib/catalog');
-const { CATEGORIES, redis, databaseConfigured, sanitizeName, emptyMods, readProfile, writeProfile } = require('./_lib/store');
+const { CATEGORIES, redis, databaseConfigured, sanitizeName, emptyMods, normalizeProfile, readProfile, writeProfile } = require('./_lib/store');
 const PRICE = 500;
 const ROUND_REWARD = 1000;
 const SHARE_REWARD = 2000;
@@ -46,6 +46,10 @@ module.exports = async (req, res) => {
     if (body.action === 'delete_email') {
       await redis(['DEL', emailKey]);
       return res.status(200).json(Object.assign({}, profile, { emailSaved: false }));
+    }
+    if (body.action === 'delete_profile') {
+      await redis(['DEL', key]);
+      return res.status(200).json(normalizeProfile({}));
     }
     if (body.action === 'earn') profile.currency += ROUND_REWARD;
     else if (body.action === 'share_reward') {
