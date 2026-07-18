@@ -37,6 +37,7 @@ wystarczy `[agent]`.
 - [claude-code / ja] Przycisk "Rozpocznij grę" na hubie - skrót prosto do wyboru toru/trybu bez wchodzenia do Garażu (2026-07-18)
 - [claude-code / ja] Nowy ekran "Tabela wyników" dostępny z huba (podgląd rankingu bez rozgrywki) + etykiety TOP 10/OSTATNIE 10 na ekranie końcowym - wymaga zmiany w api/scores.js po stronie Codexa, patrz "In progress" (2026-07-18)
 - [claude-code / ja] CLAUDE.md + AGENTS.md: mechanizm delegacji zadań do Codexa (manualny relay przez użytkownika - brak bezpośredniego API/CLI między agentami w tym środowisku) (2026-07-18)
+- [claude-code / ja] Audyt UX/UI pod mobilkę: wspólna klasa `.menu-screen` na ekranach menu i lobby, font-size 16px w polach formularzy oraz guard przeciw double-tap zoom w przeglądarkach mobilnych i Messengerze (2026-07-18)
 - [claude-code / ja] Nagłówki kolumn w tabeli wyników (Nick / Tor / Wynik) na ekranie końcowym i w Tabeli Wyników - dane toru (`mode`) już wracały z API, tylko nie były renderowane (2026-07-18)
 
 <!--

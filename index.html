@@ -177,7 +177,7 @@
   .mode-btn{ padding:12px 8px; border:2px solid #ffffff25; border-radius:7px; background:#090b10; color:var(--white); font:900 italic 12px Arial Narrow,Arial; cursor:pointer; }
   .mode-btn.selected{ border-color:var(--teal); color:var(--teal); box-shadow:0 0 14px #23d1b555; }
   .multi-room-options[hidden]{ display:none; }
-  .room-input{ width:100%; margin-top:9px; padding:9px; border:1px solid #ffffff33; border-radius:6px; background:#090b10; color:var(--teal); text-align:center; font:900 13px Consolas,monospace; text-transform:uppercase; }
+  .room-input{ width:100%; margin-top:9px; padding:9px; border:1px solid #ffffff33; border-radius:6px; background:#090b10; color:var(--teal); text-align:center; font:900 16px Consolas,monospace; text-transform:uppercase; }
   .multi-note{ margin:7px 0 0; color:var(--grey); font-size:10px; line-height:1.35; }
   .car-choice{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0 18px; }
   .car-option{ border:2px solid #ffffff25; border-radius:9px; background:#090b10aa; padding:10px 6px; color:var(--white); cursor:pointer; }
@@ -235,7 +235,7 @@
   .nick-input{
     width:100%; max-width:260px; margin:0 auto 14px; display:block;
     background:#00000040; border:1px solid #ffffff30; border-radius:6px;
-    color:var(--white); font-family:inherit; font-size:14px; padding:8px 12px;
+    color:var(--white); font-family:inherit; font-size:16px; padding:8px 12px;
     text-align:center;
   }
   .nick-input::placeholder{ color:var(--grey); }
@@ -385,26 +385,27 @@
 
   @media (max-width: 760px){
     html,body{ min-width:0; }
-    #screenTitle{
+    .menu-screen{
       align-items:flex-start; justify-content:flex-start; overflow-x:hidden; overflow-y:auto;
       touch-action:pan-y; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
       padding:calc(12px + env(safe-area-inset-top)) 10px calc(24px + env(safe-area-inset-bottom));
     }
-    #screenTitle .card{
+    .menu-screen .card{
       flex:0 0 auto; width:100%; max-width:100%; min-width:0; margin:0 auto;
       padding:20px 14px; border-radius:9px;
     }
-    #screenTitle .card h1{ font-size:clamp(27px,10vw,38px); line-height:1.05; }
-    #screenTitle .card p.sub{ margin-bottom:13px; font-size:10px; }
-    #screenTitle .card .lead{ margin-bottom:18px; font-size:12px; line-height:1.4; }
-    #screenTitle .player-box,#screenTitle .multi-box{ margin-bottom:13px; }
-    #screenTitle .player-box,#screenTitle .share-box{ width:100%; padding:12px; }
-    #screenTitle .nick-input{ max-width:100%; min-height:44px; font-size:16px; }
-    #screenTitle .garage-btn{ width:100%; min-height:44px; }
-    #screenTitle .share-footer{ margin-top:16px; margin-bottom:0; }
-    #screenTitle .share-footer .btn{ min-height:44px; white-space:normal; }
-    #screenTitle .card-gallery{ max-width:100%; flex-wrap:wrap; }
-    #screenTitle .mode-btn{ min-width:0; padding:11px 4px; font-size:10px; }
+    .menu-screen .card h1{ font-size:clamp(27px,10vw,38px); line-height:1.05; }
+    .menu-screen .card p.sub{ margin-bottom:13px; font-size:10px; }
+    .menu-screen .card .lead{ margin-bottom:18px; font-size:12px; line-height:1.4; }
+    .menu-screen .player-box,.menu-screen .multi-box{ margin-bottom:13px; }
+    .menu-screen .player-box,.menu-screen .share-box{ width:100%; padding:12px; }
+    .menu-screen .nick-input{ max-width:100%; min-height:44px; font-size:16px; }
+    .menu-screen .garage-btn{ width:100%; min-height:44px; }
+    .menu-screen .panel-nav .btn{ min-height:44px; }
+    .menu-screen .share-footer{ margin-top:16px; margin-bottom:0; }
+    .menu-screen .share-footer .btn{ min-height:44px; white-space:normal; }
+    .menu-screen .card-gallery{ max-width:100%; flex-wrap:wrap; }
+    .menu-screen .mode-btn{ min-width:0; padding:11px 4px; font-size:10px; }
     .hud-panel{ min-width:0; padding:6px 8px; }
     .hud-label{ font-size:8px; }
     .meter{ width:88px; height:8px; }
@@ -431,7 +432,7 @@
   .bj-message{ font-size:12px; color:#ffd65a; min-height:18px; margin:6px 0 10px; text-align:center; }
   .bj-row{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
   .bj-row label{ font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:#aeb5c0; }
-  .bj-row input{ flex:1; padding:9px; border:1px solid #ffffff33; border-radius:6px; background:#090b10; color:#ffd65a; text-align:center; font:900 15px Consolas,monospace; min-height:44px; }
+  .bj-row input{ flex:1; padding:9px; border:1px solid #ffffff33; border-radius:6px; background:#090b10; color:#ffd65a; text-align:center; font:900 16px Consolas,monospace; min-height:44px; }
   .bj-btn{ padding:11px 14px; border:2px solid #ffd65a88; border-radius:7px; background:#7a2fd1; color:#fff; font:900 italic 13px Arial,sans-serif; letter-spacing:.04em; cursor:pointer; min-height:44px; }
   .bj-btn:disabled{ opacity:.5; cursor:not-allowed; }
   .bj-btn.bj-secondary{ background:#1c2129; border-color:#ffffff33; color:#aeb5c0; }
@@ -501,7 +502,7 @@
         <p class="card-modal-text" id="cardModalText"></p>
       </div>
     </div>
-    <div class="screen" id="screenLogin">
+    <div class="screen menu-screen" id="screenLogin">
       <div class="card">
         <p class="sub">Operacja Wkurw</p>
         <h1>Turbo <span>Kret</span> Drift</h1>
@@ -518,7 +519,7 @@
       </div>
     </div>
 
-    <div class="screen" id="screenWelcome" hidden>
+    <div class="screen menu-screen" id="screenWelcome" hidden>
       <div class="card">
         <p class="sub">Witaj z powrotem</p>
         <h1>Turbo <span>Kret</span> Drift</h1>
@@ -532,7 +533,7 @@
       </div>
     </div>
 
-    <div class="screen" id="screenTitle" hidden>
+    <div class="screen menu-screen" id="screenTitle" hidden>
       <div class="card">
         <p class="sub">Menu główne</p>
         <h1>Turbo <span>Kret</span> Drift</h1>
@@ -572,7 +573,7 @@
       </div>
     </div>
 
-    <div class="screen" id="screenTrackSelect" hidden>
+    <div class="screen menu-screen" id="screenTrackSelect" hidden>
       <div class="card">
         <p class="sub">Krok 2 z 3</p>
         <h1>Wybierz <span>tor</span></h1>
@@ -585,7 +586,7 @@
       </div>
     </div>
 
-    <div class="screen" id="screenModeSelect" hidden>
+    <div class="screen menu-screen" id="screenModeSelect" hidden>
       <div class="card">
         <p class="sub">Krok 3 z 3</p>
         <h1>Wybierz <span>tryb</span></h1>
@@ -607,7 +608,7 @@
       </div>
     </div>
 
-    <div class="screen" id="screenLobby" hidden>
+    <div class="screen menu-screen" id="screenLobby" hidden>
       <div class="card">
         <p class="sub">Poczekalnia</p>
         <h1>Pokój <span id="lobbyRoomName">PUBLIC</span></h1>
@@ -623,7 +624,7 @@
       </div>
     </div>
 
-    <div class="screen" id="screenSettings" hidden>
+    <div class="screen menu-screen" id="screenSettings" hidden>
       <div class="card">
         <p class="sub">Menu główne</p>
         <h1>Ustawie<span>nia</span></h1>
@@ -674,7 +675,7 @@
       </div>
     </div>
 
-    <div class="screen" id="screenLeaderboard" hidden>
+    <div class="screen menu-screen" id="screenLeaderboard" hidden>
       <div class="card">
         <p class="sub">Ranking graczy</p>
         <h1>Tabela <span>Wyników</span></h1>
@@ -1939,6 +1940,18 @@
   ['touchstart','touchmove','touchend','gesturestart','gesturechange'].forEach(function(evt){
     tcWrap.addEventListener(evt, function(e){ e.preventDefault(); }, {passive:false});
   });
+  // Belt-and-suspenders double-tap-zoom guard: touch-action:none + the viewport
+  // meta tag should already stop this, but some embedded WebViews (e.g. the
+  // in-app browser opened from a Messenger share link) ignore both, so tapping
+  // a control twice quickly still triggers the OS zoom gesture. This catches
+  // any second tap landing within 350ms of the previous one, anywhere on the
+  // page, and blocks it before the browser recognizes it as a double-tap.
+  var lastTouchEndAt = 0;
+  document.addEventListener('touchend', function(e){
+    var now = Date.now();
+    if (now - lastTouchEndAt <= 350){ e.preventDefault(); }
+    lastTouchEndAt = now;
+  }, {passive:false});
   bindHold(tcLeft, function(){ keys['arrowleft'] = true; }, function(){ keys['arrowleft'] = false; });
   bindHold(tcRight, function(){ keys['arrowright'] = true; }, function(){ keys['arrowright'] = false; });
   bindHold(tcGas, function(){ keys['arrowup'] = true; }, function(){ keys['arrowup'] = false; });
