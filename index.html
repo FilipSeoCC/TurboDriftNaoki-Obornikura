@@ -532,8 +532,12 @@
         <h1>Turbo <span>Kret</span> Drift</h1>
         <div class="balance" id="titleBalance">🔩 0 śrubek</div>
         <div class="panel-nav">
+          <button class="btn" id="btnQuickStart" type="button">🏁 Rozpocznij grę</button>
+        </div>
+        <div class="panel-nav">
           <button class="btn garage-btn" id="btnGarage" type="button">🔧 Garaż</button>
           <button class="btn garage-btn" id="btnCasino" type="button" style="background:#7a2fd1;">🎰 Kasyno · Blackjack</button>
+          <button class="btn btn-secondary" id="btnLeaderboardOpen" type="button">🏆 Tabela wyników</button>
           <button class="btn btn-secondary" id="btnSettingsOpen" type="button">⚙ Ustawienia</button>
         </div>
         <p class="card-gallery-caption">Wykręć jak najlepszy wynik, żeby odblokować karty Bukovskiego!</p>
@@ -628,9 +632,9 @@
         <div class="card-gallery" id="cardGalleryEnd"></div>
         <p class="card-click-hint" id="cardClickHint">☝ KLIKNIJ PULSUJĄCĄ KARTĘ I ZOBACZ, CO BUKOVSKI ODJANUSZOWAŁ!</p>
         <div class="leaderboard">
-          <div class="lb-title">TOP 5</div>
+          <div class="lb-title">TOP 10</div>
           <div class="lb-rows" id="lbRowsTop"></div>
-          <div class="lb-title lb-title-worst">OSTATNIE 5</div>
+          <div class="lb-title lb-title-worst">OSTATNIE 10</div>
           <div class="lb-rows" id="lbRowsBottom"></div>
           <p class="lb-note">Wynik widoczny dla wszystkich graczy</p>
         </div>
@@ -639,6 +643,21 @@
           <button class="btn btn-secondary" id="btnEndGarage" type="button">🔧 Garaż</button>
           <button class="btn btn-secondary" id="btnEndMenu" type="button">⌂ Menu główne</button>
         </div>
+      </div>
+    </div>
+
+    <div class="screen" id="screenLeaderboard" hidden>
+      <div class="card">
+        <p class="sub">Ranking graczy</p>
+        <h1>Tabela <span>Wyników</span></h1>
+        <div class="leaderboard">
+          <div class="lb-title">TOP 10</div>
+          <div class="lb-rows" id="lbRowsTopHub"></div>
+          <div class="lb-title lb-title-worst">OSTATNIE 10</div>
+          <div class="lb-rows" id="lbRowsBottomHub"></div>
+          <p class="lb-note">Wynik widoczny dla wszystkich graczy</p>
+        </div>
+        <div class="panel-nav"><button class="btn btn-secondary" id="btnLeaderboardBack" type="button">← Menu główne</button></div>
       </div>
     </div>
   </div>
@@ -747,12 +766,18 @@
   var screenTrackSelect = document.getElementById('screenTrackSelect');
   var screenModeSelect = document.getElementById('screenModeSelect');
   var screenSettings = document.getElementById('screenSettings');
-  var ALL_SCREENS = [screenLogin, screenWelcome, screenTitle, screenGarage, screenTrackSelect, screenModeSelect, screenSettings, screenEnd];
+  var screenLeaderboard = document.getElementById('screenLeaderboard');
+  var ALL_SCREENS = [screenLogin, screenWelcome, screenTitle, screenGarage, screenTrackSelect, screenModeSelect, screenSettings, screenLeaderboard, screenEnd];
   function hideAllScreens(){ ALL_SCREENS.forEach(function(s){ s.hidden = true; }); }
   var btnLogin = document.getElementById('btnLogin');
   var btnWelcomeNext = document.getElementById('btnWelcomeNext');
   var btnSettingsOpen = document.getElementById('btnSettingsOpen');
   var btnSettingsBack = document.getElementById('btnSettingsBack');
+  var btnLeaderboardOpen = document.getElementById('btnLeaderboardOpen');
+  var btnLeaderboardBack = document.getElementById('btnLeaderboardBack');
+  var lbRowsTopHub = document.getElementById('lbRowsTopHub');
+  var lbRowsBottomHub = document.getElementById('lbRowsBottomHub');
+  var btnQuickStart = document.getElementById('btnQuickStart');
   var btnGarageStartRace = document.getElementById('btnGarageStartRace');
   var btnTrackSelectBack = document.getElementById('btnTrackSelectBack');
   var btnModeSelectBack = document.getElementById('btnModeSelectBack');
@@ -1081,7 +1106,25 @@
     saveLocalScores(list);
     var byScoreDesc = list.slice().sort(function(a,b){ return b.score - a.score; });
     var byScoreAsc = list.slice().sort(function(a,b){ return a.score - b.score; });
-    return { top: byScoreDesc.slice(0,5), bottom: byScoreAsc.slice(0,5) };
+    return { top: byScoreDesc.slice(0,10), bottom: byScoreAsc.slice(0,10) };
+  }
+  // Read-only leaderboard view for the hub (unlike submitScore, doesn't post a
+  // new result) - same GET endpoint and local fallback, rendered into whatever
+  // containers the caller passes so it can share renderRows with the end screen.
+  function loadLeaderboardInto(topEl, bottomEl){
+    fetch('/api/scores').then(function(r){
+      if (!r.ok) throw new Error('bad status');
+      return r.json();
+    }).then(function(data){
+      renderRows(topEl, data.top || [], null);
+      renderRows(bottomEl, data.bottom || [], null);
+    }).catch(function(){
+      var rec = loadLocalScores();
+      var byScoreDesc = rec.slice().sort(function(a,b){ return b.score - a.score; });
+      var byScoreAsc = rec.slice().sort(function(a,b){ return a.score - b.score; });
+      renderRows(topEl, byScoreDesc.slice(0,10), null);
+      renderRows(bottomEl, byScoreAsc.slice(0,10), null);
+    });
   }
   function submitScore(name, score, mode, youEntry){
     fetch('/api/scores', {
@@ -1555,10 +1598,17 @@
   function showTrackSelect(){ resetToMenuUi(); hideAllScreens(); screenTrackSelect.hidden=false; btnBackHome.hidden=false; }
   function showModeSelect(){ resetToMenuUi(); hideAllScreens(); screenModeSelect.hidden=false; btnBackHome.hidden=false; }
   function showSettings(){ resetToMenuUi(); hideAllScreens(); screenSettings.hidden=false; btnBackHome.hidden=false; }
+  function showLeaderboard(){
+    resetToMenuUi(); hideAllScreens(); screenLeaderboard.hidden=false; btnBackHome.hidden=false;
+    loadLeaderboardInto(lbRowsTopHub, lbRowsBottomHub);
+  }
   btnLogin.addEventListener('click', function(){ ensureAudio(); ensurePlayerProfile().then(showWelcome).catch(function(){}); });
   btnWelcomeNext.addEventListener('click', showMainMenu);
   btnSettingsOpen.addEventListener('click', showSettings);
   btnSettingsBack.addEventListener('click', showMainMenu);
+  btnLeaderboardOpen.addEventListener('click', showLeaderboard);
+  btnLeaderboardBack.addEventListener('click', showMainMenu);
+  btnQuickStart.addEventListener('click', showTrackSelect);
   btnGarageStartRace.addEventListener('click', showTrackSelect);
   btnTrackSelectBack.addEventListener('click', showGarage);
   btnModeSelectBack.addEventListener('click', showTrackSelect);
