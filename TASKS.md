@@ -17,6 +17,7 @@ wystarczy `[agent]`.
 
 ## Done
 
+- [codex] Synchronizowany start wyścigu multiplayer i gotowość graczy (2026-07-18)
 - [codex] Backendowa akcja `delete_profile` kasująca stan gracza z Redis (2026-07-18)
 - [codex] Spójne rozliczanie blackjacka: win/lose/push, 40% wygranej i wypłata x10 (2026-07-18)
 - [codex] Rozszerzenie rankingu do TOP 10 / OSTATNIE 10 (2026-07-18)
