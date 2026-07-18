@@ -4,6 +4,8 @@ const assert = require('node:assert/strict');
 test('delete_profile deletes only the complete profile key and returns an empty profile', async () => {
   process.env.UPSTASH_REDIS_REST_URL = 'https://redis.test';
   process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+  delete require.cache[require.resolve('../api/_lib/store')];
+  delete require.cache[require.resolve('../api/profile')];
 
   const commands = [];
   global.fetch = async (_url, options) => {
