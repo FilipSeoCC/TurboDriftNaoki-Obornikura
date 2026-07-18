@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Turbo Kret Drift</title>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#7a2fd1">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -328,8 +332,10 @@
   .lb-row.lb-you{ background:#b043ff26; border:1px solid var(--orange); }
   .lb-rank{ width:18px; color:var(--grey); font-weight:700; }
   .lb-name{ flex:1; color:var(--white); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lb-track{ width:52px; flex:0 0 auto; color:var(--grey); font-size:11px; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .lb-score{ color:var(--orange-2); font-family:"Consolas","Menlo",monospace; font-weight:700; font-variant-numeric:tabular-nums; }
   .lb-empty{ text-align:center; color:var(--grey); font-size:12px; padding:8px; }
+  .lb-header{ display:flex; align-items:center; gap:8px; padding:0 10px 4px; font-size:9px; text-transform:uppercase; letter-spacing:.06em; color:var(--grey); opacity:.75; }
   .field-label{
     font-size:10px; letter-spacing:0.1em; color:var(--grey); text-transform:uppercase;
     font-weight:700; margin:0 0 6px; text-align:center;
@@ -602,6 +608,22 @@
       </div>
     </div>
 
+    <div class="screen menu-screen" id="screenLobby" hidden>
+      <div class="card">
+        <p class="sub">Poczekalnia</p>
+        <h1>Pokój <span id="lobbyRoomName">PUBLIC</span></h1>
+        <div class="leaderboard">
+          <div class="lb-title">GRACZE W POKOJU</div>
+          <div class="lb-rows" id="lobbyPlayers"></div>
+        </div>
+        <p class="multi-note" id="lobbyStatus">Kliknij "Gotowy!", żeby zacząć.</p>
+        <div class="panel-nav">
+          <button class="btn" id="btnLobbyReady" type="button">Gotowy!</button>
+          <button class="btn btn-secondary" id="btnLobbyBack" type="button">← Tryb</button>
+        </div>
+      </div>
+    </div>
+
     <div class="screen menu-screen" id="screenSettings" hidden>
       <div class="card">
         <p class="sub">Menu główne</p>
@@ -632,10 +654,16 @@
         <p class="card-gallery-caption">Karty Bukovskiego:</p>
         <div class="card-gallery" id="cardGalleryEnd"></div>
         <p class="card-click-hint" id="cardClickHint">☝ KLIKNIJ PULSUJĄCĄ KARTĘ I ZOBACZ, CO BUKOVSKI ODJANUSZOWAŁ!</p>
+        <div class="leaderboard" id="roomResultsBox" hidden>
+          <div class="lb-title">WYNIK TEJ RUNDY (POKÓJ)</div>
+          <div class="lb-rows" id="roomResultsRows"></div>
+        </div>
         <div class="leaderboard">
           <div class="lb-title">TOP 10</div>
+          <div class="lb-header"><span class="lb-rank"></span><span class="lb-name">Nick</span><span class="lb-track">Tor</span><span class="lb-score">Wynik</span></div>
           <div class="lb-rows" id="lbRowsTop"></div>
           <div class="lb-title lb-title-worst">OSTATNIE 10</div>
+          <div class="lb-header"><span class="lb-rank"></span><span class="lb-name">Nick</span><span class="lb-track">Tor</span><span class="lb-score">Wynik</span></div>
           <div class="lb-rows" id="lbRowsBottom"></div>
           <p class="lb-note">Wynik widoczny dla wszystkich graczy</p>
         </div>
@@ -653,8 +681,10 @@
         <h1>Tabela <span>Wyników</span></h1>
         <div class="leaderboard">
           <div class="lb-title">TOP 10</div>
+          <div class="lb-header"><span class="lb-rank"></span><span class="lb-name">Nick</span><span class="lb-track">Tor</span><span class="lb-score">Wynik</span></div>
           <div class="lb-rows" id="lbRowsTopHub"></div>
           <div class="lb-title lb-title-worst">OSTATNIE 10</div>
+          <div class="lb-header"><span class="lb-rank"></span><span class="lb-name">Nick</span><span class="lb-track">Tor</span><span class="lb-score">Wynik</span></div>
           <div class="lb-rows" id="lbRowsBottomHub"></div>
           <p class="lb-note">Wynik widoczny dla wszystkich graczy</p>
         </div>
@@ -679,7 +709,7 @@
     </div>
     <div id="bjPlaySection" hidden>
       <div class="bj-side">
-        <div class="bj-side-header"><span>🎩 DEALER (Bukovski)</span><strong id="bjDealerTotal">?</strong></div>
+        <div class="bj-side-header"><span>🎩 KRUPIER (Bukovski)</span><strong id="bjDealerTotal">?</strong></div>
         <div class="bj-cards" id="bjDealerCards"></div>
       </div>
       <div class="bj-side">
@@ -767,8 +797,9 @@
   var screenTrackSelect = document.getElementById('screenTrackSelect');
   var screenModeSelect = document.getElementById('screenModeSelect');
   var screenSettings = document.getElementById('screenSettings');
+  var screenLobby = document.getElementById('screenLobby');
   var screenLeaderboard = document.getElementById('screenLeaderboard');
-  var ALL_SCREENS = [screenLogin, screenWelcome, screenTitle, screenGarage, screenTrackSelect, screenModeSelect, screenSettings, screenLeaderboard, screenEnd];
+  var ALL_SCREENS = [screenLogin, screenWelcome, screenTitle, screenGarage, screenTrackSelect, screenModeSelect, screenLobby, screenSettings, screenLeaderboard, screenEnd];
   function hideAllScreens(){ ALL_SCREENS.forEach(function(s){ s.hidden = true; }); }
   var btnLogin = document.getElementById('btnLogin');
   var btnWelcomeNext = document.getElementById('btnWelcomeNext');
@@ -783,6 +814,13 @@
   var btnTrackSelectBack = document.getElementById('btnTrackSelectBack');
   var btnModeSelectBack = document.getElementById('btnModeSelectBack');
   var btnStartRace = document.getElementById('btnStartRace');
+  var lobbyRoomName = document.getElementById('lobbyRoomName');
+  var lobbyPlayersEl = document.getElementById('lobbyPlayers');
+  var lobbyStatusEl = document.getElementById('lobbyStatus');
+  var btnLobbyReady = document.getElementById('btnLobbyReady');
+  var btnLobbyBack = document.getElementById('btnLobbyBack');
+  var roomResultsBox = document.getElementById('roomResultsBox');
+  var roomResultsRows = document.getElementById('roomResultsRows');
   var btnBackHome = document.getElementById('btnBackHome');
   var btnRondo = document.getElementById('btnRondo');
   var btnOsemka = document.getElementById('btnOsemka');
@@ -1145,6 +1183,8 @@
   function isSameEntry(e, hi){
     return !!hi && e.name === hi.name && e.score === hi.score && e.mode === hi.mode;
   }
+  var TRACK_LABELS = { rondo:'Rondo', osemka:'\u00d3semka', ulica:'Uliczny' };
+  function trackModeLabel(mode){ return TRACK_LABELS[mode] || '\u2014'; }
   function renderRows(container, list, highlightEntry){
     container.innerHTML = '';
     if (!list.length){
@@ -1159,8 +1199,9 @@
       row.className = 'lb-row' + (isSameEntry(e, highlightEntry) ? ' lb-you' : '');
       var rank = document.createElement('span'); rank.className = 'lb-rank'; rank.textContent = (i+1) + '.';
       var name = document.createElement('span'); name.className = 'lb-name'; name.textContent = e.name;
+      var track = document.createElement('span'); track.className = 'lb-track'; track.textContent = trackModeLabel(e.mode);
       var score = document.createElement('span'); score.className = 'lb-score'; score.textContent = Math.round(e.score);
-      row.appendChild(rank); row.appendChild(name); row.appendChild(score);
+      row.appendChild(rank); row.appendChild(name); row.appendChild(track); row.appendChild(score);
       container.appendChild(row);
     });
   }
@@ -1553,6 +1594,80 @@
       fetch('/api/room',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'leave',room:multiplayerRoom(),track:trackMode,id:multiplayerId})}).catch(function(){});
     }
   }
+
+  // ---------- multiplayer lobby: ready-check + synchronized start ----------
+  // Backend contract (api/room.js, being added by Codex): POST action='ready'
+  // toggles this player's ready flag; GET/POST responses gain a `race` field
+  // { status: 'waiting'|'countdown'|'racing', startAt }. Until that ships,
+  // every response here either omits `race` or 400s on the unknown action -
+  // both are handled below by starting the race immediately instead of
+  // trapping the player in a lobby that can never resolve.
+  var lobbyPollTimer = 0, lobbyReady = false, lobbyRaceTriggered = false;
+  function stopLobbyPolling(){ clearInterval(lobbyPollTimer); lobbyPollTimer = 0; }
+  function renderLobbyPlayers(players){
+    lobbyPlayersEl.innerHTML = '';
+    var others = (players||[]).filter(function(p){ return p.id !== multiplayerId; });
+    if (!others.length){
+      var empty = document.createElement('div'); empty.className = 'lb-empty';
+      empty.textContent = 'Jesteś sam w pokoju — zaproś znajomego albo jedź, gdy ktoś dołączy.';
+      lobbyPlayersEl.appendChild(empty);
+      return;
+    }
+    others.forEach(function(p){
+      var row = document.createElement('div'); row.className = 'lb-row';
+      var name = document.createElement('span'); name.className = 'lb-name'; name.textContent = p.name || 'Anonim';
+      var status = document.createElement('span'); status.className = 'lb-score'; status.textContent = p.ready ? '✓ gotowy' : '…czeka';
+      row.appendChild(name); row.appendChild(status);
+      lobbyPlayersEl.appendChild(row);
+    });
+  }
+  function handleLobbyRaceState(race){
+    if (lobbyRaceTriggered) return;
+    if (!race){ lobbyStatusEl.textContent = lobbyReady ? 'Startujesz...' : 'Kliknij "Gotowy!", żeby zacząć.'; return; }
+    if (race.status === 'racing' || (race.status === 'countdown' && race.startAt && race.startAt - Date.now() <= 0)){
+      lobbyRaceTriggered = true; stopLobbyPolling(); startMultiplayerRace(); return;
+    }
+    if (race.status === 'countdown' && race.startAt){
+      lobbyStatusEl.textContent = 'Start za ' + Math.max(1, Math.ceil((race.startAt - Date.now())/1000)) + '...';
+      return;
+    }
+    lobbyStatusEl.textContent = lobbyReady ? 'Czekam na innych graczy...' : 'Kliknij "Gotowy!", żeby zacząć.';
+  }
+  function pollLobby(){
+    fetch('/api/room?room='+encodeURIComponent(multiplayerRoom())+'&track='+encodeURIComponent(trackMode))
+      .then(function(r){ if(!r.ok) throw new Error(); return r.json(); })
+      .then(function(data){ renderLobbyPlayers(data.players); handleLobbyRaceState(data.race); })
+      .catch(function(){ lobbyStatusEl.textContent = 'Brak połączenia z pokojem — ponawiam...'; });
+  }
+  function showLobby(){
+    resetToMenuUi(); hideAllScreens(); screenLobby.hidden = false; btnBackHome.hidden = false;
+    lobbyRoomName.textContent = multiplayerRoom();
+    lobbyReady = false; lobbyRaceTriggered = false;
+    btnLobbyReady.textContent = 'Gotowy!'; btnLobbyReady.classList.remove('selected');
+    lobbyStatusEl.textContent = 'Kliknij "Gotowy!", żeby zacząć.';
+    lobbyPlayersEl.innerHTML = '';
+    stopLobbyPolling(); pollLobby(); lobbyPollTimer = setInterval(pollLobby, 1000);
+  }
+  btnLobbyReady.addEventListener('click', function(){
+    lobbyReady = !lobbyReady;
+    btnLobbyReady.textContent = lobbyReady ? '✓ Gotowy' : 'Gotowy!';
+    btnLobbyReady.classList.toggle('selected', lobbyReady);
+    fetch('/api/room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'ready',room:multiplayerRoom(),track:trackMode,id:multiplayerId,name:profileNick(),ready:lobbyReady})})
+      .then(function(r){ return r.json().then(function(j){ j.__ok = r.ok; return j; }); })
+      .then(function(data){
+        if (!data.__ok){
+          if (lobbyReady && !lobbyRaceTriggered){ lobbyRaceTriggered = true; stopLobbyPolling(); startMultiplayerRace(); }
+          return;
+        }
+        renderLobbyPlayers(data.players); handleLobbyRaceState(data.race);
+      })
+      .catch(function(){
+        if (lobbyReady && !lobbyRaceTriggered){ lobbyRaceTriggered = true; stopLobbyPolling(); startMultiplayerRace(); }
+        else lobbyStatusEl.textContent = 'Brak połączenia — spróbuj ponownie.';
+      });
+  });
+  btnLobbyBack.addEventListener('click', function(){ stopLobbyPolling(); showModeSelect(); });
+  function startMultiplayerRace(){ startPump(); startTransform(); }
   function renderGameModeChoice(){
     btnSingleMode.classList.toggle('selected',!multiplayerEnabled);
     btnMultiMode.classList.toggle('selected',multiplayerEnabled);
@@ -1574,7 +1689,7 @@
   btnUlica.addEventListener('click', function(){ selectTrack('ulica'); });
   btnStartRace.addEventListener('click', function(){
     ensureAudio();
-    ensurePlayerProfile().then(startPump).catch(function(){});
+    ensurePlayerProfile().then(function(){ if (multiplayerEnabled) showLobby(); else startPump(); }).catch(function(){});
   });
   // Every menu/nav screen shares the same reset: stop multiplayer polling, go back
   // to the idle STATE, clear any leftover in-race UI, then show exactly one screen.
@@ -1722,10 +1837,10 @@
         var pt=bjTotal(bjHand.playerCards);
         bjResultBox.className='bj-result '+(outcome==='win'?'win':outcome==='push'?'push':'lose');
         bjResultBox.textContent = outcome==='win'
-          ? 'WYGRAŁEŚ: WYPŁATA '+resp.blackjack.payout+' 🔩 (x10, zysk +'+resp.blackjack.net+' · dealer '+dt+' · ty '+pt+')'
+          ? 'WYGRAŁEŚ: WYPŁATA '+resp.blackjack.payout+' 🔩 (x10, zysk +'+resp.blackjack.net+' · krupier '+dt+' · ty '+pt+')'
           : outcome==='push'
-            ? 'REMIS — stawka '+bjHand.stake+' 🔩 zwrócona (dealer '+dt+' · ty '+pt+')'
-            : 'PRZEGRAŁEŚ -'+bjHand.stake+' 🔩 (dealer '+dt+' · ty '+pt+')';
+            ? 'REMIS — stawka '+bjHand.stake+' 🔩 zwrócona (krupier '+dt+' · ty '+pt+')'
+            : 'PRZEGRAŁEŚ -'+bjHand.stake+' 🔩 (krupier '+dt+' · ty '+pt+')';
         bjPlaySection.hidden=true; bjResultSection.hidden=false;
         bjRefreshBalance(); bjMessageEl.textContent='';
       })
@@ -2824,6 +2939,17 @@
   function endGame(){
     STATE = 'end';
     updateTouchControls();
+    // Snapshot room opponents before stopMultiplayer() wipes remotePlayers -
+    // this is only an approximation (last score each opponent synced before
+    // this player finished), not a server-verified result.
+    var roomResults = null;
+    if (multiplayerEnabled){
+      roomResults = Object.keys(remotePlayers).map(function(id){
+        return { name: remotePlayers[id].name || 'Anonim', score: Math.floor(remotePlayers[id].score || 0) };
+      });
+      roomResults.push({ name: (nickInput.value||'').trim().slice(0,14) || 'Anonim', score: Math.floor(drift.score), you: true });
+      roomResults.sort(function(a,b){ return b.score - a.score; });
+    }
     stopMultiplayer(true);
     gameActions.hidden = true;
     if (tireGain && audioCtx) tireGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
@@ -2852,6 +2978,21 @@
       unlockBanner.textContent = 'ODBLOKOWANO: ' + newCards.map(function(c){ return c.title; }).join(', ');
     } else {
       unlockBanner.hidden = true;
+    }
+
+    if (roomResults){
+      roomResultsBox.hidden = false;
+      roomResultsRows.innerHTML = '';
+      roomResults.forEach(function(r, i){
+        var row = document.createElement('div'); row.className = 'lb-row' + (r.you ? ' lb-you' : '');
+        var rank = document.createElement('span'); rank.className = 'lb-rank'; rank.textContent = (i+1)+'.';
+        var name = document.createElement('span'); name.className = 'lb-name'; name.textContent = r.name;
+        var score = document.createElement('span'); score.className = 'lb-score'; score.textContent = r.score;
+        row.appendChild(rank); row.appendChild(name); row.appendChild(score);
+        roomResultsRows.appendChild(row);
+      });
+    } else {
+      roomResultsBox.hidden = true;
     }
 
     screenEnd.hidden = false;

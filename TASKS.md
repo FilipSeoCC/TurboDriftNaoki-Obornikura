@@ -17,6 +17,7 @@ wystarczy `[agent]`.
 
 ## Done
 
+- [codex] Worker GitHub Actions 24/7 dla issues `codex` + `logika/backend` (2026-07-18)
 - [codex] Synchronizowany start wyścigu multiplayer i gotowość graczy (2026-07-18)
 - [codex] Backendowa akcja `delete_profile` kasująca stan gracza z Redis (2026-07-18)
 - [codex] Spójne rozliczanie blackjacka: win/lose/push, 40% wygranej i wypłata x10 (2026-07-18)
@@ -31,11 +32,13 @@ wystarczy `[agent]`.
 - [claude-code / ja] Konfiguracja infrastruktury współpracy: TASKS.md, CODEOWNERS, PR template (2026-07-18)
 - [claude-code / ja] Rozszerzenie infrastruktury o drugą osobę: format TASKS.md, PROJECT_SETUP.md, CONTRIBUTING.md (2026-07-18)
 - [claude-code / ja] Przebudowa nawigacji: login -> powitanie -> hub -> garaż -> tor -> tryb -> wyścig, globalny przycisk Menu, naprawa menedżera muzyki (visibilitychange) (2026-07-18)
+- [claude-code / ja] Poczekalnia multiplayer (lista graczy, "Gotowy!", odliczanie do startu) + panel wyniku rundy pokoju na ekranie końcowym. Degraduje się bezpiecznie do natychmiastowego startu dopóki Codex nie doda akcji `ready`/pola `race` w api/room.js (2026-07-18)
 - [claude-code / ja] Ekran powitalny: opis dlaczego warto udostępnić grę (śrubki na tuning). Ustawienia: linki do Regulaminu/Polityki, usuwanie e-maila (przeniesione też tutaj), przycisk usuwania konta (czeka na akcję `delete_profile` po stronie Codexa). Kosmetyczny motyw krupiera w kasynie (2026-07-18)
 - [claude-code / ja] Przycisk "Rozpocznij grę" na hubie - skrót prosto do wyboru toru/trybu bez wchodzenia do Garażu (2026-07-18)
 - [claude-code / ja] Nowy ekran "Tabela wyników" dostępny z huba (podgląd rankingu bez rozgrywki) + etykiety TOP 10/OSTATNIE 10 na ekranie końcowym - wymaga zmiany w api/scores.js po stronie Codexa, patrz "In progress" (2026-07-18)
 - [claude-code / ja] CLAUDE.md + AGENTS.md: mechanizm delegacji zadań do Codexa (manualny relay przez użytkownika - brak bezpośredniego API/CLI między agentami w tym środowisku) (2026-07-18)
-- [claude-code / ja] Audyt UX/UI pod mobilkę: (1) media query mobile była przypięta do starego `#screenTitle` i nie działała już na 5 nowych ekranach po przebudowie nawigacji (login/powitanie/tor/tryb/ustawienia) - wprowadzona wspólna klasa `.menu-screen`; (2) trzy pola formularza (nick/e-mail, kod pokoju, stawka kasyna) miały font-size <16px, co wymusza auto-zoom na focus w Safari iOS - podniesione do 16px; (3) globalny guard na podwójne stuknięcie = zoom (zgłoszony bug), jako dodatkowe zabezpieczenie obok istniejącego touch-action:none, bo niektóre wbudowane przeglądarki (np. Messenger in-app) go ignorują. UWAGA: nowy ekran `#screenLobby` z PR #15 (jeszcze niezmergowany) nie ma jeszcze klasy `.menu-screen` - dodać przy najbliższej okazji po jego mergu (2026-07-18)
+- [claude-code / ja] Audyt UX/UI pod mobilkę: wspólna klasa `.menu-screen` na ekranach menu i lobby, font-size 16px w polach formularzy oraz guard przeciw double-tap zoom w przeglądarkach mobilnych i Messengerze (2026-07-18)
+- [claude-code / ja] Nagłówki kolumn w tabeli wyników (Nick / Tor / Wynik) na ekranie końcowym i w Tabeli Wyników - dane toru (`mode`) już wracały z API, tylko nie były renderowane (2026-07-18)
 
 <!--
 Wpisy sprzed dołączenia kolegi do zespołu zostały bez przypisanej osoby
