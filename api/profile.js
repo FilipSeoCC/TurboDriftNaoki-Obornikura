@@ -1,69 +1,16 @@
 // Shared garage profile backed by Upstash Redis. A nickname is only a shared
 // profile key, not authentication: anyone using the same nickname shares it.
-const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+const { CAR_BY_ID, uniqueKnownCars } = require('./_lib/catalog');
+const { CATEGORIES, redis, databaseConfigured, sanitizeName, emptyMods, normalizeProfile, readProfile, writeProfile } = require('./_lib/store');
 const PRICE = 500;
 const ROUND_REWARD = 1000;
 const SHARE_REWARD = 2000;
-const CATEGORIES = ['engine', 'turbo', 'supercharger', 'injectors', 'fuelpump', 'clutch', 'gearbox', 'tires'];
-const CARS = ['e36_touring', 'e36_bodykit', 'e36_m3', 'mazda_mx5', 'bmw_e46_checker'];
-
-async function redis(command) {
-  const response = await fetch(REDIS_URL, {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + REDIS_TOKEN, 'Content-Type': 'application/json' },
-    body: JSON.stringify(command),
-  });
-  if (!response.ok) throw new Error('redis error ' + response.status);
-  return response.json();
-}
-
-function sanitizeName(value) {
-  if (typeof value !== 'string') return 'anonim';
-  return (value.replace(/[<>&"'`]/g, '').trim().slice(0, 16) || 'Anonim').toLowerCase();
-}
+const { drawOutcome, settleBlackjack } = require('./blackjack');
 
 function sanitizeEmail(value) {
   if (typeof value !== 'string') return '';
   const email = value.trim().toLowerCase().slice(0, 254);
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ? email : '';
-}
-
-function emptyMods() {
-  return Object.fromEntries(CATEGORIES.map((category) => [category, 0]));
-}
-
-function normalizeMods(value) {
-  const source = value && typeof value === 'object' ? value : {};
-  const mods = emptyMods();
-  for (const category of CATEGORIES) {
-    const tier = Number(source[category]);
-    mods[category] = Number.isFinite(tier) ? Math.max(0, Math.min(3, Math.floor(tier))) : 0;
-  }
-  return mods;
-}
-
-function normalizeProfile(value) {
-  const source = value && typeof value === 'object' ? value : {};
-  const car = CARS.includes(source.car) ? source.car : 'e36_touring';
-  const carMods = {};
-  if (source.carMods && typeof source.carMods === 'object') {
-    for (const id of CARS) if (source.carMods[id]) carMods[id] = normalizeMods(source.carMods[id]);
-  }
-  if (!Object.keys(carMods).length) carMods[car] = normalizeMods(source.mods);
-  if (!carMods[car]) carMods[car] = emptyMods();
-  return { currency: Math.max(0, Number(source.currency) || 0), shareRewarded: source.shareRewarded === true, car, carMods };
-}
-
-async function readProfile(key) {
-  const result = await redis(['GET', key]);
-  if (!result.result) return normalizeProfile({});
-  try { return normalizeProfile(JSON.parse(result.result)); } catch (_) { return normalizeProfile({}); }
-}
-
-async function writeProfile(key, profile) {
-  await redis(['SET', key, JSON.stringify(profile)]);
-  return profile;
 }
 
 function actionError(error, required) {
@@ -74,7 +21,7 @@ function actionError(error, required) {
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  if (!REDIS_URL || !REDIS_TOKEN) return res.status(500).json({ error: 'database_not_configured' });
+  if (!databaseConfigured()) return res.status(500).json({ error: 'database_not_configured' });
   const body = typeof req.body === 'string' ? (() => { try { return JSON.parse(req.body); } catch (_) { return {}; } })() : (req.body || {});
   const rawName = req.method === 'GET' ? req.query && req.query.name : body.name;
   const name = sanitizeName(rawName);
@@ -100,18 +47,33 @@ module.exports = async (req, res) => {
       await redis(['DEL', emailKey]);
       return res.status(200).json(Object.assign({}, profile, { emailSaved: false }));
     }
+    if (body.action === 'delete_profile') {
+      await redis(['DEL', key]);
+      return res.status(200).json(normalizeProfile({}));
+    }
     if (body.action === 'earn') profile.currency += ROUND_REWARD;
     else if (body.action === 'share_reward') {
       if (profile.shareRewarded) return res.status(400).json(actionError('share_reward_claimed'));
       profile.currency += SHARE_REWARD; profile.shareRewarded = true;
     } else if (body.action === 'select_car') {
-      if (!CARS.includes(body.car)) return res.status(400).json(actionError('invalid_car'));
+      if (!CAR_BY_ID.has(body.car)) return res.status(400).json(actionError('invalid_car'));
+      if (!uniqueKnownCars(profile.ownedCars, profile.car).includes(body.car)) return res.status(403).json(actionError('car_locked', CAR_BY_ID.get(body.car).unlockCost));
       profile.car = body.car;
       if (!profile.carMods[profile.car]) profile.carMods[profile.car] = emptyMods();
+    } else if (body.action === 'unlock_car') {
+      if (!CAR_BY_ID.has(body.car)) return res.status(400).json(actionError('invalid_car'));
+      const owned = uniqueKnownCars(profile.ownedCars, profile.car);
+      if (owned.includes(body.car)) return res.status(400).json(actionError('car_already_owned'));
+      const cost = CAR_BY_ID.get(body.car).unlockCost;
+      if (profile.currency < cost) return res.status(400).json(actionError('not_enough_currency', cost));
+      profile.currency -= cost;
+      profile.ownedCars = owned.concat(body.car);
+      if (!profile.carMods[body.car]) profile.carMods[body.car] = emptyMods();
     } else if (body.action === 'buy') {
       const category = body.category;
       if (!CATEGORIES.includes(category)) return res.status(400).json(actionError('invalid_category'));
-      if (body.car !== undefined && !CARS.includes(body.car)) return res.status(400).json(actionError('invalid_car'));
+      if (body.car !== undefined && !CAR_BY_ID.has(body.car)) return res.status(400).json(actionError('invalid_car'));
+      if (body.car !== undefined && !uniqueKnownCars(profile.ownedCars, profile.car).includes(body.car)) return res.status(403).json(actionError('car_locked', CAR_BY_ID.get(body.car).unlockCost));
       if (body.car) profile.car = body.car;
       if (!profile.carMods[profile.car]) profile.carMods[profile.car] = emptyMods();
       const mods = profile.carMods[profile.car];
@@ -133,10 +95,21 @@ module.exports = async (req, res) => {
       const stake = Math.floor(Number(body.stake) || 0);
       if (!Number.isFinite(stake) || stake < 10 || stake > 5000) return res.status(400).json(actionError('invalid_stake'));
       if (profile.currency < stake) return res.status(400).json(actionError('not_enough_currency'));
-      const won = Math.random() < 0.25;
-      profile.currency += won ? stake : -stake;
+      const rawPlayerTotal = Number(body.playerTotal);
+      const playerTotal = Number.isInteger(rawPlayerTotal) && rawPlayerTotal >= 4 && rawPlayerTotal <= 31 ? rawPlayerTotal : undefined;
+      const outcome = drawOutcome(Math.random(), playerTotal);
+      const settlement = settleBlackjack(stake, outcome);
+      profile.currency += settlement.net;
       const settled = await writeProfile(key, profile);
-      return res.status(200).json(Object.assign({}, settled, { blackjack: { won, stake } }));
+      return res.status(200).json(Object.assign({}, settled, {
+        blackjack: {
+          outcome,
+          won: outcome === 'win' ? true : outcome === 'lose' ? false : null,
+          stake,
+          payout: settlement.payout,
+          net: settlement.net,
+        },
+      }));
     } else return res.status(400).json(actionError('invalid_action'));
 
     return res.status(200).json(await writeProfile(key, profile));

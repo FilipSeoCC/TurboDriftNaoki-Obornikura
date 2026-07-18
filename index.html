@@ -518,6 +518,7 @@
         <h1>Turbo <span>Kret</span> Drift</h1>
         <p class="lead">Bukovski ma w gaciach małego kreta.<br>Napompuj mu turbinę, zamień kreta w bestię i trzymaj obroty na świecącej czerwonej linii —<br>im szybciej, bardziej bokiem i dokładniej po linii jedziesz, tym więcej zdobywasz punktów.</p>
         <div class="share-box share-footer">
+          <p class="field-label">Warto udostępnić — dzięki temu dostajesz śrubki na tuning i modyfikacje swojego driftowego auta w Garażu!</p>
           <button class="btn" id="btnShare" type="button">📨 Poleć grę · +2000 🔩</button>
           <p class="share-note" id="shareNote">Udostępnij przez Messengera lub inną aplikację. Nagroda jest jednorazowa.</p>
         </div>
@@ -531,8 +532,12 @@
         <h1>Turbo <span>Kret</span> Drift</h1>
         <div class="balance" id="titleBalance">🔩 0 śrubek</div>
         <div class="panel-nav">
+          <button class="btn" id="btnQuickStart" type="button">🏁 Rozpocznij grę</button>
+        </div>
+        <div class="panel-nav">
           <button class="btn garage-btn" id="btnGarage" type="button">🔧 Garaż</button>
           <button class="btn garage-btn" id="btnCasino" type="button" style="background:#7a2fd1;">🎰 Kasyno · Blackjack</button>
+          <button class="btn btn-secondary" id="btnLeaderboardOpen" type="button">🏆 Tabela wyników</button>
           <button class="btn btn-secondary" id="btnSettingsOpen" type="button">⚙ Ustawienia</button>
         </div>
         <p class="card-gallery-caption">Wykręć jak najlepszy wynik, żeby odblokować karty Bukovskiego!</p>
@@ -601,6 +606,13 @@
         <p class="sub">Menu główne</p>
         <h1>Ustawie<span>nia</span></h1>
         <p class="lead">Pełna konfiguracja pojawi się tutaj później. Na razie to tylko wejście do ekranu.</p>
+        <p class="field-label">Zgody i dokumenty</p>
+        <div class="legal-links"><button type="button" data-legal="terms">Regulamin</button><button type="button" data-legal="privacy">Polityka prywatności</button></div>
+        <p class="field-label">Twoje dane</p>
+        <button class="legal-delete" id="settingsDeleteEmailBtn" type="button">Usuń zapisany e-mail i wycofaj zgodę</button>
+        <p class="legal-delete-status" id="settingsDeleteEmailStatus"></p>
+        <button class="legal-delete" id="settingsDeleteAccountBtn" type="button">Usuń konto (profil, walutę, tuning)</button>
+        <p class="legal-delete-status" id="settingsDeleteAccountStatus"></p>
         <div class="panel-nav"><button class="btn btn-secondary" id="btnSettingsBack" type="button">← Menu główne</button></div>
       </div>
     </div>
@@ -620,9 +632,9 @@
         <div class="card-gallery" id="cardGalleryEnd"></div>
         <p class="card-click-hint" id="cardClickHint">☝ KLIKNIJ PULSUJĄCĄ KARTĘ I ZOBACZ, CO BUKOVSKI ODJANUSZOWAŁ!</p>
         <div class="leaderboard">
-          <div class="lb-title">TOP 5</div>
+          <div class="lb-title">TOP 10</div>
           <div class="lb-rows" id="lbRowsTop"></div>
-          <div class="lb-title lb-title-worst">OSTATNIE 5</div>
+          <div class="lb-title lb-title-worst">OSTATNIE 10</div>
           <div class="lb-rows" id="lbRowsBottom"></div>
           <p class="lb-note">Wynik widoczny dla wszystkich graczy</p>
         </div>
@@ -631,6 +643,21 @@
           <button class="btn btn-secondary" id="btnEndGarage" type="button">🔧 Garaż</button>
           <button class="btn btn-secondary" id="btnEndMenu" type="button">⌂ Menu główne</button>
         </div>
+      </div>
+    </div>
+
+    <div class="screen" id="screenLeaderboard" hidden>
+      <div class="card">
+        <p class="sub">Ranking graczy</p>
+        <h1>Tabela <span>Wyników</span></h1>
+        <div class="leaderboard">
+          <div class="lb-title">TOP 10</div>
+          <div class="lb-rows" id="lbRowsTopHub"></div>
+          <div class="lb-title lb-title-worst">OSTATNIE 10</div>
+          <div class="lb-rows" id="lbRowsBottomHub"></div>
+          <p class="lb-note">Wynik widoczny dla wszystkich graczy</p>
+        </div>
+        <div class="panel-nav"><button class="btn btn-secondary" id="btnLeaderboardBack" type="button">← Menu główne</button></div>
       </div>
     </div>
   </div>
@@ -651,7 +678,7 @@
     </div>
     <div id="bjPlaySection" hidden>
       <div class="bj-side">
-        <div class="bj-side-header"><span>DEALER</span><strong id="bjDealerTotal">?</strong></div>
+        <div class="bj-side-header"><span>🎩 DEALER (Bukovski)</span><strong id="bjDealerTotal">?</strong></div>
         <div class="bj-cards" id="bjDealerCards"></div>
       </div>
       <div class="bj-side">
@@ -739,12 +766,18 @@
   var screenTrackSelect = document.getElementById('screenTrackSelect');
   var screenModeSelect = document.getElementById('screenModeSelect');
   var screenSettings = document.getElementById('screenSettings');
-  var ALL_SCREENS = [screenLogin, screenWelcome, screenTitle, screenGarage, screenTrackSelect, screenModeSelect, screenSettings, screenEnd];
+  var screenLeaderboard = document.getElementById('screenLeaderboard');
+  var ALL_SCREENS = [screenLogin, screenWelcome, screenTitle, screenGarage, screenTrackSelect, screenModeSelect, screenSettings, screenLeaderboard, screenEnd];
   function hideAllScreens(){ ALL_SCREENS.forEach(function(s){ s.hidden = true; }); }
   var btnLogin = document.getElementById('btnLogin');
   var btnWelcomeNext = document.getElementById('btnWelcomeNext');
   var btnSettingsOpen = document.getElementById('btnSettingsOpen');
   var btnSettingsBack = document.getElementById('btnSettingsBack');
+  var btnLeaderboardOpen = document.getElementById('btnLeaderboardOpen');
+  var btnLeaderboardBack = document.getElementById('btnLeaderboardBack');
+  var lbRowsTopHub = document.getElementById('lbRowsTopHub');
+  var lbRowsBottomHub = document.getElementById('lbRowsBottomHub');
+  var btnQuickStart = document.getElementById('btnQuickStart');
   var btnGarageStartRace = document.getElementById('btnGarageStartRace');
   var btnTrackSelectBack = document.getElementById('btnTrackSelectBack');
   var btnModeSelectBack = document.getElementById('btnModeSelectBack');
@@ -781,6 +814,10 @@
   var legalClose = document.getElementById('legalClose');
   var deleteEmailBtn = document.getElementById('deleteEmailBtn');
   var deleteEmailStatus = document.getElementById('deleteEmailStatus');
+  var settingsDeleteEmailBtn = document.getElementById('settingsDeleteEmailBtn');
+  var settingsDeleteEmailStatus = document.getElementById('settingsDeleteEmailStatus');
+  var settingsDeleteAccountBtn = document.getElementById('settingsDeleteAccountBtn');
+  var settingsDeleteAccountStatus = document.getElementById('settingsDeleteAccountStatus');
   var cardGallery = document.getElementById('cardGallery');
   var cardGalleryEnd = document.getElementById('cardGalleryEnd');
   var unlockBanner = document.getElementById('unlockBanner');
@@ -1027,15 +1064,29 @@
   legalClose.addEventListener('click',closeLegal);
   legalModal.addEventListener('click',function(e){if(e.target===legalModal)closeLegal();});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!legalModal.hidden)closeLegal();});
-  deleteEmailBtn.addEventListener('click',function(){
-    deleteEmailBtn.disabled=true; deleteEmailStatus.textContent='Usuwam e-mail...';
+  function deleteStoredEmail(btn, statusEl){
+    btn.disabled=true; statusEl.textContent='Usuwam e-mail...';
     profileAction('delete_email').then(function(){
       emailInput.value=''; emailConsent.checked=false; currentProfile.emailSaved=false;
       try{localStorage.removeItem('tkd_email');localStorage.removeItem('tkd_email_consent');}catch(e){}
       emailStatus.textContent='E-mail został usunięty. Możesz podać nowy adres.';
-      deleteEmailStatus.textContent='✓ E-mail usunięty, zgoda wycofana.';
-    }).catch(function(){deleteEmailStatus.textContent='Nie udało się usunąć e-maila. Spróbuj ponownie.';})
-      .then(function(){deleteEmailBtn.disabled=false;});
+      statusEl.textContent='✓ E-mail usunięty, zgoda wycofana.';
+    }).catch(function(){statusEl.textContent='Nie udało się usunąć e-maila. Spróbuj ponownie.';})
+      .then(function(){btn.disabled=false;});
+  }
+  deleteEmailBtn.addEventListener('click',function(){ deleteStoredEmail(deleteEmailBtn, deleteEmailStatus); });
+  settingsDeleteEmailBtn.addEventListener('click',function(){ deleteStoredEmail(settingsDeleteEmailBtn, settingsDeleteEmailStatus); });
+  settingsDeleteAccountBtn.addEventListener('click',function(){
+    if(!window.confirm('To usunie Twoją walutę, auto i tuning bez możliwości cofnięcia. Na pewno?')) return;
+    settingsDeleteAccountBtn.disabled=true; settingsDeleteAccountStatus.textContent='Usuwam konto...';
+    profileAction('delete_profile').then(function(){
+      settingsDeleteAccountStatus.textContent='✓ Konto usunięte.';
+      showLogin();
+    }).catch(function(err){
+      settingsDeleteAccountStatus.textContent=(err&&err.error==='invalid_action')
+        ? 'Ta funkcja jeszcze nie jest dostępna po stronie serwera.'
+        : 'Nie udało się usunąć konta. Spróbuj ponownie.';
+    }).then(function(){settingsDeleteAccountBtn.disabled=false;});
   });
 
   // shared leaderboard: POST/GET against /api/scores (Vercel function + Upstash Redis).
@@ -1055,7 +1106,25 @@
     saveLocalScores(list);
     var byScoreDesc = list.slice().sort(function(a,b){ return b.score - a.score; });
     var byScoreAsc = list.slice().sort(function(a,b){ return a.score - b.score; });
-    return { top: byScoreDesc.slice(0,5), bottom: byScoreAsc.slice(0,5) };
+    return { top: byScoreDesc.slice(0,10), bottom: byScoreAsc.slice(0,10) };
+  }
+  // Read-only leaderboard view for the hub (unlike submitScore, doesn't post a
+  // new result) - same GET endpoint and local fallback, rendered into whatever
+  // containers the caller passes so it can share renderRows with the end screen.
+  function loadLeaderboardInto(topEl, bottomEl){
+    fetch('/api/scores').then(function(r){
+      if (!r.ok) throw new Error('bad status');
+      return r.json();
+    }).then(function(data){
+      renderRows(topEl, data.top || [], null);
+      renderRows(bottomEl, data.bottom || [], null);
+    }).catch(function(){
+      var rec = loadLocalScores();
+      var byScoreDesc = rec.slice().sort(function(a,b){ return b.score - a.score; });
+      var byScoreAsc = rec.slice().sort(function(a,b){ return a.score - b.score; });
+      renderRows(topEl, byScoreDesc.slice(0,10), null);
+      renderRows(bottomEl, byScoreAsc.slice(0,10), null);
+    });
   }
   function submitScore(name, score, mode, youEntry){
     fetch('/api/scores', {
@@ -1529,10 +1598,17 @@
   function showTrackSelect(){ resetToMenuUi(); hideAllScreens(); screenTrackSelect.hidden=false; btnBackHome.hidden=false; }
   function showModeSelect(){ resetToMenuUi(); hideAllScreens(); screenModeSelect.hidden=false; btnBackHome.hidden=false; }
   function showSettings(){ resetToMenuUi(); hideAllScreens(); screenSettings.hidden=false; btnBackHome.hidden=false; }
+  function showLeaderboard(){
+    resetToMenuUi(); hideAllScreens(); screenLeaderboard.hidden=false; btnBackHome.hidden=false;
+    loadLeaderboardInto(lbRowsTopHub, lbRowsBottomHub);
+  }
   btnLogin.addEventListener('click', function(){ ensureAudio(); ensurePlayerProfile().then(showWelcome).catch(function(){}); });
   btnWelcomeNext.addEventListener('click', showMainMenu);
   btnSettingsOpen.addEventListener('click', showSettings);
   btnSettingsBack.addEventListener('click', showMainMenu);
+  btnLeaderboardOpen.addEventListener('click', showLeaderboard);
+  btnLeaderboardBack.addEventListener('click', showMainMenu);
+  btnQuickStart.addEventListener('click', showTrackSelect);
   btnGarageStartRace.addEventListener('click', showTrackSelect);
   btnTrackSelectBack.addEventListener('click', showGarage);
   btnModeSelectBack.addEventListener('click', showTrackSelect);
@@ -1617,38 +1693,38 @@
     bjModal.hidden=false;
   }
   function bjClose(){ bjModal.hidden=true; bjHand=null; }
-  function bjRigDealer(won){
-    var playerTotal=bjTotal(bjHand.playerCards), playerBusted=playerTotal>21;
-    var safety=8;
-    if(won){
-      while(bjTotal(bjHand.dealerCards)<=21 && safety-->0){
-        var need=Math.max(6,Math.min(11,22-bjTotal(bjHand.dealerCards)));
-        bjHand.dealerCards.push(bjCardOfValue(need));
-      }
-    } else {
-      var target = playerBusted ? (17+Math.floor(Math.random()*4)) : Math.min(21,playerTotal+1+Math.floor(Math.random()*3));
-      while(bjTotal(bjHand.dealerCards)<target && safety-->0){
-        var need2=Math.max(2,Math.min(10,target-bjTotal(bjHand.dealerCards)));
-        bjHand.dealerCards.push(bjCardOfValue(need2));
-      }
-    }
+  function bjCardsForTotal(total){
+    if(total===21) return [bjCardOfValue(11),bjCardOfValue(10)];
+    if(total>21) return [bjCardOfValue(10),bjCardOfValue(10),bjCardOfValue(total-20)];
+    if(total<=11) return [bjCardOfValue(2),bjCardOfValue(total-2)];
+    return [bjCardOfValue(10),bjCardOfValue(total-10)];
+  }
+  function bjRigDealer(outcome){
+    var playerTotal=bjTotal(bjHand.playerCards), target;
+    if(outcome==='push') target=playerTotal;
+    else if(outcome==='win') target=22;
+    else target=playerTotal>21 ? 18 : Math.min(21,playerTotal+1);
+    bjHand.dealerCards=bjCardsForTotal(target);
   }
   function bjResolve(){
     bjHitBtn.disabled=true;bjStandBtn.disabled=true;
     bjMessageEl.textContent='Bukovski odsłania karty...';
-    fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:profileNick(),action:'blackjack',stake:bjHand.stake})})
+    var playerTotal=bjTotal(bjHand.playerCards);
+    fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:profileNick(),action:'blackjack',stake:bjHand.stake,playerTotal:playerTotal})})
       .then(function(r){return r.json().then(function(j){if(!r.ok){j.httpStatus=r.status;throw j;}return j;});})
       .then(function(resp){
         currentProfile=normalizeProfile(resp); writeLocalProfile(currentProfile); showProfile();
-        var won=resp.blackjack && resp.blackjack.won;
-        bjRigDealer(won);
+        var outcome=resp.blackjack && resp.blackjack.outcome;
+        bjRigDealer(outcome);
         bjRenderCards(bjDealerCardsEl,bjHand.dealerCards,false);
         var dt=bjTotal(bjHand.dealerCards); bjDealerTotalEl.textContent=dt;
         var pt=bjTotal(bjHand.playerCards);
-        bjResultBox.className='bj-result '+(won?'win':'lose');
-        bjResultBox.textContent = won
-          ? 'WYGRAŁEŚ +'+bjHand.stake+' 🔩 (dealer '+dt+' · ty '+pt+')'
-          : 'PRZEGRAŁEŚ -'+bjHand.stake+' 🔩 (dealer '+dt+' · ty '+pt+')';
+        bjResultBox.className='bj-result '+(outcome==='win'?'win':outcome==='push'?'push':'lose');
+        bjResultBox.textContent = outcome==='win'
+          ? 'WYGRAŁEŚ: WYPŁATA '+resp.blackjack.payout+' 🔩 (x10, zysk +'+resp.blackjack.net+' · dealer '+dt+' · ty '+pt+')'
+          : outcome==='push'
+            ? 'REMIS — stawka '+bjHand.stake+' 🔩 zwrócona (dealer '+dt+' · ty '+pt+')'
+            : 'PRZEGRAŁEŚ -'+bjHand.stake+' 🔩 (dealer '+dt+' · ty '+pt+')';
         bjPlaySection.hidden=true; bjResultSection.hidden=false;
         bjRefreshBalance(); bjMessageEl.textContent='';
       })

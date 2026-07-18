@@ -66,8 +66,8 @@ module.exports = async (req, res) => {
   try {
     if (req.method === 'GET') {
       const result = await redis([
-        ['ZREVRANGE', ZSET_KEY, '0', '4', 'WITHSCORES'],
-        ['ZRANGE', ZSET_KEY, '0', '4', 'WITHSCORES'],
+        ['ZREVRANGE', ZSET_KEY, '0', '9', 'WITHSCORES'],
+        ['ZRANGE', ZSET_KEY, '0', '9', 'WITHSCORES'],
       ]);
       const top = parseWithScores(result[0].result || []);
       const bottom = parseWithScores(result[1].result || []);
@@ -103,8 +103,8 @@ module.exports = async (req, res) => {
       ]);
 
       const result = await redis([
-        ['ZREVRANGE', ZSET_KEY, '0', '4', 'WITHSCORES'],
-        ['ZRANGE', ZSET_KEY, '0', '4', 'WITHSCORES'],
+        ['ZREVRANGE', ZSET_KEY, '0', '9', 'WITHSCORES'],
+        ['ZRANGE', ZSET_KEY, '0', '9', 'WITHSCORES'],
       ]);
       const top = parseWithScores(result[0].result || []);
       const bottom = parseWithScores(result[1].result || []);
