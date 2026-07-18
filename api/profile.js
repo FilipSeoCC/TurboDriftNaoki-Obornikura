@@ -100,6 +100,10 @@ module.exports = async (req, res) => {
       await redis(['DEL', emailKey]);
       return res.status(200).json(Object.assign({}, profile, { emailSaved: false }));
     }
+    if (body.action === 'delete_profile') {
+      await redis(['DEL', key]);
+      return res.status(200).json(normalizeProfile({}));
+    }
     if (body.action === 'earn') profile.currency += ROUND_REWARD;
     else if (body.action === 'share_reward') {
       if (profile.shareRewarded) return res.status(400).json(actionError('share_reward_claimed'));
