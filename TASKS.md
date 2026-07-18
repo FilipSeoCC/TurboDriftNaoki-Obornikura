@@ -12,9 +12,12 @@ wystarczy `[agent]`.
 
 ## In progress
 
+
 - [codex / ja] Fast login przez Google (OAuth) - potwierdzone przez ja (2026-07-18). Backend/auth, poza obszarem Claude Code. Do wyjaśnienia przy implementacji: skąd/po co placeholder e-maila `email@lizmejaja.pl` wspomniany przez Codeksa - opisać w PR jaką rolę pełni, zanim wyląduje w kodzie.
 
 ## Done
+
+- [codex] Spójne rozliczanie blackjacka: win/lose/push, 40% wygranej i wypłata x10 (2026-07-18)
 
 - [codex] Wieloosobowy tryb obecności (multiplayer presence) w `api/room.js` (2026-07-17)
 - [codex] Zapis profilu/tuningu per samochód w `api/profile.js` (2026-07-17)

@@ -1617,38 +1617,38 @@
     bjModal.hidden=false;
   }
   function bjClose(){ bjModal.hidden=true; bjHand=null; }
-  function bjRigDealer(won){
-    var playerTotal=bjTotal(bjHand.playerCards), playerBusted=playerTotal>21;
-    var safety=8;
-    if(won){
-      while(bjTotal(bjHand.dealerCards)<=21 && safety-->0){
-        var need=Math.max(6,Math.min(11,22-bjTotal(bjHand.dealerCards)));
-        bjHand.dealerCards.push(bjCardOfValue(need));
-      }
-    } else {
-      var target = playerBusted ? (17+Math.floor(Math.random()*4)) : Math.min(21,playerTotal+1+Math.floor(Math.random()*3));
-      while(bjTotal(bjHand.dealerCards)<target && safety-->0){
-        var need2=Math.max(2,Math.min(10,target-bjTotal(bjHand.dealerCards)));
-        bjHand.dealerCards.push(bjCardOfValue(need2));
-      }
-    }
+  function bjCardsForTotal(total){
+    if(total===21) return [bjCardOfValue(11),bjCardOfValue(10)];
+    if(total>21) return [bjCardOfValue(10),bjCardOfValue(10),bjCardOfValue(total-20)];
+    if(total<=11) return [bjCardOfValue(2),bjCardOfValue(total-2)];
+    return [bjCardOfValue(10),bjCardOfValue(total-10)];
+  }
+  function bjRigDealer(outcome){
+    var playerTotal=bjTotal(bjHand.playerCards), target;
+    if(outcome==='push') target=playerTotal;
+    else if(outcome==='win') target=22;
+    else target=playerTotal>21 ? 18 : Math.min(21,playerTotal+1);
+    bjHand.dealerCards=bjCardsForTotal(target);
   }
   function bjResolve(){
     bjHitBtn.disabled=true;bjStandBtn.disabled=true;
     bjMessageEl.textContent='Bukovski odsłania karty...';
-    fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:profileNick(),action:'blackjack',stake:bjHand.stake})})
+    var playerTotal=bjTotal(bjHand.playerCards);
+    fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:profileNick(),action:'blackjack',stake:bjHand.stake,playerTotal:playerTotal})})
       .then(function(r){return r.json().then(function(j){if(!r.ok){j.httpStatus=r.status;throw j;}return j;});})
       .then(function(resp){
         currentProfile=normalizeProfile(resp); writeLocalProfile(currentProfile); showProfile();
-        var won=resp.blackjack && resp.blackjack.won;
-        bjRigDealer(won);
+        var outcome=resp.blackjack && resp.blackjack.outcome;
+        bjRigDealer(outcome);
         bjRenderCards(bjDealerCardsEl,bjHand.dealerCards,false);
         var dt=bjTotal(bjHand.dealerCards); bjDealerTotalEl.textContent=dt;
         var pt=bjTotal(bjHand.playerCards);
-        bjResultBox.className='bj-result '+(won?'win':'lose');
-        bjResultBox.textContent = won
-          ? 'WYGRAŁEŚ +'+bjHand.stake+' 🔩 (dealer '+dt+' · ty '+pt+')'
-          : 'PRZEGRAŁEŚ -'+bjHand.stake+' 🔩 (dealer '+dt+' · ty '+pt+')';
+        bjResultBox.className='bj-result '+(outcome==='win'?'win':outcome==='push'?'push':'lose');
+        bjResultBox.textContent = outcome==='win'
+          ? 'WYGRAŁEŚ: WYPŁATA '+resp.blackjack.payout+' 🔩 (x10, zysk +'+resp.blackjack.net+' · dealer '+dt+' · ty '+pt+')'
+          : outcome==='push'
+            ? 'REMIS — stawka '+bjHand.stake+' 🔩 zwrócona (dealer '+dt+' · ty '+pt+')'
+            : 'PRZEGRAŁEŚ -'+bjHand.stake+' 🔩 (dealer '+dt+' · ty '+pt+')';
         bjPlaySection.hidden=true; bjResultSection.hidden=false;
         bjRefreshBalance(); bjMessageEl.textContent='';
       })
