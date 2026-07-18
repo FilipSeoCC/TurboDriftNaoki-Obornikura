@@ -659,7 +659,7 @@
     </div>
     <div id="bjPlaySection" hidden>
       <div class="bj-side">
-        <div class="bj-side-header"><span>🎩 DEALER (Bukovski)</span><strong id="bjDealerTotal">?</strong></div>
+        <div class="bj-side-header"><span>🎩 KRUPIER (Bukovski)</span><strong id="bjDealerTotal">?</strong></div>
         <div class="bj-cards" id="bjDealerCards"></div>
       </div>
       <div class="bj-side">
@@ -1673,8 +1673,8 @@
         var pt=bjTotal(bjHand.playerCards);
         bjResultBox.className='bj-result '+(won?'win':'lose');
         bjResultBox.textContent = won
-          ? 'WYGRAŁEŚ +'+bjHand.stake+' 🔩 (dealer '+dt+' · ty '+pt+')'
-          : 'PRZEGRAŁEŚ -'+bjHand.stake+' 🔩 (dealer '+dt+' · ty '+pt+')';
+          ? 'WYGRAŁEŚ +'+bjHand.stake+' 🔩 (krupier '+dt+' · ty '+pt+')'
+          : 'PRZEGRAŁEŚ -'+bjHand.stake+' 🔩 (krupier '+dt+' · ty '+pt+')';
         bjPlaySection.hidden=true; bjResultSection.hidden=false;
         bjRefreshBalance(); bjMessageEl.textContent='';
       })
