@@ -31,6 +31,7 @@ wystarczy `[agent]`.
 - [claude-code / ja] Konfiguracja infrastruktury współpracy: TASKS.md, CODEOWNERS, PR template (2026-07-18)
 - [claude-code / ja] Rozszerzenie infrastruktury o drugą osobę: format TASKS.md, PROJECT_SETUP.md, CONTRIBUTING.md (2026-07-18)
 - [claude-code / ja] Przebudowa nawigacji: login -> powitanie -> hub -> garaż -> tor -> tryb -> wyścig, globalny przycisk Menu, naprawa menedżera muzyki (visibilitychange) (2026-07-18)
+- [claude-code / ja] Poczekalnia multiplayer (lista graczy, "Gotowy!", odliczanie do startu) + panel wyniku rundy pokoju na ekranie końcowym. Degraduje się bezpiecznie do natychmiastowego startu dopóki Codex nie doda akcji `ready`/pola `race` w api/room.js (2026-07-18)
 - [claude-code / ja] Ekran powitalny: opis dlaczego warto udostępnić grę (śrubki na tuning). Ustawienia: linki do Regulaminu/Polityki, usuwanie e-maila (przeniesione też tutaj), przycisk usuwania konta (czeka na akcję `delete_profile` po stronie Codexa). Kosmetyczny motyw krupiera w kasynie (2026-07-18)
 - [claude-code / ja] Przycisk "Rozpocznij grę" na hubie - skrót prosto do wyboru toru/trybu bez wchodzenia do Garażu (2026-07-18)
 - [claude-code / ja] Nowy ekran "Tabela wyników" dostępny z huba (podgląd rankingu bez rozgrywki) + etykiety TOP 10/OSTATNIE 10 na ekranie końcowym - wymaga zmiany w api/scores.js po stronie Codexa, patrz "In progress" (2026-07-18)
