@@ -13,6 +13,8 @@ wystarczy `[agent]`.
 ## In progress
 
 - [codex / ja] Fast login przez Google (OAuth) - potwierdzone przez ja (2026-07-18). Backend/auth, poza obszarem Claude Code. Do wyjaśnienia przy implementacji: skąd/po co placeholder e-maila `email@lizmejaja.pl` wspomniany przez Codeksa - opisać w PR jaką rolę pełni, zanim wyląduje w kodzie.
+- [codex / ja] Kasyno: napraw fałszywe rozstrzyganie rund (serwer losuje wygraną niezależnie od kart, front dorabia karty dealera żeby "pasowały" - stąd bug "dealer 21 vs ty 21" pokazany jako przegrana zamiast remisu), dodaj remis/push (zwrot stawki), zmień szansę wygranej na 40% i wypłatę na x10 stawki. Szczegóły w prompcie w historii sesji. UWAGA: x10 przy 40% wygranej daje dodatnią wartość oczekiwaną dla gracza (~+3.4x stawki średnio) - flagowane, ale to decyzja produktowa właściciela, nie blokuję.
+- [codex / ja] Nowa akcja `delete_profile` w `api/profile.js` (kasowanie całego profilu: waluta, auto, tuning dla danego nicku) - UI już gotowe w Settings (`feat/claude-settings-legal`), obecnie dostaje `invalid_action` bo akcja nie istnieje.
 
 ## Done
 
@@ -25,6 +27,7 @@ wystarczy `[agent]`.
 - [claude-code / ja] Konfiguracja infrastruktury współpracy: TASKS.md, CODEOWNERS, PR template (2026-07-18)
 - [claude-code / ja] Rozszerzenie infrastruktury o drugą osobę: format TASKS.md, PROJECT_SETUP.md, CONTRIBUTING.md (2026-07-18)
 - [claude-code / ja] Przebudowa nawigacji: login -> powitanie -> hub -> garaż -> tor -> tryb -> wyścig, globalny przycisk Menu, naprawa menedżera muzyki (visibilitychange) (2026-07-18)
+- [claude-code / ja] Ekran powitalny: opis dlaczego warto udostępnić grę (śrubki na tuning). Ustawienia: linki do Regulaminu/Polityki, usuwanie e-maila (przeniesione też tutaj), przycisk usuwania konta (czeka na akcję `delete_profile` po stronie Codexa). Kosmetyczny motyw krupiera w kasynie (2026-07-18)
 
 <!--
 Wpisy sprzed dołączenia kolegi do zespołu zostały bez przypisanej osoby

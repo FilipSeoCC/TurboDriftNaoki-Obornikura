@@ -518,6 +518,7 @@
         <h1>Turbo <span>Kret</span> Drift</h1>
         <p class="lead">Bukovski ma w gaciach małego kreta.<br>Napompuj mu turbinę, zamień kreta w bestię i trzymaj obroty na świecącej czerwonej linii —<br>im szybciej, bardziej bokiem i dokładniej po linii jedziesz, tym więcej zdobywasz punktów.</p>
         <div class="share-box share-footer">
+          <p class="field-label">Warto udostępnić — dzięki temu dostajesz śrubki na tuning i modyfikacje swojego driftowego auta w Garażu!</p>
           <button class="btn" id="btnShare" type="button">📨 Poleć grę · +2000 🔩</button>
           <p class="share-note" id="shareNote">Udostępnij przez Messengera lub inną aplikację. Nagroda jest jednorazowa.</p>
         </div>
@@ -601,6 +602,13 @@
         <p class="sub">Menu główne</p>
         <h1>Ustawie<span>nia</span></h1>
         <p class="lead">Pełna konfiguracja pojawi się tutaj później. Na razie to tylko wejście do ekranu.</p>
+        <p class="field-label">Zgody i dokumenty</p>
+        <div class="legal-links"><button type="button" data-legal="terms">Regulamin</button><button type="button" data-legal="privacy">Polityka prywatności</button></div>
+        <p class="field-label">Twoje dane</p>
+        <button class="legal-delete" id="settingsDeleteEmailBtn" type="button">Usuń zapisany e-mail i wycofaj zgodę</button>
+        <p class="legal-delete-status" id="settingsDeleteEmailStatus"></p>
+        <button class="legal-delete" id="settingsDeleteAccountBtn" type="button">Usuń konto (profil, walutę, tuning)</button>
+        <p class="legal-delete-status" id="settingsDeleteAccountStatus"></p>
         <div class="panel-nav"><button class="btn btn-secondary" id="btnSettingsBack" type="button">← Menu główne</button></div>
       </div>
     </div>
@@ -651,7 +659,7 @@
     </div>
     <div id="bjPlaySection" hidden>
       <div class="bj-side">
-        <div class="bj-side-header"><span>DEALER</span><strong id="bjDealerTotal">?</strong></div>
+        <div class="bj-side-header"><span>🎩 DEALER (Bukovski)</span><strong id="bjDealerTotal">?</strong></div>
         <div class="bj-cards" id="bjDealerCards"></div>
       </div>
       <div class="bj-side">
@@ -781,6 +789,10 @@
   var legalClose = document.getElementById('legalClose');
   var deleteEmailBtn = document.getElementById('deleteEmailBtn');
   var deleteEmailStatus = document.getElementById('deleteEmailStatus');
+  var settingsDeleteEmailBtn = document.getElementById('settingsDeleteEmailBtn');
+  var settingsDeleteEmailStatus = document.getElementById('settingsDeleteEmailStatus');
+  var settingsDeleteAccountBtn = document.getElementById('settingsDeleteAccountBtn');
+  var settingsDeleteAccountStatus = document.getElementById('settingsDeleteAccountStatus');
   var cardGallery = document.getElementById('cardGallery');
   var cardGalleryEnd = document.getElementById('cardGalleryEnd');
   var unlockBanner = document.getElementById('unlockBanner');
@@ -1027,15 +1039,29 @@
   legalClose.addEventListener('click',closeLegal);
   legalModal.addEventListener('click',function(e){if(e.target===legalModal)closeLegal();});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!legalModal.hidden)closeLegal();});
-  deleteEmailBtn.addEventListener('click',function(){
-    deleteEmailBtn.disabled=true; deleteEmailStatus.textContent='Usuwam e-mail...';
+  function deleteStoredEmail(btn, statusEl){
+    btn.disabled=true; statusEl.textContent='Usuwam e-mail...';
     profileAction('delete_email').then(function(){
       emailInput.value=''; emailConsent.checked=false; currentProfile.emailSaved=false;
       try{localStorage.removeItem('tkd_email');localStorage.removeItem('tkd_email_consent');}catch(e){}
       emailStatus.textContent='E-mail został usunięty. Możesz podać nowy adres.';
-      deleteEmailStatus.textContent='✓ E-mail usunięty, zgoda wycofana.';
-    }).catch(function(){deleteEmailStatus.textContent='Nie udało się usunąć e-maila. Spróbuj ponownie.';})
-      .then(function(){deleteEmailBtn.disabled=false;});
+      statusEl.textContent='✓ E-mail usunięty, zgoda wycofana.';
+    }).catch(function(){statusEl.textContent='Nie udało się usunąć e-maila. Spróbuj ponownie.';})
+      .then(function(){btn.disabled=false;});
+  }
+  deleteEmailBtn.addEventListener('click',function(){ deleteStoredEmail(deleteEmailBtn, deleteEmailStatus); });
+  settingsDeleteEmailBtn.addEventListener('click',function(){ deleteStoredEmail(settingsDeleteEmailBtn, settingsDeleteEmailStatus); });
+  settingsDeleteAccountBtn.addEventListener('click',function(){
+    if(!window.confirm('To usunie Twoją walutę, auto i tuning bez możliwości cofnięcia. Na pewno?')) return;
+    settingsDeleteAccountBtn.disabled=true; settingsDeleteAccountStatus.textContent='Usuwam konto...';
+    profileAction('delete_profile').then(function(){
+      settingsDeleteAccountStatus.textContent='✓ Konto usunięte.';
+      showLogin();
+    }).catch(function(err){
+      settingsDeleteAccountStatus.textContent=(err&&err.error==='invalid_action')
+        ? 'Ta funkcja jeszcze nie jest dostępna po stronie serwera.'
+        : 'Nie udało się usunąć konta. Spróbuj ponownie.';
+    }).then(function(){settingsDeleteAccountBtn.disabled=false;});
   });
 
   // shared leaderboard: POST/GET against /api/scores (Vercel function + Upstash Redis).
