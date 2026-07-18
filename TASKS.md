@@ -12,13 +12,14 @@ wystarczy `[agent]`.
 
 ## In progress
 
+
 - [codex / ja] Fast login przez Google (OAuth) - potwierdzone przez ja (2026-07-18). Backend/auth, poza obszarem Claude Code. Do wyjaśnienia przy implementacji: skąd/po co placeholder e-maila `email@lizmejaja.pl` wspomniany przez Codeksa - opisać w PR jaką rolę pełni, zanim wyląduje w kodzie.
-- [codex / ja] Kasyno: napraw fałszywe rozstrzyganie rund (serwer losuje wygraną niezależnie od kart, front dorabia karty dealera żeby "pasowały" - stąd bug "dealer 21 vs ty 21" pokazany jako przegrana zamiast remisu), dodaj remis/push (zwrot stawki), zmień szansę wygranej na 40% i wypłatę na x10 stawki. Szczegóły w prompcie w historii sesji. UWAGA: x10 przy 40% wygranej daje dodatnią wartość oczekiwaną dla gracza (~+3.4x stawki średnio) - flagowane, ale to decyzja produktowa właściciela, nie blokuję.
 - [codex / ja] Nowa akcja `delete_profile` w `api/profile.js` (kasowanie całego profilu: waluta, auto, tuning dla danego nicku) - UI już gotowe w Settings (`feat/claude-settings-legal`), obecnie dostaje `invalid_action` bo akcja nie istnieje.
-- [codex] Rozszerz `api/scores.js` z top/bottom 5 na top/bottom 10 (ZREVRANGE/ZRANGE `0-4` -> `0-9`, w GET i POST). Frontend (`index.html`) już oczekuje 10 wyników (etykiety "TOP 10"/"OSTATNIE 10", nowy ekran Tabela Wyników) - patrz PR feat/claude-leaderboard-screen.
 
 ## Done
 
+- [codex] Spójne rozliczanie blackjacka: win/lose/push, 40% wygranej i wypłata x10 (2026-07-18)
+- [codex] Rozszerzenie rankingu do TOP 10 / OSTATNIE 10 (2026-07-18)
 - [codex] Logika garażu, wyboru toru/trybu, lobby multiplayer i bezpiecznej mini-gry kasynowej (2026-07-18)
 - [codex] Wieloosobowy tryb obecności (multiplayer presence) w `api/room.js` (2026-07-17)
 - [codex] Zapis profilu/tuningu per samochód w `api/profile.js` (2026-07-17)

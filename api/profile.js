@@ -5,6 +5,7 @@ const { CATEGORIES, redis, databaseConfigured, sanitizeName, emptyMods, readProf
 const PRICE = 500;
 const ROUND_REWARD = 1000;
 const SHARE_REWARD = 2000;
+const { drawOutcome, settleBlackjack } = require('./blackjack');
 
 function sanitizeEmail(value) {
   if (typeof value !== 'string') return '';
@@ -90,10 +91,21 @@ module.exports = async (req, res) => {
       const stake = Math.floor(Number(body.stake) || 0);
       if (!Number.isFinite(stake) || stake < 10 || stake > 5000) return res.status(400).json(actionError('invalid_stake'));
       if (profile.currency < stake) return res.status(400).json(actionError('not_enough_currency'));
-      const won = Math.random() < 0.25;
-      profile.currency += won ? stake : -stake;
+      const rawPlayerTotal = Number(body.playerTotal);
+      const playerTotal = Number.isInteger(rawPlayerTotal) && rawPlayerTotal >= 4 && rawPlayerTotal <= 31 ? rawPlayerTotal : undefined;
+      const outcome = drawOutcome(Math.random(), playerTotal);
+      const settlement = settleBlackjack(stake, outcome);
+      profile.currency += settlement.net;
       const settled = await writeProfile(key, profile);
-      return res.status(200).json(Object.assign({}, settled, { blackjack: { won, stake } }));
+      return res.status(200).json(Object.assign({}, settled, {
+        blackjack: {
+          outcome,
+          won: outcome === 'win' ? true : outcome === 'lose' ? false : null,
+          stake,
+          payout: settlement.payout,
+          net: settlement.net,
+        },
+      }));
     } else return res.status(400).json(actionError('invalid_action'));
 
     return res.status(200).json(await writeProfile(key, profile));
