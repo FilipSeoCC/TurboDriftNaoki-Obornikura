@@ -1,0 +1,48 @@
+name: Zadanie dla Codexa — backend/logika
+description: Zadanie wykonywane automatycznie 24/7 przez Codex po weryfikacji etykiet
+title: "[Backend] "
+labels:
+  - codex
+  - logika/backend
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Issue uruchomi automatyczny worker tylko wtedy, gdy autor jest właścicielem lub collaboratorem repo. Codex otworzy draft PR, ale nigdy go sam nie zmerguje.
+  - type: textarea
+    id: objective
+    attributes:
+      label: Cel
+      description: Jeden konkretny rezultat dotyczący backendu albo logiki gry.
+      placeholder: Dodaj endpoint lub mechanikę, która…
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Kryteria akceptacji
+      description: Wypisz mierzalne warunki ukończenia.
+      placeholder: |
+        - Endpoint zwraca…
+        - Błędne dane powodują…
+        - Test obejmuje…
+    validations:
+      required: true
+  - type: textarea
+    id: api_contract
+    attributes:
+      label: Oczekiwany kontrakt API lub danych
+      description: Opcjonalne nazwy endpointów, funkcji i kształty JSON.
+  - type: textarea
+    id: tests
+    attributes:
+      label: Wymagane testy
+      description: Przypadki poprawne, brzegowe i nadużycia, które należy sprawdzić.
+    validations:
+      required: true
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Poza zakresem
+      description: Czego automat nie powinien zmieniać.
+      placeholder: UI, layout, style, deploy…
