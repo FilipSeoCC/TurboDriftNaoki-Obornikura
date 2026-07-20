@@ -39,6 +39,7 @@ wystarczy `[agent]`.
 - [claude-code / ja] CLAUDE.md + AGENTS.md: mechanizm delegacji zadań do Codexa (manualny relay przez użytkownika - brak bezpośredniego API/CLI między agentami w tym środowisku) (2026-07-18)
 - [claude-code / ja] Audyt UX/UI pod mobilkę: wspólna klasa `.menu-screen` na ekranach menu i lobby, font-size 16px w polach formularzy oraz guard przeciw double-tap zoom w przeglądarkach mobilnych i Messengerze (2026-07-18)
 - [claude-code / ja] Nagłówki kolumn w tabeli wyników (Nick / Tor / Wynik) na ekranie końcowym i w Tabeli Wyników - dane toru (`mode`) już wracały z API, tylko nie były renderowane (2026-07-18)
+- [claude-code / ja] Dopisek "Stworzone przez AI Ops" z logo (pobrane z ai-ops.pl za zgodą, przeskalowane do 160x160/10KB) linkujący do https://www.ai-ops.pl/ (rel="noopener follow") na ekranach Logowanie, Menu główne i Ustawienia (2026-07-20)
 
 <!--
 Wpisy sprzed dołączenia kolegi do zespołu zostały bez przypisanej osoby
