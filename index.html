@@ -246,6 +246,9 @@
   .email-consent a,.legal-links button{ color:var(--teal); text-decoration:underline; }
   .legal-links{ display:flex; justify-content:center; flex-wrap:wrap; gap:8px 16px; margin:14px 0 0; font-size:11px; }
   .legal-links button{ padding:3px; border:0; background:none; font:inherit; cursor:pointer; }
+  .aiops-credit{ display:inline-flex; align-items:center; gap:5px; color:var(--teal); text-decoration:none; }
+  .aiops-credit img{ width:16px; height:16px; border-radius:3px; }
+  .aiops-credit:hover{ text-decoration:underline; }
   .legal-modal{ position:fixed; inset:0; z-index:80; display:flex; align-items:center; justify-content:center; padding:16px; background:#050309dd; backdrop-filter:blur(5px); }
   .legal-modal[hidden]{ display:none; }
   .legal-panel{ position:relative; width:min(94vw,760px); max-height:min(88vh,820px); overflow:auto; touch-action:pan-y; padding:26px; border:2px solid var(--orange); border-radius:12px; background:#171c24; color:#e8edf5; box-shadow:0 18px 70px #000; text-align:left; }
@@ -515,7 +518,7 @@
           <p class="email-status" id="emailStatus">E-mail nie będzie widoczny w rankingu ani publicznym profilu.</p>
         </div>
         <div class="panel-nav"><button class="btn" id="btnLogin" type="button">Zaloguj →</button></div>
-        <div class="legal-links"><button type="button" data-legal="terms">Regulamin</button><button type="button" data-legal="privacy">Polityka prywatności</button><span>Gra 18+</span></div>
+        <div class="legal-links"><button type="button" data-legal="terms">Regulamin</button><button type="button" data-legal="privacy">Polityka prywatności</button><span>Gra 18+</span><a class="aiops-credit" href="https://www.ai-ops.pl/" target="_blank" rel="noopener follow"><img src="assets/aiops-logo.png" alt="AI Ops" width="16" height="16">Stworzone przez AI Ops</a></div>
       </div>
     </div>
 
@@ -549,7 +552,7 @@
         </div>
         <p class="card-gallery-caption">Wykręć jak najlepszy wynik, żeby odblokować karty Bukovskiego!</p>
         <div class="card-gallery" id="cardGallery"></div>
-        <div class="legal-links"><button type="button" data-legal="terms">Regulamin</button><button type="button" data-legal="privacy">Polityka prywatności</button><span>Gra 18+</span></div>
+        <div class="legal-links"><button type="button" data-legal="terms">Regulamin</button><button type="button" data-legal="privacy">Polityka prywatności</button><span>Gra 18+</span><a class="aiops-credit" href="https://www.ai-ops.pl/" target="_blank" rel="noopener follow"><img src="assets/aiops-logo.png" alt="AI Ops" width="16" height="16">Stworzone przez AI Ops</a></div>
       </div>
     </div>
 
@@ -630,7 +633,7 @@
         <h1>Ustawie<span>nia</span></h1>
         <p class="lead">Pełna konfiguracja pojawi się tutaj później. Na razie to tylko wejście do ekranu.</p>
         <p class="field-label">Zgody i dokumenty</p>
-        <div class="legal-links"><button type="button" data-legal="terms">Regulamin</button><button type="button" data-legal="privacy">Polityka prywatności</button></div>
+        <div class="legal-links"><button type="button" data-legal="terms">Regulamin</button><button type="button" data-legal="privacy">Polityka prywatności</button><a class="aiops-credit" href="https://www.ai-ops.pl/" target="_blank" rel="noopener follow"><img src="assets/aiops-logo.png" alt="AI Ops" width="16" height="16">Stworzone przez AI Ops</a></div>
         <p class="field-label">Twoje dane</p>
         <button class="legal-delete" id="settingsDeleteEmailBtn" type="button">Usuń zapisany e-mail i wycofaj zgodę</button>
         <p class="legal-delete-status" id="settingsDeleteEmailStatus"></p>
