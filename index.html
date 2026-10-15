@@ -110,7 +110,7 @@
   #bukFace{ width:34px; height:34px; margin-left:auto; }
 
   #quoteBubble{
-    position:absolute; top:108px; right:16px; max-width:230px;
+    position:absolute; top:calc(172px + env(safe-area-inset-top)); right:16px; max-width:230px;
     background:var(--white); color:#1a1a1a; border-radius:10px 10px 2px 10px;
     padding:8px 12px; font-size:13px; font-weight:600; line-height:1.3;
     box-shadow:0 4px 10px #0008; opacity:0; transform:translateY(-6px) scale(0.95);
@@ -670,6 +670,24 @@
   #bigWin.draw .bw-amount,#bigWin.error .bw-amount{ color:#e8dfc4; text-shadow:none; }
   #bigWin .btn{ background:linear-gradient(180deg,#e9cf84,#b88d32); color:#2a1b08; border:1px solid #6b4c12; border-radius:3px; text-transform:uppercase; box-shadow:inset 0 1px 0 #fff8,0 3px 0 #5a3f0e,0 5px 8px #0008; text-shadow:0 1px 0 #ffffff70; }
   #bigWin .btn:first-child:not(:only-child) + .btn{ background:linear-gradient(180deg,#2c231a,#16100a); color:#d9cfae; border-color:#d2aa5580; text-shadow:none; box-shadow:0 3px 0 #000a; }
+  /* ===== HUD zakładów: pasek wyniku obok timera, bez nakładania ===== */
+  .bet-hud{ top:calc(14px + env(safe-area-inset-top)); left:calc(172px + env(safe-area-inset-left)); right:calc(14px + env(safe-area-inset-right)); transform:none; align-items:stretch; gap:5px; }
+  .bet-row{ padding:6px 10px 8px; border:1px solid #d2aa5588; border-radius:4px; background:#1b0f08ee; color:#f0e6cc; }
+  .bet-row.mine{ border-color:#f0d98c; box-shadow:0 0 12px #f0d98c55; }
+  .bet-top{ display:flex; align-items:center; gap:8px; min-width:0; }
+  .bet-top i{ flex:0 0 auto; width:12px; height:12px; border-radius:50%; background:var(--c,#fff); box-shadow:0 0 8px var(--c,#fff); }
+  .bet-name{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:italic 700 14px Georgia,serif; }
+  .bet-mine{ display:none; flex:0 0 auto; font:900 9px Arial,sans-serif; font-style:normal; letter-spacing:.06em; padding:2px 5px; border-radius:2px; background:#f0d98c; color:#241a10; }
+  .bet-row.mine .bet-mine{ display:block; }
+  .bet-top b{ flex:0 0 auto; min-width:3ch; text-align:right; font:700 22px/1 "Courier New",monospace; color:#f0d98c; font-variant-numeric:tabular-nums; }
+  .bet-bar{ margin-top:5px; height:9px; border-radius:2px; background:#000b; border:1px solid #ffffff2a; overflow:hidden; }
+  .bet-bar u{ display:block; height:100%; width:0; background:var(--c,#fff); box-shadow:0 0 8px var(--c,#fff); transition:width .25s linear; }
+  .bet-slip{ align-self:stretch; text-align:center; padding:4px 8px; font-size:12px; }
+  @media (max-width:760px){
+    .bet-hud{ left:calc(94px + env(safe-area-inset-left)); right:calc(10px + env(safe-area-inset-right)); }
+    .bet-name{ font-size:13px; }
+    .bet-top b{ font-size:20px; }
+  }
 </style>
 </head>
 <body>
@@ -703,7 +721,8 @@
     </div>
 
     <div class="bet-hud" id="betHud" hidden aria-live="off">
-      <div class="bet-chips"><div class="bet-chip" id="betChip0"><i></i><span></span><b>0</b></div><div class="bet-chip" id="betChip1"><i></i><span></span><b>0</b></div></div>
+      <div class="bet-row" id="betChip0"><div class="bet-top"><i></i><span class="bet-name"></span><em class="bet-mine">TWÓJ TYP</em><b>0</b></div><div class="bet-bar"><u></u></div></div>
+      <div class="bet-row" id="betChip1"><div class="bet-top"><i></i><span class="bet-name"></span><em class="bet-mine">TWÓJ TYP</em><b>0</b></div><div class="bet-bar"><u></u></div></div>
       <div class="bet-slip" id="betSlip"></div>
     </div>
     <div class="rival-pill" id="rivalPill" hidden aria-live="off"><span>🪰 MUCHA</span> <b id="rivalScore">0</b> <em id="rivalGap"></em></div>
@@ -2347,10 +2366,10 @@
     [0,1].forEach(function(i){
       var chip = document.getElementById('betChip'+i);
       chip.style.setProperty('--c', BET_COLORS[i]); chip.classList.toggle('mine', i === pick);
-      chip.querySelector('span').textContent = (i ? 'B' : 'A') + ' · ' + shortCar(fbPair[i]) + (i === pick ? ' (Twoja)' : '');
-      chip.querySelector('b').textContent = '0';
+      chip.querySelector('.bet-name').textContent = (i ? 'B' : 'A') + ' · ' + shortCar(fbPair[i]);
+      chip.querySelector('b').textContent = '0'; chip.querySelector('u').style.width = '0%';
     });
-    betSlip.textContent = 'Zakład ' + stake + ' 🔩 na muchę ' + (pick ? 'B' : 'A') + ' · wygrana ' + Math.floor(stake*BET_MULT) + ' 🔩';
+    betSlip.textContent = 'Zakład ' + stake + ' 🔩 na ' + (pick ? 'B' : 'A') + ' · wygrana ' + Math.floor(stake*BET_MULT) + ' 🔩';
     hint.innerHTML = '🪰 Ścigają się dwie muchy, Ty tylko patrzysz i trzymasz kciuki. Trasa: <b>' + TRACK_NAMES[fbTrack] + '</b>';
   }
   function shortCar(id){ return carLabel(id).replace(/^BMW /,'').replace(/ · .*/,'').slice(0, 22); }
@@ -2366,6 +2385,10 @@
     if (txt !== bet.txt){
       bet.txt = txt;
       document.querySelector('#betChip0 b').textContent = a; document.querySelector('#betChip1 b').textContent = b;
+      // Pasek: skala rośnie razem z liderem (min. 200 pkt), więc widać i wynik, i dystans między muchami.
+      var scale = Math.max(200, Math.max(a, b) * 1.15);
+      document.querySelector('#betChip0 u').style.width = Math.min(100, a / scale * 100).toFixed(1) + '%';
+      document.querySelector('#betChip1 u').style.width = Math.min(100, b / scale * 100).toFixed(1) + '%';
     }
     if (bet.time <= 0) finishBetRace();
   }
@@ -2998,6 +3021,13 @@
   }
   function drawFlyRacer(s, opt, label, color){
     drawCarE36(s.x, s.y, s.angle, s.slideAngle, { modelId:opt.modelId, paint:opt.paint, glow:opt.glow, wheelSpin:s.wheelSpin, throttle:s.throttle, stats:opt.stats });
+    if (opt.badge){
+      // Wyścig much: wynik jest w pasku u góry, przy aucie tylko literka (żeby podpisy się nie zlewały).
+      ctx.save(); ctx.beginPath(); ctx.arc(s.x, s.y-34, 10, 0, 6.2832); ctx.fillStyle = color; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = '#000d'; ctx.stroke();
+      ctx.font = '900 13px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#10131a'; ctx.fillText(label, s.x, s.y-33.5);
+      ctx.restore(); return;
+    }
     var pts = Math.floor(s.score) + ' pkt';
     ctx.save(); ctx.textAlign = 'center'; ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = '#000c';
     ctx.font = '900 12px Arial'; ctx.strokeText(label, s.x, s.y-30); ctx.fillStyle = '#fff'; ctx.fillText(label, s.x, s.y-30);
@@ -3006,7 +3036,7 @@
   }
   function drawRivalCar(){
     if (rival) drawFlyRacer(rival.car.state, { modelId:'e36_touring', paint:true, stats:effectiveStats }, '🪰 MUCHA', '#ff8a90');
-    else if (bet) bet.racers.forEach(function(r, i){ drawFlyRacer(r.car.state, { modelId:r.id, glow:r.glow, stats:r.stats }, '🪰 ' + (i ? 'B' : 'A'), r.color); });
+    else if (bet) bet.racers.forEach(function(r, i){ drawFlyRacer(r.car.state, { modelId:r.id, glow:r.glow, stats:r.stats, badge:true }, (i ? 'B' : 'A'), r.color); });
   }
   function brainView(){
     if (flyBrain && flyState) return { agent: flyBrain, st: flyState, car: car };
@@ -3847,6 +3877,7 @@
   }
 
   function showQuote(forceHigh){
+    if (STATE === 'bet' || STATE === 'betend') return;
     var pool = forceHigh ? quotesHigh : (drift.heat>65? quotesHigh : drift.heat>28? quotesMid : quotesLow);
     var text = pool[Math.floor(Math.random()*pool.length)];
     quoteBubble.textContent = text;
