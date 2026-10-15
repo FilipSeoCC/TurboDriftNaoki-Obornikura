@@ -17,6 +17,8 @@ wystarczy `[agent]`.
 
 ## Done
 
+- [claude-code / ja] Tryb „🪰 Mucha za kierownicą”: autem steruje obwód 1926 neuronów z konektomu FlyWire v783 symulowany na żywo (`fly-brain.js`, `assets/fly-circuit.json`), podgląd mózgu w HUD, wynik do rankingu jako „🪰 MUCHA”, skrypt odtwarzający obwód (`tools/fly/extract_circuit.py`), testy, `docs/MUCHA.md`. Całość (UI + sterowanie w silniku wyścigu) zrobiona przez Claude Code na wyraźne polecenie właściciela repo, bez delegacji do Codexa (2026-10-15)
+
 - [codex] Worker GitHub Actions 24/7 dla issues `codex` + `logika/backend` (2026-07-18)
 - [codex] Synchronizowany start wyścigu multiplayer i gotowość graczy (2026-07-18)
 - [codex] Backendowa akcja `delete_profile` kasująca stan gracza z Redis (2026-07-18)
