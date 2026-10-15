@@ -62,7 +62,7 @@ git push -u origin main
 
 Na ekranie startowym wybierasz tor (**Rondo** — jedna pętla, albo **Ósemka** — dwie) i wpisujesz nick. Po rundzie ekran końcowy pokazuje **globalny** ranking — TOP 5 najlepszych wyników i 5 najgorszych, widoczne dla wszystkich graczy (Twój aktualny wynik podświetlony), zapisywane we wspólnej bazie Redis (patrz sekcja o backendzie wyżej).
 
-Na ekranie startowym widać też **album E36**: 8 zdjęć prawdziwych driftowych BMW (`assets/bmw/e36-01…08.jpg`, ~100 KB każde) odblokowywanych za wynik: 25 / 50 / 80 / 100 / 120 / 150 / 200 / 250 pkt. Odblokowane zdjęcie można kliknąć — otwiera się jak polaroid z komentarzem w stylu wiechowym. Zablokowane nie ładują obrazu (zostaje znak zapytania), więc menu nie ciągnie 800 KB na starcie. Zdjęcia są też losowym tłem ekranów menu. Na zdjęciach widać tablice rejestracyjne i postronne osoby; zdjęcia są własnością autora gry — rozważ rozmycie tablic przed szerszą publikacją.
+Na ekranie startowym widać też **album E36**: 8 zdjęć prawdziwych driftowych BMW (`assets/bmw/e36-01…08.jpg`, ~100 KB każde) odblokowywanych za wynik: 25 / 50 / 80 / 100 / 120 / 150 / 200 / 250 pkt. Odblokowane zdjęcie można kliknąć — otwiera się jak polaroid, bez podpisów. Zablokowane nie ładują obrazu (zostaje znak zapytania), więc menu nie ciągnie 800 KB na starcie. Zdjęcia są też losowym tłem ekranów menu. Na zdjęciach widać tablice rejestracyjne i postronne osoby; zdjęcia są własnością autora gry — rozważ rozmycie tablic przed szerszą publikacją.
 
 ## Garaż i profile
 
