@@ -857,7 +857,7 @@
           <button class="btn btn-secondary" id="btnExperimentOpen" type="button">🪰 Eksperyment: Mucha</button>
           <button class="btn btn-secondary" id="btnSettingsOpen" type="button">⚙ Ustawienia</button>
         </div>
-        <p class="card-gallery-caption">Wykręć wynik, a odblokujesz zdjęcia E36 z wiechowym komentarzem!</p>
+        <p class="card-gallery-caption">Wykręć wynik, a odblokujesz zdjęcia E36!</p>
         <div class="card-gallery" id="cardGallery"></div>
         <div class="legal-links"><button type="button" data-legal="terms">Regulamin</button><button type="button" data-legal="privacy">Polityka prywatności</button><span>Gra 18+</span></div>
       </div>
@@ -967,7 +967,7 @@
         <div class="unlock-banner" id="unlockBanner" hidden></div>
         <p class="card-gallery-caption">Album E36:</p>
         <div class="card-gallery" id="cardGalleryEnd"></div>
-        <p class="card-click-hint" id="cardClickHint">☝ KLIKNIJ PULSUJĄCE ZDJĘCIE, PANIE, I ZOBACZ, CO ZA BRYKA!</p>
+        <p class="card-click-hint" id="cardClickHint">☝ KLIKNIJ PULSUJĄCE ZDJĘCIE!</p>
         <div class="leaderboard" id="roomResultsBox" hidden>
           <div class="lb-title">WYNIK TEJ RUNDY (POKÓJ)</div>
           <div class="lb-rows" id="roomResultsRows"></div>
@@ -1696,30 +1696,14 @@
   }
 
   var CARDS = [
-    { id:'mzawka', threshold:25,  title:'Mżawka Panie',          img:'assets/bmw/e36-01.jpg',
-      desc:'Leje jak z cebra, a on bokiem.',
-      reward:'Leje jak z cebra, a ten bokiem po mokrym jak po sznurku. Ty, panie, taki balet to ja na Pradze widziałem ostatnio w osiemdziesiątym trzecim.' },
-    { id:'balet',  threshold:50,  title:'Balet Na Mydle',        img:'assets/bmw/e36-02.jpg',
-      desc:'Asfalt jak lustro, tył jak u baletnicy.',
-      reward:'Asfalt jak lustro, tył jak u baletnicy. Ty, panie, nawet sąsiad z klatki by pochwalił, a on to chwali rzadko.' },
-    { id:'opony',  threshold:80,  title:'Opony Dla Ozdoby',      img:'assets/bmw/e36-03.jpg',
-      desc:'Opon tyle, że pół Targówka by ogumiło.',
-      reward:'Opon tyle, że pół Targówka by ogumiło. A on i tak tuż przy nich, bo po co się cykać, jak się ma wprawę.' },
-    { id:'mgla',   threshold:100, title:'Mgła Nie Mgła',         img:'assets/bmw/e36-04.jpg',
-      desc:'Dym, mgiełka i czarna bestia.',
-      reward:'Pan z flagą w tle patrzy, jakby chciał ubić interes. A ten dalej bokiem, bo mu się nigdzie nie spieszy.' },
-    { id:'zolty',  threshold:120, title:'Żółty Baner Czarna Bestia', img:'assets/bmw/e36-05.jpg',
-      desc:'Reklama krzyczy, silnik krzyczy.',
-      reward:'Reklama krzyczy, silnik krzyczy, a kierowca tylko dolewa gazu. Pełna kultura, panie, żadnych nerwów.' },
-    { id:'turkus', threshold:150, title:'Turkus Na Podwórku',    img:'assets/bmw/e36-06.jpg',
-      desc:'Turkus jak znad Bałtyku, laweta czeka.',
-      reward:'Turkus, panie, jak z pocztówki znad Bałtyku. A za nim laweta już czeka, bo to się wie z doświadczenia.' },
-    { id:'slonce', threshold:200, title:'Słoneczko Przygrzało',  img:'assets/bmw/e36-07.jpg',
-      desc:'Niebo błękitne, bryka też.',
-      reward:'Niebo błękitne i bryka błękitna. Kto by tam deszczu pragnął, jak na podwórku taki widok, że aż serce rośnie.' },
-    { id:'tyl',    threshold:250, title:'Tył Jak Się Patrzy',    img:'assets/bmw/e36-08.jpg',
-      desc:'Z przodu ładnie, z tyłu jeszcze ładniej.',
-      reward:'Z przodu ładnie, z tyłu jeszcze ładniej. Na takiego to i teściowa spojrzy łaskawym okiem.' }
+    { id:'mzawka', threshold:25, title:'BMW E36 #1', img:'assets/bmw/e36-01.jpg' },
+    { id:'balet', threshold:50, title:'BMW E36 #2', img:'assets/bmw/e36-02.jpg' },
+    { id:'opony', threshold:80, title:'BMW E36 #3', img:'assets/bmw/e36-03.jpg' },
+    { id:'mgla', threshold:100, title:'BMW E36 #4', img:'assets/bmw/e36-04.jpg' },
+    { id:'zolty', threshold:120, title:'BMW E36 #5', img:'assets/bmw/e36-05.jpg' },
+    { id:'turkus', threshold:150, title:'BMW E36 #6', img:'assets/bmw/e36-06.jpg' },
+    { id:'slonce', threshold:200, title:'BMW E36 #7', img:'assets/bmw/e36-07.jpg' },
+    { id:'tyl', threshold:250, title:'BMW E36 #8', img:'assets/bmw/e36-08.jpg' }
   ];
   var CARD_KEY = 'tkd_cards_v1';
   function loadUnlockedCards(){
@@ -1749,7 +1733,8 @@
   function openCardModal(c){
     var words = c.title.split(' ');
     cardModalTitle.innerHTML = words.slice(0,-1).join(' ') + ' <span>' + words[words.length-1] + '</span>';
-    cardModalText.textContent = c.reward || c.desc;
+    cardModalText.textContent = c.reward || '';
+    cardModalText.style.display = c.reward ? '' : 'none';
     if (c.img){
       cardModalImg.src = c.img;
       cardModalImg.style.display = 'block';
@@ -1782,14 +1767,14 @@
       var el = document.createElement('button');
       el.type = 'button';
       el.className = 'photo-card' + (isUnlocked ? ' unlocked' : '');
-      el.title = isUnlocked ? c.desc : ('Zdob\u0105d\u017a ' + c.threshold + ' pkt, \u017ceby odblokowa\u0107 zdj\u0119cie.');
+      el.title = isUnlocked ? c.title : ('Zdob\u0105d\u017a ' + c.threshold + ' pkt, \u017ceby odblokowa\u0107 zdj\u0119cie.');
       el.setAttribute('aria-label',isUnlocked?'Otwórz zdjęcie: '+c.title:'Zdjęcie zablokowane. Wymaga '+c.threshold+' punktów');
       if (isUnlocked){
         var im = document.createElement('img'); im.className='card-thumb'; im.src=c.img; im.alt=c.title; im.loading='lazy'; el.appendChild(im);
       } else {
         var icon = document.createElement('div'); icon.className = 'card-icon'; icon.textContent = '?'; el.appendChild(icon);
       }
-      var cta = document.createElement('div'); cta.className='card-cta'; cta.textContent=isUnlocked?c.title:'od '+c.threshold+' pkt';el.appendChild(cta);
+      var cta = document.createElement('div'); cta.className='card-cta'; cta.textContent=isUnlocked?'#'+c.title.split('#')[1]:'od '+c.threshold+' pkt';el.appendChild(cta);
       if (isUnlocked){
         el.style.cursor = 'pointer';
         el.addEventListener('click', function(){ openCardModal(c); });
@@ -3906,7 +3891,7 @@
     var verdict, title;
     if (drift.maxHeat < 30){ title='Mucha Spokojna'; verdict='Mucha przysiadła na lusterku i nawet nie zabzyczała.'; }
     else if (drift.maxHeat < 70){ title='Solidnie Wkurzona'; verdict='Mucha bzyczy po podwórku i szuka, kto jej ten kurz wzbił.'; }
-    else { title='Totalna Furia'; verdict='MUCHA BZYCZY NA CAŁĄ ULICĘ: TY, PANIE, CO TY WYPRAWIASZ?! Misja zaliczona.'; }
+    else { title='Totalna Furia'; verdict='MUCHA BZYCZY NA CAŁĄ ULICĘ. Misja zaliczona.'; }
     document.getElementById('endTitle').innerHTML = title.split(' ').map(function(w,i){return i===title.split(' ').length-1? '<span>'+w+'</span>':w;}).join(' ');
     var endVerdictEl = document.getElementById('endVerdict');
     endVerdictEl.textContent = flyRun
