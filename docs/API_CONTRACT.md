@@ -33,7 +33,7 @@ Parametry wspólne: `name` oraz `resource`.
   - wejście: `{ action: "leave_lobby", code, playerId }`
   - wyjście: `{ ok: true }`.
 
-Lobby mieści maksymalnie 8 graczy i wygasa po 5 minutach braku aktywności. Sam wyścig nadal korzysta z istniejącego `/api/room` do przesyłania pozycji.
+Lobby mieści maksymalnie 8 graczy i wygasa po 5 minutach braku aktywności. Sam wyścig nadal korzysta z istniejącego `/api/room` do przesyłania pozycji. Pokój (`tkd:room:v3:*`) mieści do 16 graczy; `update` to jedno zapytanie do Redisa (HSET + HGETALL + GET), gotowość trzymana jest w polu `r:<id>`, a lobby zgłasza obecność tym samym `update`.
 
 ## `POST /api/profile`
 

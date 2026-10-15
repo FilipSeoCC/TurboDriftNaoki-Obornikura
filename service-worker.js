@@ -1,5 +1,5 @@
 // Bump when statyczne assety zmieniają się w sposób który wymaga odświeżenia cache.
-const CACHE = 'tkd-v3';
+const CACHE = 'tkd-v4';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
@@ -65,7 +65,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first dla wszystkiego innego (mp3, obrazki, ikony).
+  if (/\.(js|json)$/.test(url.pathname)) {
+    // Skrypty i obwód muchy: network-first, żeby index.html nie dostał starego rival-car.js / fly-agent.js.
+    event.respondWith(
+      fetch(req)
+        .then((resp) => {
+          if (resp && resp.status === 200) { const clone = resp.clone(); caches.open(CACHE).then((c) => c.put(req, clone)).catch(() => undefined); }
+          return resp;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // Cache-first dla reszty (mp3, obrazki, ikony).
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached;

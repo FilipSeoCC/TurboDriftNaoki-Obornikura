@@ -2084,8 +2084,12 @@
     Object.keys(remotePlayers).forEach(function(id){if(!seen[id]&&now-(remotePlayers[id].seenAt||0)>2500)delete remotePlayers[id];});
     updateMultiplayerStatus(Object.keys(remotePlayers).length+1);
   }
+  var multiplayerTick=0;
   function syncMultiplayer(){
     if(!multiplayerEnabled||!car||(STATE!=='drift'&&STATE!=='paused')||multiplayerBusy)return;
+    // Karta w tle albo pauza: nie spamuj serwera (przy kilkunastu graczach to są setki zapytań na sekundę).
+    if(document.hidden)return;
+    if(STATE==='paused'&&(multiplayerTick++%3)!==0)return;
     multiplayerBusy=true;
     fetch('/api/room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update',room:multiplayerRoom(),track:trackMode,id:multiplayerId,name:profileNick(),car:currentProfile.car,x:clamp(car.x/Math.max(W,1),0,1),y:clamp(car.y/Math.max(H,1),0,1),angle:car.angle,speed:car.speed,score:drift.score})})
       .then(function(r){if(!r.ok)throw new Error();return r.json();}).then(function(data){acceptRemotePlayers(data.players);}).catch(function(){updateMultiplayerStatus(0,'Brak połączenia z pokojem — ponawiam...');}).then(function(){multiplayerBusy=false;});
@@ -2094,7 +2098,7 @@
     clearInterval(multiplayerTimer);remotePlayers={};
     if(!multiplayerEnabled){updateMultiplayerStatus(0);return;}
     updateMultiplayerStatus(1,'Łączenie z pokojem '+multiplayerRoom()+'...');syncMultiplayer();
-    multiplayerTimer=setInterval(syncMultiplayer,300);
+    multiplayerTimer=setInterval(syncMultiplayer,450);
   }
   function stopMultiplayer(sendLeave){
     clearInterval(multiplayerTimer);multiplayerTimer=0;multiplayerBusy=false;remotePlayers={};
@@ -2142,7 +2146,8 @@
     lobbyStatusEl.textContent = lobbyReady ? 'Czekam na innych graczy...' : 'Kliknij "Gotowy!", żeby zacząć.';
   }
   function pollLobby(){
-    fetch('/api/room?room='+encodeURIComponent(multiplayerRoom())+'&track='+encodeURIComponent(trackMode))
+    // Lobby też zgłasza obecność (update), bo bez wpisu w pokoju serwer nie przyjmie "Gotowy!" (404).
+    fetch('/api/room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update',room:multiplayerRoom(),track:trackMode,id:multiplayerId,name:profileNick(),car:currentProfile.car,x:0.5,y:0.5,angle:0,speed:0,score:0})})
       .then(function(r){ if(!r.ok) throw new Error(); return r.json(); })
       .then(function(data){ renderLobbyPlayers(data.players); handleLobbyRaceState(data.race); })
       .catch(function(){ lobbyStatusEl.textContent = 'Brak połączenia z pokojem — ponawiam...'; });
@@ -2174,7 +2179,7 @@
         else lobbyStatusEl.textContent = 'Brak połączenia — spróbuj ponownie.';
       });
   });
-  btnLobbyBack.addEventListener('click', function(){ stopLobbyPolling(); showModeSelect(); });
+  btnLobbyBack.addEventListener('click', function(){ stopLobbyPolling(); stopMultiplayer(true); showModeSelect(); });
   function startMultiplayerRace(){ startPump(); startTransform(); }
   function renderGameModeChoice(){
     setRivalMode(rivalMode && !flyMode);
