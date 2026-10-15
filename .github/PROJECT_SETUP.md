@@ -6,7 +6,7 @@ Ten plik to instrukcja do ręcznego wykonania w UI GitHuba - nie ma automatyzacj
 
 1. Wejdź na stronę repo -> zakładka **Projects** -> **New project**.
 2. Wybierz szablon **Board**.
-3. Nazwa np. `Turbo Kret Drift - praca`.
+3. Nazwa np. `Turbo Mucha Drift - praca`.
 4. Domyślne kolumny to zwykle `Todo / In Progress / Done` - zmień/dodaj kolumny tak, żeby było dokładnie:
    - `To do`
    - `In progress`

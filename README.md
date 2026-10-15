@@ -1,6 +1,6 @@
-# Turbo Kret Drift
+# Turbo Mucha Drift
 
-Przeglądarkowa gra żartobliwa w klimacie JDM anime: napompuj kreta w gaciach Bukovskiego do pełnej turbiny (która strzela ogniem!), zamień się w fioletowe BMW E36 touring w stylu JDM — z naklejkami sponsorskimi i wydechem strzelającym ogniem podczas driftu — i zdriftuj wybrany tor (rondo albo ósemka) w 40 sekund, żeby maksymalnie go wkurwić. Wpisz nick, wejdź na TOP 5, odblokuj karty Bukovskiego.
+Przeglądarkowa gra żartobliwa w klimacie JDM anime: napompuj kreta do pełnej turbiny (która strzela ogniem!), zamień się w fioletowe BMW E36 touring w stylu JDM — z naklejkami sponsorskimi i wydechem strzelającym ogniem podczas driftu — i zdriftuj wybrany tor (rondo albo ósemka) w 40 sekund, żeby maksymalnie wkurzyć muchę. Wpisz nick, wejdź na TOP 5, odblokuj album zdjęć BMW E36.
 
 **Nowość: 🪰 Mucha za kierownicą.** W wyborze trybu jest opcja, w której autem steruje mózg prawdziwej muszki owocówki: 1926 neuronów wyciętych 1:1 z konektomu FlyWire i symulowanych na żywo w przeglądarce (`fly-brain.js` + `assets/fly-circuit.json`). Mucha widzi czerwoną linię i nadlatujący mur, a jej neurony skrętu kręcą kierownicą, bez żadnego treningu. Szczegóły, źródła i jak odtworzyć obwód: [docs/MUCHA.md](docs/MUCHA.md).
 
@@ -62,7 +62,7 @@ git push -u origin main
 
 Na ekranie startowym wybierasz tor (**Rondo** — jedna pętla, albo **Ósemka** — dwie) i wpisujesz nick. Po rundzie ekran końcowy pokazuje **globalny** ranking — TOP 5 najlepszych wyników i 5 najgorszych, widoczne dla wszystkich graczy (Twój aktualny wynik podświetlony), zapisywane we wspólnej bazie Redis (patrz sekcja o backendzie wyżej).
 
-Na ekranie startowym widać też galerię kart Bukovskiego, odblokowywanych za wynik: 80 pkt = "Bukovski Bojowy", 120 pkt = "Bukovski Legenda" (progi dobrane pod aktualną, trudniejszą punktację). Odblokowaną kartę można kliknąć — pokazuje obrazek i krótki żartobliwy "raport" z podziękowaniem za wkurwienie Bukovskiego. (Poproszono kiedyś o karty w bardziej rozebranej wersji Bukovskiego — celowo tego nie zrobiłem, bo to realna, nazwana osoba, i nie tworzę seksualizowanych wizerunków bez jej zgody; obie karty są w pełni ubrane, w tym samym żartobliwym klimacie co reszta gry.)
+Na ekranie startowym widać też **album E36**: 8 zdjęć prawdziwych driftowych BMW (`assets/bmw/e36-01…08.jpg`, ~100 KB każde) odblokowywanych za wynik: 25 / 50 / 80 / 100 / 120 / 150 / 200 / 250 pkt. Odblokowane zdjęcie można kliknąć — otwiera się jak polaroid z komentarzem w stylu wiechowym. Zablokowane nie ładują obrazu (zostaje znak zapytania), więc menu nie ciągnie 800 KB na starcie. Zdjęcia są też losowym tłem ekranów menu. Na zdjęciach widać tablice rejestracyjne i postronne osoby; zdjęcia są własnością autora gry — rozważ rozmycie tablic przed szerszą publikacją.
 
 ## Garaż i profile
 
@@ -77,8 +77,15 @@ Większość efektów jest syntezowana w locie przez Web Audio API, a główne b
 - nagranie jest zapętlone, przyspiesza wraz z prędkością i współpracuje z syntetycznym odcięciem oraz strzałami wydechu. **Sprawdź, skąd pochodzi ten plik** — jeśli to czyjeś nagranie dyno bez jasnej licencji na redystrybucję, warto je zastąpić czymś z potwierdzonymi prawami (własne nagranie, royalty-free, albo zostać przy w pełni syntetycznym silniku sprzed tej zmiany)
 - pisk opon narasta i cichnie razem z intensywnością driftu
 - uderzenie w pachołek i uderzenie w mur (utrata połowy punktów) mają własne efekty dźwiękowe
-- kwestie Bukovskiego są też **mówione na głos** przez wbudowaną syntezę mowy przeglądarki (Web Speech API, głos polski), z tempem i wysokością rosnącymi wraz z jego wkurwieniem
+- kwestie muchy są też **mówione na głos** przez wbudowaną syntezę mowy przeglądarki (Web Speech API, głos polski), z tempem i wysokością rosnącymi wraz z jej wkurwieniem
 
 Przycisk 🔊/🔇 w prawym górnym rogu HUD wycisza wszystko naraz (w tym mowę).
 
 Trzymanie gazu podczas jazdy powoduje ciągłe płomienie z wydechu; na odcięciu płomienie i strzały pojawiają się częściej.
+
+## Mucha jako przeciwnik i wyścig much w kasynie
+
+- **Przeciwnik:** przycisk „🪰 MUCHA JAKO PRZECIWNIK” dodaje na torze czerwone E36 prowadzone przez własny obwód neuronów (ta sama fizyka i punktacja co gracz: `rival-car.js`). Mózg liczy się w Web Workerze (`fly-agent.js`, `fly-brain-worker.js`). Jeśli mucha wygra, pojawia się plansza „Masz za małe kule he he”.
+- **Wyścig much (kasyno):** losowa para aut z konfiguracji seryjnych, dwa osobne mózgi, 30 s, wygrywa wyższy wynik; wypłata ×1,9, remis zwraca stawkę. Stawkę pobiera serwer (`api/_lib/flybet.js`, akcje `fly_bet_place` / `fly_bet_settle`).
+- **Uczciwie o ograniczeniu:** zwycięzcę zgłasza klient, serwer go nie weryfikuje (pilnuje tylko stawki, biletu, minimalnego czasu 20 s i ważności 15 min). W grze wirtualnej za śrubki to akceptowalne; przed jakąkolwiek wartością realną wymagałoby to symulacji po stronie serwera.
+- **Kasyno** (blackjack, wyścig much, plansza wygranej) ma stylistykę vintage: zielone sukno, mosiądz, kremowe karty.

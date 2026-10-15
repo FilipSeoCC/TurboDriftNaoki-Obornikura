@@ -51,6 +51,13 @@ function normalizeHistory(value) {
   }));
 }
 
+function normalizeFlyBet(value) {
+  if (!value || typeof value !== 'object') return null;
+  const stake = Math.floor(Number(value.stake) || 0), at = Number(value.at);
+  if (stake < 1 || (value.pick !== 0 && value.pick !== 1) || !Number.isFinite(at)) return null;
+  return { stake, pick: value.pick, at };
+}
+
 function normalizeProfile(value) {
   const source = value && typeof value === 'object' ? value : {};
   const car = CAR_BY_ID.has(source.car) ? source.car : 'e36_touring';
@@ -68,6 +75,7 @@ function normalizeProfile(value) {
     ownedCars: uniqueKnownCars(source.ownedCars, car),
     unlockedTracks: uniqueKnownTracks(source.unlockedTracks),
     casinoHistory: normalizeHistory(source.casinoHistory),
+    flyBet: normalizeFlyBet(source.flyBet),
   };
 }
 

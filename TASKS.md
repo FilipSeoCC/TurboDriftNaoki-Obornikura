@@ -17,6 +17,8 @@ wystarczy `[agent]`.
 
 ## Done
 
+- [claude-code / ja] Turbo Mucha Drift: zmiana nazwy, mucha jako przeciwnik (single i multi) z planszą „Masz za małe kule he he”, wyścig much z zakładami w kasynie (`rival-car.js`, `fly-agent.js`, `fly-brain-worker.js`, `api/_lib/flybet.js`, akcje `fly_bet_place`/`fly_bet_settle`, testy), karta eksperymentu, popup tuningu, nowa pauza/menu, poprawki wydajności (cache sceny, brak shadowBlur), album 8 zdjęć BMW E36 zamiast kart Bukovskiego, kasyno w stylu vintage. Część logiki/backendu (normalnie Codex) zrobiona przez Claude Code na wyraźne polecenie właściciela repo, bo Codex nie był dziś dostępny. Znane ograniczenie: zwycięzca zakładu zgłaszany przez klienta (2026-10-15)
+
 - [claude-code / ja] Tryb „🪰 Mucha za kierownicą”: autem steruje obwód 1926 neuronów z konektomu FlyWire v783 symulowany na żywo (`fly-brain.js`, `assets/fly-circuit.json`), podgląd mózgu w HUD, wynik do rankingu jako „🪰 MUCHA”, skrypt odtwarzający obwód (`tools/fly/extract_circuit.py`), testy, `docs/MUCHA.md`. Całość (UI + sterowanie w silniku wyścigu) zrobiona przez Claude Code na wyraźne polecenie właściciela repo, bez delegacji do Codexa (2026-10-15)
 
 - [codex] Worker GitHub Actions 24/7 dla issues `codex` + `logika/backend` (2026-07-18)
