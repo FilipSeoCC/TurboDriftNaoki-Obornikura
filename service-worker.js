@@ -1,8 +1,10 @@
 // Bump when statyczne assety zmieniają się w sposób który wymaga odświeżenia cache.
-const CACHE = 'tkd-v1';
+const CACHE = 'tkd-v2';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
+  '/fly-brain.js',
+  '/assets/fly-circuit.json',
   '/manifest.webmanifest',
   '/assets/bmw-upierdalanie-anthem.mp3',
   '/assets/mazda-rx8-dyno.mp3',

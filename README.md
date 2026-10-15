@@ -2,6 +2,8 @@
 
 Przeglądarkowa gra żartobliwa w klimacie JDM anime: napompuj kreta w gaciach Bukovskiego do pełnej turbiny (która strzela ogniem!), zamień się w fioletowe BMW E36 touring w stylu JDM — z naklejkami sponsorskimi i wydechem strzelającym ogniem podczas driftu — i zdriftuj wybrany tor (rondo albo ósemka) w 40 sekund, żeby maksymalnie go wkurwić. Wpisz nick, wejdź na TOP 5, odblokuj karty Bukovskiego.
 
+**Nowość: 🪰 Mucha za kierownicą.** W wyborze trybu jest opcja, w której autem steruje mózg prawdziwej muszki owocówki: 1926 neuronów wyciętych 1:1 z konektomu FlyWire i symulowanych na żywo w przeglądarce (`fly-brain.js` + `assets/fly-circuit.json`). Mucha widzi czerwoną linię i nadlatujący mur, a jej neurony skrętu kręcą kierownicą, bez żadnego treningu. Szczegóły, źródła i jak odtworzyć obwód: [docs/MUCHA.md](docs/MUCHA.md).
+
 Front jest statyczny (`index.html`, bez buildu, bez zależności). Globalna tablica wyników korzysta z jednej serverless function (`api/scores.js`) i bazy Redis (Upstash) podpiętej pod projekt na Vercelu.
 
 ## Uruchomienie lokalnie
