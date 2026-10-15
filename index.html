@@ -125,15 +125,42 @@
   }
   #hint b{ color:var(--white); }
   .game-actions{
-    position:absolute; top:calc(86px + env(safe-area-inset-top)); left:calc(14px + env(safe-area-inset-left)); z-index:12;
-    display:flex; gap:8px;
+    position:absolute; top:calc(74px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%); z-index:12;
+    display:flex;
   }
   .game-actions[hidden]{ display:none; }
   .game-action-btn{
-    padding:9px 14px; border:1px solid #ffffff38; border-radius:7px; cursor:pointer;
-    background:#11151ddd; color:var(--white); font:800 11px/1 Arial,sans-serif;
-    letter-spacing:.06em; box-shadow:0 3px 10px #0008; backdrop-filter:blur(4px);
+    width:40px; height:40px; padding:0; border:1px solid #ffffff38; border-radius:50%; cursor:pointer;
+    background:#11151dcc; color:var(--white); font:800 16px/1 Arial,sans-serif;
+    box-shadow:0 3px 10px #0008; backdrop-filter:blur(4px);
   }
+  .pause-menu{ position:absolute; inset:0; z-index:40; display:flex; align-items:center; justify-content:center; background:#0b0d10d9; backdrop-filter:blur(3px); padding:20px; }
+  .pause-menu[hidden]{ display:none; }
+  .pause-card{ display:flex; flex-direction:column; gap:10px; width:min(86vw,300px); padding:22px; border:2px solid var(--orange); border-radius:12px; background:linear-gradient(180deg,var(--panel),#14171c); box-shadow:0 20px 40px #000a; }
+  .pause-card h2{ margin:0 0 4px; text-align:center; font-size:22px; color:var(--white); }
+  .pause-card .btn:nth-of-type(2){ margin-top:14px; } /* restart odsunięty od „Wznów” */
+  .tune-modal{ position:fixed; inset:0; z-index:70; display:flex; align-items:center; justify-content:center; background:#0b0d10d9; backdrop-filter:blur(3px); padding:20px; }
+  .tune-modal[hidden]{ display:none; }
+  .tune-modal-card{ width:min(92vw,400px); padding:24px 22px 20px; text-align:center; border:2px solid #ffd65a; border-radius:14px; background:linear-gradient(180deg,var(--panel),#14171c); box-shadow:0 0 40px #ffd65a30,0 20px 40px #000a; }
+  .tune-modal-icon{ font-size:44px; line-height:1; margin-bottom:6px; }
+  .tune-modal-card h2{ margin:0 0 10px; font-size:20px; color:#ffd65a; }
+  .tune-modal-card p{ margin:0 0 10px; font-size:15px; line-height:1.5; color:var(--white); }
+  .tune-modal-card .tune-modal-hint{ font-size:13px; color:var(--grey); }
+  .tune-modal-card .btn{ width:100%; margin-top:6px; }
+  .experiment-card{ text-align:left; max-height:calc(100% - 24px); overflow-y:auto; touch-action:pan-y; }
+  .experiment-card h1,.experiment-card .sub{ text-align:center; }
+  .experiment-card h3{ margin:18px 0 6px; font-size:15px; color:var(--orange-2); }
+  .experiment-card p,.experiment-card li{ font-size:14px; line-height:1.55; color:var(--white); }
+  .experiment-card ol{ margin:6px 0 0; padding-left:20px; }
+  .exp-table{ display:grid; gap:8px; }
+  .exp-table > div{ display:grid; gap:2px; padding:8px 10px; border-radius:8px; background:#090b10aa; border-left:3px solid var(--teal); }
+  .exp-table span{ font-size:12px; color:var(--grey); }
+  .exp-table em{ font-style:normal; font-size:12px; color:var(--orange-2); font-weight:700; }
+  .exp-links{ display:flex; flex-wrap:wrap; gap:6px 14px; }
+  .exp-links a{ color:var(--teal); font-size:13px; }
+  .tuning-row.pulse{ animation:tunePulse 1.1s ease-in-out 3; }
+  @keyframes tunePulse{ 0%,100%{ box-shadow:0 0 0 0 #ffd65a00; } 50%{ box-shadow:0 0 0 3px #ffd65acc; } }
+  .buy-btn.locked{ filter:grayscale(.7); opacity:.7; }
   .game-action-btn:hover,.game-action-btn:active{ border-color:var(--orange); color:var(--orange-2); }
 
   .screen{
@@ -489,15 +516,31 @@
 
       <div class="hud-panel" id="scorePanel">
         <button class="mute-btn" id="muteBtn" aria-label="Wycisz dźwięk" type="button">🔊</button>
-        <div class="hud-label" style="text-align:right">Wkurw Bukovskiego</div>
+        <div class="hud-label" style="text-align:right">Wkurw Muchy</div>
         <div class="meter rage"><i id="rageMeter"></i></div>
         <div id="scoreVal" class="display mono" style="margin-top:6px;">0</div>
       </div>
     </div>
 
     <div class="game-actions" id="gameActions" hidden>
-      <button class="game-action-btn" id="btnPause" type="button">⏸ PAUZA [P]</button>
-      <button class="game-action-btn" id="btnRestart" type="button">↻ RESTART [R]</button>
+      <button class="game-action-btn" id="btnPause" type="button" aria-label="Pauza (P)">⏸</button>
+    </div>
+    <div class="pause-menu" id="pauseMenu" role="dialog" aria-modal="true" aria-label="Pauza" hidden>
+      <div class="pause-card">
+        <h2>Pauza</h2>
+        <button class="btn" id="btnResume" type="button">▶ Wznów [P]</button>
+        <button class="btn btn-secondary" id="btnRestart" type="button">↻ Zacznij od nowa [R]</button>
+        <button class="btn btn-secondary" id="btnPauseMenu" type="button">⌂ Menu główne</button>
+      </div>
+    </div>
+    <div class="tune-modal" id="tuneModal" role="alertdialog" aria-modal="true" aria-labelledby="tuneModalTitle" hidden>
+      <div class="tune-modal-card">
+        <div class="tune-modal-icon" id="tuneModalIcon">🔧</div>
+        <h2 id="tuneModalTitle"></h2>
+        <p id="tuneModalText"></p>
+        <p class="tune-modal-hint" id="tuneModalHint"></p>
+        <button class="btn" id="tuneModalOk" type="button">Rozumiem</button>
+      </div>
     </div>
 
     <div id="quoteBubble"></div>
@@ -573,6 +616,7 @@
           <button class="btn garage-btn" id="btnGarage" type="button">🔧 Garaż</button>
           <button class="btn garage-btn" id="btnCasino" type="button" style="background:#7a2fd1;">🎰 Kasyno · Blackjack</button>
           <button class="btn btn-secondary" id="btnLeaderboardOpen" type="button">🏆 Tabela wyników</button>
+          <button class="btn btn-secondary" id="btnExperimentOpen" type="button">🪰 Eksperyment: Mucha</button>
           <button class="btn btn-secondary" id="btnSettingsOpen" type="button">⚙ Ustawienia</button>
         </div>
         <p class="card-gallery-caption">Wykręć jak najlepszy wynik, żeby odblokować karty Bukovskiego!</p>
@@ -676,7 +720,7 @@
         <h1 id="endTitle">Runda <span>Zaliczona</span></h1>
         <div class="result-grid">
           <div class="result-item"><div class="num mono" id="endScore">0</div><div class="lbl">Punkty driftu</div></div>
-          <div class="result-item"><div class="num mono" id="endRage">0%</div><div class="lbl">Wkurw Bukovskiego</div></div>
+          <div class="result-item"><div class="num mono" id="endRage">0%</div><div class="lbl">Wkurw Muchy</div></div>
         </div>
         <p class="verdict" id="endVerdict">—</p>
         <div class="balance" id="endBalance">🔩 +1000 za przejazd</div>
@@ -702,6 +746,46 @@
           <button class="btn btn-secondary" id="btnEndGarage" type="button">🔧 Garaż</button>
           <button class="btn btn-secondary" id="btnEndMenu" type="button">⌂ Menu główne</button>
         </div>
+      </div>
+    </div>
+
+    <div class="screen menu-screen" id="screenExperiment" hidden>
+      <div class="card experiment-card">
+        <p class="sub">Eksperyment</p>
+        <h1>Kret kontra <span>Mucha</span></h1>
+        <p class="lead">Przeciwnik w tej grze nie jest botem. To <b>kawałek mózgu prawdziwej muszki owocówki</b>, uruchomiony na żywo w Twojej przeglądarce. Nikt go nie trenował i nikt nie stroił jego wag.</p>
+
+        <h3>Skąd jest ten mózg</h3>
+        <p>Naukowcy przeświecili mózg jednej muchy mikroskopem elektronowym i zmapowali każdy neuron oraz każde połączenie między nimi. Ta mapa to <b>konektom FlyWire</b>: ok. 139 tysięcy neuronów i 15 milionów połączeń. My bierzemy tabelę połączeń i parametry modelu neuronu z publikacji Shiu i in. (Nature 2024).</p>
+
+        <h3>Jak z całego mózgu zrobił się obwód do gry</h3>
+        <ol>
+          <li>Symulujemy <b>cały mózg</b> przy 28 kombinacjach tego, co może zobaczyć mucha w grze (linia z lewej lub prawej, mur z lewej lub prawej, różna siła bodźca).</li>
+          <li>Zostawiamy neurony, które <b>choć raz wystrzeliły</b>, plus wejścia i wyjścia. Zostaje <b>1926 neuronów, 135 tys. połączeń i 1,2 mln synaps</b>. Neuron, który nigdy nie strzela, na nic nie wpływa.</li>
+          <li>Porównujemy okrojony obwód z pełnym mózgiem na nowych bodźcach. Średnia różnica częstotliwości impulsów to <b>1,3 Hz</b>.</li>
+        </ol>
+
+        <h3>Co mucha widzi i czym kręci</h3>
+        <div class="exp-table">
+          <div><b>Czerwona linia przed maską</b><span>neurony LC10a (obiekt w polu widzenia, u samców pościg za samicą)</span><em>skręt w stronę linii</em></div>
+          <div><b>Mur nadlatuje z boku</b><span>neurony LPLC2 i LC4 (coś na mnie leci)</span><em>ucieczka w drugą stronę</em></div>
+          <div><b>Silny sygnał zagrożenia</b><span>giant fiber DNp01, odruch ucieczki</span><em>hydrołapa</em></div>
+          <div><b>Cofanie</b><span>neurony MDN (moonwalker)</span><em>puszczenie gazu</em></div>
+        </div>
+
+        <h3>Co jest nasze, a nie muchy</h3>
+        <p>Tylko tłumaczenie gry na język mózgu i z powrotem: jak mocno świeci bodziec, gdzie mucha patrzy, ile Hz różnicy znaczy pełny skręt kierownicy. Mucha jedzie czerwonym E36 na tych samych zasadach punktacji co Ty i nie zarabia śrubek.</p>
+
+        <h3>Uczciwie o ograniczeniach</h3>
+        <p>To mały fragment mózgu i uproszczony model neuronu. Mucha nie „rozumie” gry. Reaguje odruchami, więc potrafi się rozbić i jej wyniki są losowe, bo neurony wejściowe strzelają w sposób losowy (proces Poissona), tak jak w oryginalnym modelu.</p>
+
+        <h3>Źródła</h3>
+        <p class="exp-links">
+          <a href="https://github.com/philshiu/Drosophila_brain_model" target="_blank" rel="noopener">Model mózgu (Shiu i in. 2024)</a>
+          <a href="https://github.com/flyconnectome/flywire_annotations" target="_blank" rel="noopener">Adnotacje typów komórek</a>
+          <a href="https://github.com/FilipSeoCC/TurboDriftNaoki-Obornikura/blob/main/docs/MUCHA.md" target="_blank" rel="noopener">Pełny opis w repo</a>
+        </p>
+        <div class="panel-nav"><button class="btn" id="btnExperimentPlay" type="button">🪰 Zagraj z muchą</button><button class="btn btn-secondary" id="btnExperimentBack" type="button">← Menu główne</button></div>
       </div>
     </div>
 
@@ -830,7 +914,8 @@
   var screenSettings = document.getElementById('screenSettings');
   var screenLobby = document.getElementById('screenLobby');
   var screenLeaderboard = document.getElementById('screenLeaderboard');
-  var ALL_SCREENS = [screenLogin, screenWelcome, screenTitle, screenGarage, screenTrackSelect, screenModeSelect, screenLobby, screenSettings, screenLeaderboard, screenEnd];
+  var screenExperiment = document.getElementById('screenExperiment');
+  var ALL_SCREENS = [screenLogin, screenWelcome, screenTitle, screenGarage, screenTrackSelect, screenModeSelect, screenLobby, screenSettings, screenLeaderboard, screenExperiment, screenEnd];
   function hideAllScreens(){ ALL_SCREENS.forEach(function(s){ s.hidden = true; }); }
   var btnLogin = document.getElementById('btnLogin');
   var btnWelcomeNext = document.getElementById('btnWelcomeNext');
@@ -873,6 +958,9 @@
   var gameActions = document.getElementById('gameActions');
   var btnPause = document.getElementById('btnPause');
   var btnRestart = document.getElementById('btnRestart');
+  var btnResume = document.getElementById('btnResume');
+  var btnPauseMenu = document.getElementById('btnPauseMenu');
+  var pauseMenu = document.getElementById('pauseMenu');
   var nickInput = document.getElementById('nickInput');
   var emailInput = document.getElementById('emailInput');
   var emailConsent = document.getElementById('emailConsent');
@@ -1125,6 +1213,43 @@
     g.fillStyle=m.color;g.fillRect(10,92,54,5);g.fillStyle='#08090c';g.fillRect(9,97,56,4);
     if(mx5){g.restore();}
   }
+  var tuneModal=document.getElementById('tuneModal'),tuneOk=document.getElementById('tuneModalOk');
+  function closeTuneModal(){tuneModal.hidden=true;}
+  tuneOk.addEventListener('click',closeTuneModal);
+  tuneModal.addEventListener('click',function(e){if(e.target===tuneModal)closeTuneModal();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!tuneModal.hidden)closeTuneModal();});
+  // Duże okienko zamiast jednej linijki: gracz ma zrozumieć, DLACZEGO nie kupi części i co zrobić dalej.
+  function showTuneModal(err,cat,tier,carName){
+    var code=err&&err.error,next=(err&&err.required)||tier+1,name=TUNING_NAMES[cat],need=[],icon='🔧',title,text,hint='';
+    function req(c,label){need.push(c);return label+' Stage '+next;}
+    if(code==='not_enough_currency'){
+      icon='🔩';title='Za mało śrubek';
+      text=name+' Stage '+next+' kosztuje 500 🔩, a masz '+Math.floor(currentProfile.currency||0)+'.';
+      hint='Śrubki dostajesz za każdy ukończony przejazd (+1000) oraz za polecenie gry znajomemu (+2000).';
+    }else if(code==='requires_clutch'||code==='requires_injectors'||code==='requires_fuelpump'){
+      icon='⛓️';
+      var label=code==='requires_clutch'?req('clutch','Sprzęgło'):code==='requires_injectors'?req('injectors','Wtryski'):req('fuelpump','Pompa paliwa');
+      title='Najpierw kup: '+label;
+      text=(cat==='turbo'?'Turbo':'Kompresor')+' Stage '+next+' dodaje dużo mocy, a seryjna reszta auta by tego nie wytrzymała. Dlatego najpierw trzeba wzmocnić napęd.';
+      hint=cat==='turbo'?'Do turbo potrzebujesz po kolei: sprzęgła, wtrysków i pompy paliwa na tym samym Stage.':'Do kompresora wystarczy sprzęgło na tym samym Stage.';
+    }else if(code==='boost_conflict'){
+      icon='🌀';title='Turbo albo kompresor, nie oba';
+      text='W jednym aucie możesz mieć tylko jedno doładowanie. '+carName+' ma już '+(cat==='turbo'?'kompresor':'turbo')+'.';
+      hint='Chcesz zmienić ścieżkę? Wybierz inne auto w garażu, każde ma osobny tuning.';
+    }else if(code==='max_tier'){
+      icon='✅';title='Ta część jest już na maksa';text=name+' ma Stage 3, wyżej się nie da.';
+    }else{
+      icon='⚠️';title='Zakup nie powiódł się';text='Coś poszło nie tak po stronie gry. Spróbuj jeszcze raz za chwilę.';
+    }
+    document.getElementById('tuneModalIcon').textContent=icon;
+    document.getElementById('tuneModalTitle').textContent=title;
+    document.getElementById('tuneModalText').textContent=text;
+    var h=document.getElementById('tuneModalHint');h.textContent=hint;h.hidden=!hint;
+    tuneModal.hidden=false;tuneOk.focus();
+    if(need.length){tuneOk.onclick=null;tuneOk.addEventListener('click',function pulse(){tuneOk.removeEventListener('click',pulse);
+      var row=tuningList.querySelector('[data-cat="'+need[0]+'"]');
+      if(row){row.scrollIntoView({block:'center',behavior:'smooth'});row.classList.remove('pulse');void row.offsetWidth;row.classList.add('pulse');}});}
+  }
   function renderGarage(){
     if (!carChoice||!tuningList) return;
     carChoice.innerHTML=''; Object.keys(CAR_MODELS).forEach(function(id){var m=CAR_MODELS[id],carMods=currentProfile.carMods[id]||EMPTY_MODS,output=modelOutput(m,carMods),b=document.createElement('button'),preview=document.createElement('canvas');b.type='button';b.className='car-option'+(currentProfile.car===id?' selected':'');preview.className='car-preview';preview.setAttribute('aria-label','Widok z góry '+m.name);b.appendChild(preview);var label=document.createElement('div');label.className='car-name';label.textContent=m.name;b.appendChild(label);var power=document.createElement('div');power.className='car-power';power.textContent=output.hp+' KM · '+output.nm+' Nm';b.appendChild(power);b.addEventListener('click',function(){var token=++garageActionToken;garageNotice.textContent='Wybieram auto...';profileAction('select_car',{car:id}).then(function(){if(token===garageActionToken)garageNotice.textContent='Wybrano: '+m.name+' · tuning tego auta jest aktywny';}).catch(function(){if(token===garageActionToken)garageNotice.textContent='Nie udało się wybrać auta.';});});carChoice.appendChild(b);drawGarageCarIcon(preview,id);});
@@ -1136,7 +1261,7 @@
       '<div class="spec-item"><div class="spec-label">Moment</div><div class="spec-value">'+selectedOutput.nm+' Nm</div></div>'+
       '<div class="spec-item"><div class="spec-label">Doładowanie</div><div class="spec-value" style="font-size:12px">'+boost+'</div></div>'+
       '<div class="spec-item"><div class="spec-label">Sprzęgło</div><div class="spec-value">Stage '+mods.clutch+'</div></div></div>';
-    tuningList.innerHTML=''; TUNING_ORDER.forEach(function(cat){var tier=mods[cat]||0,row=document.createElement('div');row.className='tuning-row';var req=cat==='turbo'?' · wymaga sprzęgła, wtrysków i pompy':(cat==='supercharger'?' · wymaga sprzęgła':'');row.innerHTML='<div class="tuning-name">'+TUNING_NAMES[cat]+'<button class="tuning-info" type="button" data-tip="'+TUNING_EFFECTS[cat]+'" aria-label="Co zmienia '+TUNING_NAMES[cat]+'?">?</button><small style="display:block;color:var(--grey);font-weight:400">'+req+'</small></div><div class="tuning-tier">Stage '+tier+'/3</div>';var buy=document.createElement('button');buy.className='btn buy-btn';buy.type='button';buy.textContent=tier>=3?'MAX':'KUP 500';buy.disabled=tier>=3||currentProfile.currency<500;buy.addEventListener('click',function(){var token=++garageActionToken;garageNotice.textContent='Kupuję '+TUNING_NAMES[cat]+' dla '+selected.name+'...';profileAction('buy',{category:cat}).then(function(){if(token===garageActionToken)garageNotice.textContent='Kupiono '+TUNING_NAMES[cat]+' · zapisano dla '+selected.name;}).catch(function(err){if(token!==garageActionToken)return;var messages={requires_clutch:'Najpierw kup sprzęgło Stage '+(err.required||tier+1),requires_injectors:'Najpierw kup wtryski Stage '+(err.required||tier+1),requires_fuelpump:'Najpierw kup pompę paliwa Stage '+(err.required||tier+1),boost_conflict:'Wybierz jedną ścieżkę: turbo albo kompresor.',not_enough_currency:'Za mało śrubek.',max_tier:'Ta część ma już maksymalny Stage.'};garageNotice.textContent=messages[err&&err.error]||'Zakup nie powiódł się.';});});row.appendChild(buy);tuningList.appendChild(row);});
+    tuningList.innerHTML=''; TUNING_ORDER.forEach(function(cat){var tier=mods[cat]||0,row=document.createElement('div');row.className='tuning-row';var req=cat==='turbo'?' · wymaga sprzęgła, wtrysków i pompy':(cat==='supercharger'?' · wymaga sprzęgła':'');row.innerHTML='<div class="tuning-name">'+TUNING_NAMES[cat]+'<button class="tuning-info" type="button" data-tip="'+TUNING_EFFECTS[cat]+'" aria-label="Co zmienia '+TUNING_NAMES[cat]+'?">?</button><small style="display:block;color:var(--grey);font-weight:400">'+req+'</small></div><div class="tuning-tier">Stage '+tier+'/3</div>';var buy=document.createElement('button');buy.className='btn buy-btn';buy.type='button';buy.textContent=tier>=3?'MAX':'KUP 500';buy.disabled=tier>=3;if(tier<3&&currentProfile.currency<500)buy.classList.add('locked');row.setAttribute('data-cat',cat);buy.addEventListener('click',function(){var token=++garageActionToken;garageNotice.textContent='Kupuję '+TUNING_NAMES[cat]+' dla '+selected.name+'...';profileAction('buy',{category:cat}).then(function(){if(token===garageActionToken)garageNotice.textContent='Kupiono '+TUNING_NAMES[cat]+' · zapisano dla '+selected.name;}).catch(function(err){if(token!==garageActionToken)return;garageNotice.textContent='';showTuneModal(err,cat,tier,selected.name);});});row.appendChild(buy);tuningList.appendChild(row);});
   }
 
   // ---------- nickname, leaderboard, unlockable cards (all via localStorage) ----------
@@ -1381,9 +1506,9 @@
   }
   renderCardGallery();
 
-  var quotesLow = ["Bukovski zapala szluga, ma to w nosie.","Bukovski: 'a i tak zapalę.'","Bukovski pyka fajkę na ganku, olewa sprawę.","Bukovski wraca do dymka, cisza."];
-  var quotesMid = ["Bukovski gasi szluga: 'co tu, kurwa, jedzie?!'","Bukovski: 'ZNOWU TEN KRET?!'","Bukovski szuka kamienia do rzucenia.","Bukovski: 'Moje pelargonie, gnido!'","Bukovski: 'Debilu, mój kutas nie jest taki mały — to moja ręka jest taka duża!'"];
-  var quotesHigh = ["GÓWNIARZU ZASRANY ZAJEBANY!!!","ALE URWAŁ!","Bukovski: 'IDĘ PO WIDŁY!!!'","WON STĄD, KRECIU JEDEN!","KURWA JEGO MAĆ, ZNOWU ON!","Bukovski: 'Spierdalaj z mojej ziemi, kurwibonku!'","Bukovski: 'Pies cię jebał, psiakońcówko!'"];
+  var quotesLow = ["Mucha brzęczy: bzzz, nawet nie zauważyła.","Mucha: 'jeszcze ci wolno, kreciku.'","Mucha czyści łapki, jedzie na luzie.","Mucha ziewa: 'nuda, bzz.'"];
+  var quotesMid = ["Mucha: 'bzzz, co tu, kurwa, jedzie?!'","Mucha: 'ZNOWU TEN KRET?!'","Mucha wyciąga skrzydła do pościgu.","Mucha: 'Dogonię cię, gnido!'","Mucha: 'Mam 1926 neuronów, a ty masz jeden i ten zepsuty!'"];
+  var quotesHigh = ["BZZZ! MASZ ZA MAŁE KULE HE HE","ALE URWAŁ!","Mucha: 'ZARAZ CIĘ ZMIOTĘ Z TORU!!!'","WON Z MOJEGO TORU, KRECIU JEDEN!","KURWA JEJ MAĆ, ZNOWU ON!","Mucha: 'Spierdalaj z mojej ziemi, kurwibonku!'","Mucha: 'Pies cię jebał, psiakońcówko!'"];
 
   function rand(a,b){ return a + Math.random()*(b-a); }
   function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
@@ -1572,7 +1697,7 @@
   function speakQuote(text){
     if (muted || !window.speechSynthesis) return;
     try{
-      var clean = text.replace(/^Bukovski:\s*'?/,'').replace(/'$/,'');
+      var clean = text.replace(/^Mucha:\s*'?/,'').replace(/'$/,'');
       window.speechSynthesis.cancel();
       var u = new SpeechSynthesisUtterance(clean);
       u.lang = 'pl-PL';
@@ -1788,7 +1913,7 @@
     stopMultiplayer(true);
     STATE = 'title';
     updateTouchControls();
-    keys={}; gameActions.hidden=true; cardModal.hidden=true; flyPanel.hidden=true; flyBrain=null;
+    keys={}; gameActions.hidden=true; pauseMenu.hidden=true; cardModal.hidden=true; flyPanel.hidden=true; flyBrain=null;
     cardGalleryEnd.classList.remove('card-attention'); if(cardClickHint) cardClickHint.style.display='none';
   }
   function showLogin(){ resetToMenuUi(); hideAllScreens(); screenLogin.hidden=false; btnBackHome.hidden=true; }
@@ -1815,6 +1940,10 @@
   btnSettingsBack.addEventListener('click', showMainMenu);
   btnLeaderboardOpen.addEventListener('click', showLeaderboard);
   btnLeaderboardBack.addEventListener('click', showMainMenu);
+  function showExperiment(){ resetToMenuUi(); hideAllScreens(); screenExperiment.hidden=false; screenExperiment.scrollTop=0; btnBackHome.hidden=false; }
+  document.getElementById('btnExperimentOpen').addEventListener('click', showExperiment);
+  document.getElementById('btnExperimentBack').addEventListener('click', showMainMenu);
+  document.getElementById('btnExperimentPlay').addEventListener('click', function(){ ensureAudio(); showTrackSelect(); });
   btnQuickStart.addEventListener('click', showTrackSelect);
   btnGarageStartRace.addEventListener('click', showTrackSelect);
   btnTrackSelectBack.addEventListener('click', showGarage);
@@ -1978,6 +2107,8 @@
   btnRetry.addEventListener('click', function(){ ensureAudio(); showMainMenu(); });
   btnPause.addEventListener('click', function(){ ensureAudio(); togglePause(); });
   btnRestart.addEventListener('click', function(){ ensureAudio(); restartRun(); });
+  btnResume.addEventListener('click', function(){ ensureAudio(); togglePause(); });
+  btnPauseMenu.addEventListener('click', function(){ showMainMenu(); });
 
   function silenceDrivingAudio(){
     if (!audioCtx) return;
@@ -1988,15 +2119,15 @@
 
   function togglePause(){
     if (STATE === 'drift'){
-      STATE = 'paused'; keys = {}; btnPause.textContent = '▶ WZNÓW [P]'; silenceDrivingAudio();
+      STATE = 'paused'; keys = {}; pauseMenu.hidden = false; silenceDrivingAudio();
     } else if (STATE === 'paused'){
-      STATE = 'drift'; btnPause.textContent = '⏸ PAUZA [P]'; ensureAudio();
+      STATE = 'drift'; pauseMenu.hidden = true; ensureAudio();
     }
   }
 
   function restartRun(){
     if (STATE !== 'drift' && STATE !== 'paused') return;
-    keys = {}; btnPause.textContent = '⏸ PAUZA [P]'; startDrift();
+    keys = {}; pauseMenu.hidden = true; startDrift();
   }
 
   // ---------- touch controls ----------
@@ -2289,7 +2420,7 @@
   function startDrift(){
     STATE = 'drift';
     updateTouchControls();
-    gameActions.hidden = false;
+    gameActions.hidden = false; btnBackHome.hidden = true;
     var model=CAR_MODELS[currentProfile.car]||CAR_MODELS.e36_touring,mods=currentProfile.mods||DEFAULT_PROFILE.mods;
     var boostTier=(mods.turbo||0)+(mods.supercharger||0);
     effectiveStats={
