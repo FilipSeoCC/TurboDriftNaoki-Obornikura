@@ -2355,6 +2355,7 @@
   }
   function startBetRace(pick, stake){
     resetToMenuUi(); hideAllScreens(); btnBackHome.hidden = true;
+    streetEndless = false; camX = 0; camY = 0;
     trackMode = fbTrack; setupTrack();
     var len = SCORING_PATH.length;
     var racers = [0,1].map(function(i){
@@ -2925,15 +2926,18 @@
   function ghostStorageKey(){return 'tkd_ghost_v1_'+profileNick().toLowerCase().replace(/[^a-z0-9_-]/g,'_')+'_'+trackMode;}
   function loadBestGhost(){
     ghostBest=null;ghostCursor=0;
+    if(streetEndless)return;
     try{var saved=JSON.parse(localStorage.getItem(ghostStorageKey()));if(saved&&Number(saved.score)>0&&Array.isArray(saved.points)&&saved.points.length>1)ghostBest=saved;}catch(e){}
   }
   function recordGhostPoint(){
+    if(streetEndless)return;
     var elapsed=40-drift.time;
     if(!car||elapsed-ghostLastSample<.08)return;
     ghostLastSample=elapsed;
     ghostRun.push({t:Math.round(elapsed*1000)/1000,x:Math.round(car.x/Math.max(W,1)*10000)/10000,y:Math.round(car.y/Math.max(H,1)*10000)/10000,a:Math.round(car.angle*1000)/1000});
   }
   function saveBestGhost(score){
+    if(streetEndless)return false;
     if(score<=0||ghostRun.length<2||(ghostBest&&score<=Number(ghostBest.score)))return false;
     ghostBest={score:score,car:currentProfile.car,points:ghostRun};
     try{localStorage.setItem(ghostStorageKey(),JSON.stringify(ghostBest));}catch(e){}
@@ -2952,6 +2956,7 @@
   }
   function startDrift(){
     STATE = 'drift';
+    streetEndless = (trackMode === 'ulica' && !multiplayerEnabled && !rivalMode && !flyMode); camX = 0; camY = 0;
     updateTouchControls();
     gameActions.hidden = false; btnBackHome.hidden = true;
     var mods=currentProfile.mods||DEFAULT_PROFILE.mods;
@@ -2966,9 +2971,9 @@
     if (tcSpace){ tcSpace.textContent = 'HYDROŁAPA'; tcSpace.setAttribute('aria-label','Hydrołapa — hydrauliczny hamulec ręczny'); }
     car = { x: W/2, y: H-80, angle: -Math.PI/2, vx:0, vy:0, speed:0, wheelSpin:0, wallHitAt:-9999 };
     setupTrack();
-    var startIndex = trackMode === 'rondo' ? Math.floor(SCORING_PATH.length/4) : Math.floor(SCORING_PATH.length/8);
-    var startPoint = SCORING_PATH[startIndex];
-    var nextPoint = SCORING_PATH[(startIndex+1)%SCORING_PATH.length];
+    var startIndex = streetEndless ? 12 : (trackMode === 'rondo' ? Math.floor(SCORING_PATH.length/4) : (trackMode === 'ulica' ? 4 : Math.floor(SCORING_PATH.length/8)));
+    var startPoint = streetEndless ? EN.pts[12] : SCORING_PATH[startIndex];
+    var nextPoint = streetEndless ? EN.pts[13] : SCORING_PATH[(startIndex+1)%SCORING_PATH.length];
     car.x = startPoint.x; car.y = startPoint.y;
     car.angle = Math.atan2(nextPoint.y-startPoint.y,nextPoint.x-startPoint.x);
     laps.forEach(function(lp, idx){
@@ -2976,6 +2981,7 @@
       lp.accum = 0; lp.active = false; lp.laps = 0;
     });
     streetLap.prevIdx = startIndex; streetLap.accum = 0; streetLap.active = false; streetLap.laps = 0;
+    if (streetEndless){ EN.last = 12; EN.cache = null; endlessCamera(0, true); hint.innerHTML = '<b>Trasa bez końca:</b> nitka buduje się przed Tobą. <b>W / &uarr;</b> gaz &middot; <b>&larr; &rarr;</b> skręt &middot; <b>SPACJA</b> = HYDROŁAPA &middot; zjedziesz z drogi, stracisz prędkość!'; }
     lastLoopIndex = -1; lastLoopTime = -999;
     quoteTimer = 2.5;
     dropFlyBrain(); dropRival();
@@ -3166,8 +3172,216 @@
       supercharger:mods.supercharger||0
     };
   }
+  // ---- Tor uliczny: zamknięta krzywa Catmull-Rom przez punkty kontrolne (a = w poprzek, b = wzdłuż toru).
+  // Czerwona linia punktacji jest środkiem asfaltowej wstęgi, więc droga i linia to jedno. Układ: nawroty
+  // na końcach i po jednej szykanie typu "S" na każdej z długich stron.
+  var STREET_CTRL = [[0,-0.97],[0.62,-0.92],[0.95,-0.5],[0.72,-0.05],[0.95,0.45],[0.6,0.92],[0,0.97],[-0.62,0.92],[-0.95,0.5],[-0.72,0.05],[-0.95,-0.45],[-0.6,-0.92]];
+  var ROAD_R = 52, STREET_CURV = [], STREET_SIGN = [];
+  function streetRoadHalfWidth(){ var land = W >= H*1.1; return (land && H < 520) ? 38 : (W < 500 ? 46 : 52); }
+  function buildStreetPath(count){
+    ROAD_R = streetRoadHalfWidth();
+    var land = W >= H*1.1, cx = W/2;
+    var topPad = land ? (H < 520 ? 50 : 70) : 150, botPad = land ? (H < 520 ? 20 : 40) : 190;
+    var availH = H - topPad - botPad, ccy = topPad + availH/2, across, along;
+    if (land){ across = Math.min(availH/2 - ROAD_R - 8, 230); along = Math.min(W/2 - ROAD_R - 30, 430); }
+    else { across = Math.min(W/2 - ROAD_R - 16, 230); along = Math.min(availH/2 - ROAD_R - 8, 360); }
+    var P = STREET_CTRL.map(function(c){ return land ? { x:cx + c[1]*along, y:ccy + c[0]*across } : { x:cx + c[0]*across, y:ccy + c[1]*along }; });
+    var dense = [], n = P.length, seg = 24;
+    for (var i=0;i<n;i++){
+      var p0 = P[(i-1+n)%n], p1 = P[i], p2 = P[(i+1)%n], p3 = P[(i+2)%n];
+      for (var k=0;k<seg;k++){
+        var t = k/seg, t2 = t*t, t3 = t2*t;
+        dense.push({
+          x:.5*((2*p1.x)+(-p0.x+p2.x)*t+(2*p0.x-5*p1.x+4*p2.x-p3.x)*t2+(-p0.x+3*p1.x-3*p2.x+p3.x)*t3),
+          y:.5*((2*p1.y)+(-p0.y+p2.y)*t+(2*p0.y-5*p1.y+4*p2.y-p3.y)*t2+(-p0.y+3*p1.y-3*p2.y+p3.y)*t3)
+        });
+      }
+    }
+    var path = resampleClosedPolygon(dense, count), m = path.length;
+    STREET_CURV = []; STREET_SIGN = [];
+    for (var j=0;j<m;j++){
+      var a = path[(j-2+m)%m], b = path[j], c2 = path[(j+2)%m];
+      var v1x = b.x-a.x, v1y = b.y-a.y, v2x = c2.x-b.x, v2y = c2.y-b.y;
+      var ang = Math.atan2(v1x*v2y - v1y*v2x, v1x*v2x + v1y*v2y);
+      STREET_CURV.push(Math.abs(ang)); STREET_SIGN.push(ang < 0 ? -1 : 1);
+    }
+    return path;
+  }
+  // Indeksy najostrzejszych zakrętów, rozsunięte od siebie (do stref x2 i stożków przy wierzchołkach).
+  function streetApexes(count, minGap){
+    var order = STREET_CURV.map(function(c, i){ return i; }).sort(function(x, y){ return STREET_CURV[y] - STREET_CURV[x]; });
+    var picked = [], m = STREET_CURV.length;
+    for (var i=0;i<order.length && picked.length < count;i++){
+      var idx = order[i], ok = true;
+      for (var k=0;k<picked.length;k++){ var d = Math.abs(idx - picked[k]); if (Math.min(d, m-d) < minGap){ ok = false; break; } }
+      if (ok) picked.push(idx);
+    }
+    return picked.sort(function(x, y){ return x - y; });
+  }
+
+  // ======== Uliczny: trasa bez końca (kamera jedzie za autem, nitka i droga dobudowują się przed maską) ========
+  // Tylko solo. Zakłady, wyścig muchy, multiplayer i tryb "mucha prowadzi" zostają na stałej pętli.
+  var streetEndless = false, camX = 0, camY = 0, EN = null;
+  var EN_STEP = 10, EN_BEHIND = 30, EN_ROAD_AHEAD = 62, EN_LINE_AHEAD = 46, EN_GEN_AHEAD = 130;
+  function enRand(a, b){ return a + Math.random()*(b-a); }
+  function enNorm(a){ return Math.atan2(Math.sin(a), Math.cos(a)); }
+  function endlessInit(){
+    ROAD_R = streetRoadHalfWidth();
+    EN = { pts:[], all:[], gcount:0, x:W/2, y:H*0.7 + 120, h:-Math.PI/2, last:0, cache:null, pattern:null, zoneTick:0 };
+    BONUS_ZONES = []; cones = [];
+    for (var i=0;i<60;i++){ enPush(EN.x, EN.y); EN.y -= EN_STEP; }
+    EN.y += EN_STEP;
+    enMaintain();
+  }
+  function enPush(x, y){
+    EN.pts.push({ x:x, y:y }); EN.all.push({ x:x, y:y }); EN.gcount++;
+    if (EN.all.length > 900) EN.all.shift();
+  }
+  // Symulacja odcinka: prosta albo łuk z łagodnym wejściem i wyjściem (kąt całkowity = angle).
+  function enSim(kind, dir, radius, angle, len){
+    var out = [], x = EN.x, y = EN.y, h = EN.h;
+    if (kind === 'straight'){
+      var n = Math.max(4, Math.round(len/EN_STEP));
+      for (var i=0;i<n;i++){ x += Math.cos(h)*EN_STEP; y += Math.sin(h)*EN_STEP; out.push({ x:x, y:y }); }
+      return { pts:out, x:x, y:y, h:h, mid:-1 };
+    }
+    var steps = Math.max(6, Math.ceil(radius*angle/EN_STEP)), f = [], sum = 0;
+    for (var s=0;s<steps;s++){ var edge = Math.min(s+1, steps-s) / 5; var k = Math.min(1, edge); f.push(0.25 + 0.75*k); sum += f[s]; }
+    for (var j=0;j<steps;j++){
+      h += dir*angle*f[j]/sum;
+      x += Math.cos(h)*EN_STEP; y += Math.sin(h)*EN_STEP; out.push({ x:x, y:y });
+    }
+    return { pts:out, x:x, y:y, h:h, mid:Math.floor(steps/2), midH:null };
+  }
+  function enFits(cand){
+    var all = EN.all, lim = all.length - 45, sep = ROAD_R*2 + 26, sep2 = sep*sep;
+    for (var i=0;i<cand.length;i+=2){
+      var c = cand[i];
+      for (var j=0;j<lim;j+=2){ var dx = c.x-all[j].x, dy = c.y-all[j].y; if (dx*dx+dy*dy < sep2) return false; }
+    }
+    return true;
+  }
+  function enGenSegment(){
+    var dev = enNorm(EN.h + Math.PI/2), tries = 0, seg = null, kind, dir, radius, angle, len;
+    while (tries++ < 9){
+      if (Math.random() < 0.34){ kind = 'straight'; len = enRand(150, 360); dir = 0; radius = 0; angle = 0; }
+      else {
+        kind = 'arc';
+        dir = (Math.abs(dev) > 0.9 && Math.random() < 0.85) ? (dev > 0 ? -1 : 1) : (Math.random() < 0.5 ? -1 : 1);
+        angle = enRand(0.8, 2.5);
+        var after = dev + dir*angle;                       // odchylenie od "w górę" po zakręcie
+        if (Math.abs(after) > 2.0) angle = Math.max(0.6, 2.0 - Math.abs(dev) * (dev*dir > 0 ? 1 : -1) * (dev*dir > 0 ? 1 : 0) - (dev*dir > 0 ? Math.abs(dev) : 0)) ;
+        if (dev*dir > 0) angle = Math.min(angle, Math.max(0.5, 2.0 - Math.abs(dev)));
+        radius = angle > 1.9 ? enRand(98, 125) : enRand(105, 215);
+        len = 0;
+      }
+      var r = enSim(kind, dir, radius, angle, len);
+      if (enFits(r.pts)){ seg = r; break; }
+    }
+    if (!seg){ kind = 'straight'; seg = enSim('straight', 0, 0, 0, 220); }
+    var startG = EN.gcount;
+    seg.pts.forEach(function(q){ enPush(q.x, q.y); });
+    EN.x = seg.x; EN.y = seg.y; EN.h = seg.h;
+    if (kind === 'arc' && angle >= 1.1 && seg.mid >= 0){
+      var gi = startG + seg.mid, a = seg.pts[seg.mid], b = seg.pts[Math.min(seg.pts.length-1, seg.mid+1)];
+      var hh = Math.atan2(b.y - a.y, b.x - a.x), cxv = dir*(-Math.sin(hh)), cyv = dir*Math.cos(hh);
+      if (Math.random() < 0.8){
+        cones.push({ x:a.x + cxv*(ROAD_R+14), y:a.y + cyv*(ROAD_R+14), gi:gi, hit:0, passing:false, minDist:Infinity, cooldown:0 });
+        cones.push({ x:a.x - cxv*(ROAD_R+22), y:a.y - cyv*(ROAD_R+22), gi:gi, hit:0, passing:false, minDist:Infinity, cooldown:0 });
+      }
+      EN.zoneTick++;
+      if (angle >= 1.4 || EN.zoneTick % 2 === 0) BONUS_ZONES.push({ x:a.x, y:a.y, radius:31, gi:gi });
+    }
+  }
+  function enScan(x, y, lo, hi){
+    var pts = EN.pts, best = Infinity, bi = Math.max(0, lo);
+    for (var i=Math.max(0,lo); i<=hi && i < pts.length-1; i++){
+      var a = pts[i], b = pts[i+1], vx = b.x-a.x, vy = b.y-a.y, wx = x-a.x, wy = y-a.y, l2 = vx*vx+vy*vy;
+      var u = l2 ? clamp((wx*vx+wy*vy)/l2, 0, 1) : 0, dx = x-(a.x+vx*u), dy = y-(a.y+vy*u), d = Math.sqrt(dx*dx+dy*dy);
+      if (d < best){ best = d; bi = i; }
+    }
+    return { dist:best, index:bi };
+  }
+  function endlessNearest(x, y){
+    var c = EN.cache; if (c && c.x === x && c.y === y) return c.r;
+    var n = EN.pts.length, r = enScan(x, y, EN.last-25, EN.last+70);
+    if (r.dist > 220) r = enScan(x, y, 0, n-2);
+    EN.last = r.index; EN.cache = { x:x, y:y, r:r };
+    return r;
+  }
+  function enMaintain(){
+    var guard = 0;
+    while (EN.pts.length - EN.last < EN_GEN_AHEAD && guard++ < 8) enGenSegment();
+    var drop = EN.last - EN_BEHIND - 20;
+    if (drop > 40){
+      EN.pts.splice(0, drop); EN.last -= drop; EN.cache = null;
+      var carG = EN.gcount - EN.pts.length + EN.last;
+      BONUS_ZONES = BONUS_ZONES.filter(function(z){ return z.gi > carG - 80; });
+      cones = cones.filter(function(c){ return c.gi == null || c.gi > carG - 80; });
+    }
+  }
+  function endlessCamera(dt, snap){
+    if (!car) return;
+    var tx = car.x + car.vx*0.28 - W/2, ty = car.y + car.vy*0.28 - H*0.62;
+    if (snap){ camX = tx; camY = ty; return; }
+    var k = 1 - Math.exp(-7*dt); camX += (tx-camX)*k; camY += (ty-camY)*k;
+  }
+  function drawEndlessBackground(){
+    if (!EN.pattern){
+      var t = document.createElement('canvas'); t.width = t.height = 92;
+      var g = t.getContext('2d'); g.fillStyle = '#20262d'; g.fillRect(0,0,92,92); g.fillStyle = '#262d35'; g.fillRect(0,0,46,46); g.fillRect(46,46,46,46);
+      EN.pattern = ctx.createPattern(t, 'repeat');
+    }
+    ctx.fillStyle = EN.pattern; ctx.fillRect(camX-4, camY-4, W+8, H+8);
+  }
+  function drawEndlessTrack(){
+    var pts = EN.pts, n = pts.length, last = EN.last;
+    var a = Math.max(0, last-EN_BEHIND), b = Math.min(n-1, last+EN_ROAD_AHEAD);
+    if (b - a < 2) return;
+    var ga = EN.gcount - n + a;
+    var road = function(){ ctx.beginPath(); ctx.moveTo(pts[a].x, pts[a].y); for (var i=a+1;i<=b;i++) ctx.lineTo(pts[i].x, pts[i].y); };
+    ctx.save(); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    road(); ctx.strokeStyle = '#00000059'; ctx.lineWidth = ROAD_R*2 + 30; ctx.stroke();
+    road(); ctx.strokeStyle = '#ece6d6'; ctx.lineWidth = ROAD_R*2 + 10; ctx.stroke();
+    ctx.lineCap = 'butt'; ctx.setLineDash([18,18]); ctx.lineDashOffset = (ga*EN_STEP) % 36;
+    road(); ctx.strokeStyle = '#c4262e'; ctx.lineWidth = ROAD_R*2 + 10; ctx.stroke(); ctx.setLineDash([]); ctx.lineCap = 'round';
+    road(); ctx.strokeStyle = '#272c34'; ctx.lineWidth = ROAD_R*2; ctx.stroke();
+    road(); ctx.strokeStyle = '#2f353e'; ctx.lineWidth = ROAD_R*2 - 26; ctx.stroke();
+    // Nitka: rysuje się przed maską (daleki koniec blaknie), z tyłu znika za autem.
+    var la = Math.max(0, last-20), lb = Math.min(n-1, last+EN_LINE_AHEAD), CH = 5;
+    ctx.lineCap = 'butt';
+    for (var i=la;i<lb;i+=CH){
+      var e = Math.min(lb, i+CH), mid = (i+e)/2, al = mid >= last ? 1 - (mid-last)/EN_LINE_AHEAD*0.85 : Math.max(0, 1 - (last-mid)/20);
+      if (al <= 0.02) continue;
+      ctx.globalAlpha = al; ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); for (var k=i+1;k<=e;k++) ctx.lineTo(pts[k].x, pts[k].y);
+      ctx.strokeStyle = '#ff3048'; ctx.lineWidth = 6; ctx.stroke();
+      ctx.strokeStyle = '#ffd9de'; ctx.lineWidth = 2; ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    // Impulsy biegnące po nitce i świecąca końcówka, która "rysuje" tor.
+    var now = performance.now(), tip = pts[lb];
+    for (var q=0;q<5;q++){
+      var pi = last + ((now/45 + q*(EN_LINE_AHEAD/5)) % EN_LINE_AHEAD), i0 = Math.min(lb-1, Math.floor(pi)), fr = pi - Math.floor(pi);
+      if (i0 < 0 || i0+1 >= n) continue;
+      var px = pts[i0].x + (pts[i0+1].x-pts[i0].x)*fr, py = pts[i0].y + (pts[i0+1].y-pts[i0].y)*fr;
+      ctx.globalAlpha = 0.9 * (1 - (pi-last)/EN_LINE_AHEAD); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(px, py, 3.2, 0, 6.2832); ctx.fill();
+    }
+    ctx.globalAlpha = 0.55 + 0.25*Math.sin(now/90); ctx.fillStyle = '#ff6a7a'; ctx.beginPath(); ctx.arc(tip.x, tip.y, 9, 0, 6.2832); ctx.fill();
+    ctx.globalAlpha = 1; ctx.restore();
+  }
+  function drawEndlessScene(dt, live){
+    if (live){ enMaintain(); endlessCamera(dt, false); }
+    ctx.save(); ctx.translate(-Math.round(camX), -Math.round(camY));
+    drawEndlessBackground(); drawEndlessTrack(); drawTrack();
+    cones.forEach(drawCone);
+    if (live){ updateParticles(dt); }
+    drawParticles();
+    if (car){ drawCarE36(car.x, car.y, car.angle, car._driftAmt||0); }
+    ctx.restore();
+  }
   function setupTrack(){
     var cx = W/2, cy = H/2;
+    if (trackMode === 'ulica' && streetEndless){ LOOPS = []; SCORING_PATH = []; laps = []; endlessInit(); return; }
     if (trackMode === 'rondo'){
       var r1 = Math.max(80, Math.min(W,H)*0.3);
       LOOPS = [ { cx: cx, cy: cy, radius: r1 } ];
@@ -3208,26 +3422,16 @@
         }
       }
     } else {
-      // Street circuit: rectangular loop with one S-shaped chicane cut into the bottom side.
-      var halfW = Math.min(W*0.32, 230);
-      var halfH = Math.min(H*0.26, 160);
-      var dipIn = halfH*0.45, dipOut = halfH*0.28;
-      var waypoints = [
-        {x:cx-halfW, y:cy-halfH},
-        {x:cx+halfW, y:cy-halfH},
-        {x:cx+halfW, y:cy+halfH},
-        {x:cx+halfW*0.3, y:cy+halfH-dipIn},
-        {x:cx-halfW*0.3, y:cy+halfH+dipOut},
-        {x:cx-halfW, y:cy+halfH}
-      ];
-      SCORING_PATH = resampleClosedPolygon(waypoints, pathPoints);
+      // Street circuit: płynna pętla z nawrotami i szykanami; droga jest rysowana dokładnie wzdłuż tej linii.
+      SCORING_PATH = buildStreetPath(pathPoints);
     }
     BONUS_ZONES = [];
     var zoneCount = trackMode === 'rondo' ? 4 : 5;
+    var streetApex = trackMode === 'ulica' ? streetApexes(zoneCount, Math.floor(SCORING_PATH.length/9)) : null;
     for (var z=0;z<zoneCount;z++){
       var zoneIndex = trackMode === 'rondo'
         ? Math.floor((z+0.5)*SCORING_PATH.length/zoneCount)%SCORING_PATH.length
-        : z*Math.floor(SCORING_PATH.length/5);
+        : (streetApex && streetApex.length > z ? streetApex[z] : z*Math.floor(SCORING_PATH.length/5));
       BONUS_ZONES.push({x:SCORING_PATH[zoneIndex].x,y:SCORING_PATH[zoneIndex].y,radius:31});
     }
     laps = LOOPS.map(function(){ return { prevTheta:0, accum:0, active:false, laps:0 }; });
@@ -3249,14 +3453,14 @@
       }
     });
     if (trackMode === 'ulica'){
-      var coneSamples = 10;
-      for (var cs=0;cs<coneSamples;cs++){
-        var ci = Math.floor(cs*SCORING_PATH.length/coneSamples);
-        var inner = offsetPathPoint(SCORING_PATH, ci, -55);
-        var outer = offsetPathPoint(SCORING_PATH, ci, 70);
+      // Stożki przy wierzchołkach zakrętów: po wewnętrznej stronie (punkt celowania) i po zewnętrznej (kara za szerokie wyjście).
+      streetApexes(8, Math.floor(SCORING_PATH.length/14)).forEach(function(ci){
+        var sg = STREET_SIGN[ci];
+        var inner = offsetPathPoint(SCORING_PATH, ci, sg*(ROAD_R + 14));
+        var outer = offsetPathPoint(SCORING_PATH, ci, -sg*(ROAD_R + 22));
         cones.push({ x:inner.x, y:inner.y, hit:0, passing:false, minDist:Infinity, cooldown:0 });
         cones.push({ x:outer.x, y:outer.y, hit:0, passing:false, minDist:Infinity, cooldown:0 });
-      }
+      });
     }
   }
 
@@ -3290,16 +3494,21 @@
       ctx.restore();
     });
     if (trackMode === 'ulica' && SCORING_PATH.length){
+      // Droga = gruba obwódka wokół czerwonej linii: cień, krawężnik biało-czerwony, asfalt, przerywane pasy po bokach.
+      var roadPath = function(){
+        ctx.beginPath(); ctx.moveTo(SCORING_PATH[0].x, SCORING_PATH[0].y);
+        for (var ri=1; ri<SCORING_PATH.length; ri++) ctx.lineTo(SCORING_PATH[ri].x, SCORING_PATH[ri].y);
+        ctx.closePath();
+      };
       ctx.save();
-      ctx.strokeStyle = '#f4f2ec4d'; ctx.lineWidth = 3; ctx.setLineDash([10,10]);
-      [-55,70].forEach(function(offset){
-        ctx.beginPath();
-        for (var i=0;i<SCORING_PATH.length;i++){
-          var p = offsetPathPoint(SCORING_PATH, i, offset);
-          if (i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
-        }
-        ctx.closePath(); ctx.stroke();
-      });
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      roadPath(); ctx.strokeStyle = '#00000059'; ctx.lineWidth = ROAD_R*2 + 30; ctx.stroke();
+      roadPath(); ctx.strokeStyle = '#ece6d6'; ctx.lineWidth = ROAD_R*2 + 10; ctx.stroke();
+      ctx.setLineDash([18,18]); roadPath(); ctx.strokeStyle = '#c4262e'; ctx.lineWidth = ROAD_R*2 + 10; ctx.stroke(); ctx.setLineDash([]);
+      roadPath(); ctx.strokeStyle = '#272c34'; ctx.lineWidth = ROAD_R*2; ctx.stroke();
+      roadPath(); ctx.strokeStyle = '#2f353e'; ctx.lineWidth = ROAD_R*2 - 26; ctx.stroke();
+      roadPath(); ctx.strokeStyle = '#f4f2ec3a'; ctx.lineWidth = 2; ctx.setLineDash([14,14]);
+      ctx.save(); ctx.lineWidth = ROAD_R*2 - 12; ctx.strokeStyle = '#f4f2ec26'; ctx.stroke(); ctx.restore();
       ctx.setLineDash([]);
       ctx.restore();
     }
@@ -3352,6 +3561,7 @@
   }
 
   function nearestPathPoint(x, y){
+    if (streetEndless && EN) return endlessNearest(x, y);
     var best = Infinity, bestIdx = 0;
     for (var i=0;i<SCORING_PATH.length;i++){
       var a = SCORING_PATH[i], b = SCORING_PATH[(i+1)%SCORING_PATH.length];
@@ -3626,7 +3836,7 @@
           for (var bi=0; bi<60; bi++){
             particles.push({x:car.x+rand(-14,14),y:car.y+rand(-14,14),vx:rand(-180,180),vy:rand(-200,80),life:rand(0.5,1.3),age:0,color:Math.random()<0.35?'#fff4c4':(Math.random()<0.65?'#ff8020':'#4a3a3a'),smoke:false});
           }
-          popups.push({x:W/2,y:H/2,text:'MUCHA ZBIERA SZCZĘKĘ Z ASFALTU',age:0,life:4.0,big:true});
+          popups.push({x:W/2,y:H/2,text:'MUCHA ZBIERA SZCZĘKĘ Z ASFALTU',age:0,life:4.0,big:true,scr:true});
           playTone(120, 28, 0.6, 0.5, 'sawtooth');
         }
       } else if (drift.blownStage === 2 && Math.random() < dt*18){
@@ -3689,10 +3899,15 @@
 
     var margin = 26;
     var hitWall = false;
+    if (streetEndless){
+      // Bez ścian: poza drogą auto wytraca prędkość i nie zbiera punktów.
+      if (endlessNearest(car.x, car.y).dist > ROAD_R + 16) car.speed = Math.max(0, car.speed*(1 - 0.8*dt));
+    } else {
     if (car.x < margin){ car.x = margin; car.vx *= -0.4; car.speed *= 0.7; hitWall = true; }
     if (car.x > W-margin){ car.x = W-margin; car.vx *= -0.4; car.speed *= 0.7; hitWall = true; }
     if (car.y < margin){ car.y = margin; car.vy *= -0.4; car.speed *= 0.7; hitWall = true; }
     if (car.y > H-margin){ car.y = H-margin; car.vy *= -0.4; car.speed *= 0.7; hitWall = true; }
+    }
     if (hitWall && performance.now() - car.wallHitAt > 700){
       car.wallHitAt = performance.now();
       var lost = Math.floor(drift.score / 2);
@@ -4027,7 +4242,7 @@
       ctx.fillStyle = p.big ? '#ff8a3d' : '#ffb020';
       ctx.font = (p.big ? '900 24px' : '900 16px') + ' Consolas, monospace';
       ctx.textAlign='center';
-      ctx.fillText(p.text, p.x, p.y);
+      ctx.fillText(p.text, p.scr ? p.x + camX : p.x, p.scr ? p.y + camY : p.y);
       ctx.globalAlpha = 1;
     });
   }
@@ -4070,6 +4285,10 @@
       ctx.fillRect(0,0,W,H);
       ctx.textAlign='center'; ctx.fillStyle='#c77dff'; ctx.font='900 italic 26px Arial Narrow, Arial';
       ctx.fillText('TURBO WYBUCHŁO! MUCHA WYLATUJE', W/2, H/2+sc*40);
+    } else if (STATE === 'drift' && streetEndless && EN){
+      updateDrift(dt);
+      drawEndlessScene(dt, true);
+      if (performance.now() > quoteShownUntil){ quoteBubble.classList.remove('show'); }
     } else if (STATE === 'drift'){
       drawArena();
       drawTrack();
@@ -4082,6 +4301,9 @@
       if (car){ drawCarE36(car.x, car.y, car.angle, car._driftAmt||0); }
       drawFlyVision(); drawFlyPanel();
       if (performance.now() > quoteShownUntil){ quoteBubble.classList.remove('show'); }
+    } else if (STATE === 'paused' && streetEndless && EN){
+      drawEndlessScene(0, false);
+      ctx.fillStyle='#05070ab8'; ctx.fillRect(0,0,W,H);
     } else if (STATE === 'paused'){
       drawArena();
       drawTrack();
@@ -4102,6 +4324,9 @@
       drawArena();
       drawTrack();
       drawRivalCar();
+      ctx.fillStyle = '#00000090'; ctx.fillRect(0,0,W,H);
+    } else if (STATE === 'end' && streetEndless && EN){
+      drawEndlessScene(0, false);
       ctx.fillStyle = '#00000090'; ctx.fillRect(0,0,W,H);
     } else if (STATE === 'end'){
       drawArena();
