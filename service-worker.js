@@ -1,14 +1,25 @@
 // Bump when statyczne assety zmieniają się w sposób który wymaga odświeżenia cache.
-const CACHE = 'tkd-v2';
+const CACHE = 'tkd-v3';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
   '/fly-brain.js',
+  '/fly-brain-worker.js',
+  '/fly-agent.js',
+  '/rival-car.js',
   '/assets/fly-circuit.json',
   '/manifest.webmanifest',
   '/assets/bmw-upierdalanie-anthem.mp3',
   '/assets/mazda-rx8-dyno.mp3',
   '/assets/stututu-throttle-release.mp3',
+  '/assets/bmw/e36-01.jpg',
+  '/assets/bmw/e36-02.jpg',
+  '/assets/bmw/e36-03.jpg',
+  '/assets/bmw/e36-04.jpg',
+  '/assets/bmw/e36-05.jpg',
+  '/assets/bmw/e36-06.jpg',
+  '/assets/bmw/e36-07.jpg',
+  '/assets/bmw/e36-08.jpg',
   '/assets/icon-192.png',
   '/assets/icon-512.png',
   '/assets/icon-maskable-512.png',

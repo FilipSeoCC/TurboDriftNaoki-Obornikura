@@ -1,5 +1,5 @@
 /*
- * Mucha za kierownicą — silnik mózgu muchy owocówki (Drosophila melanogaster).
+ * Mucha — silnik mózgu muchy owocówki (Drosophila melanogaster).
  *
  * Symuluje wycięty z konektomu FlyWire (v783) obwód „wzrok → skręt / ucieczka”:
  * 1926 prawdziwych neuronów i ich połączenia 1:1 z mikroskopii elektronowej.
@@ -7,7 +7,12 @@
  * Shiu et al. 2024 (Nature) — bez treningu i bez ręcznego strojenia wag.
  * Jak powstał obwód: docs/MUCHA.md, skrypt: tools/fly/extract_circuit.py.
  *
- * Działa w przeglądarce (window.FlyBrain) i w Node (require) — do testów.
+ * Wydajność: neurony w spoczynku (zerowy prąd, potencjał spoczynkowy) są pomijane jednym
+ * porównaniem, losowe impulsy wejściowe losujemy jako liczbę zdarzeń na krok (a nie osobno dla
+ * każdego neuronu), a bufory impulsów są typowane (zero alokacji w pętli).
+ * W przeglądarce silnik pracuje w osobnym wątku (fly-brain-worker.js + fly-agent.js).
+ *
+ * Działa w przeglądarce (window.FlyBrain), w workerze (self.FlyBrain) i w Node (require).
  */
 (function (root) {
   'use strict';
@@ -25,11 +30,11 @@
   var INPUTS = ['tgtL', 'tgtR', 'loomL', 'loomR'];
   var OUTPUTS = ['DNa01_left', 'DNa01_right', 'DNa02_left', 'DNa02_right',
     'DNp01_left', 'DNp01_right', 'MDN_left', 'MDN_right'];
+  var EPS = 1e-5; // mV — poniżej tego wygaszamy ogon zaniku (unika liczb zdenormalizowanych)
 
   function FlyBrain(circuit, seed) {
-    var p = circuit.params;
-    this.circuit = circuit;
-    this.n = circuit.n;
+    var p = circuit.params, n = circuit.n, self = this;
+    this.n = n;
     this.dt = 0.1; // ms — krok całkowania jak w oryginalnym modelu
     this.rowptr = new Uint32Array(b64ToBytes(circuit.rowptr).buffer);
     this.post = new Uint16Array(b64ToBytes(circuit.post).buffer);
@@ -41,75 +46,100 @@
     this.wsyn = p.wsyn;
     this.wpoi = p.wsyn * p.fpoi;
     this.delay = Math.round(p.dly / this.dt) + 1;
-    this.v = new Float32Array(this.n).fill(p.v0);
-    this.g = new Float32Array(this.n);
-    this.ref = new Float32Array(this.n);
-    // ring buffer of spikes waiting out the synaptic delay
-    this.ring = [];
-    for (var i = 0; i < this.delay; i++) this.ring.push([]);
-    this.t = 0; // steps
     this.inputs = {}; this.outputs = {};
-    var self = this;
     INPUTS.forEach(function (k) { self.inputs[k] = Int32Array.from(circuit.inputs[k]); });
     OUTPUTS.forEach(function (k) { self.outputs[k] = Int32Array.from(circuit.outputs[k]); });
-    this.isOutput = new Int8Array(this.n).fill(-1);
+    this.isOutput = new Int8Array(n).fill(-1);
     OUTPUTS.forEach(function (k, oi) { self.outputs[k].forEach(function (ix) { self.isOutput[ix] = oi; }); });
-    this.outSpikes = new Float64Array(OUTPUTS.length);
+    this.v = new Float32Array(n);
+    this.g = new Float32Array(n);
+    this.ref = new Float32Array(n);
+    this.ringBuf = []; this.ringCnt = new Int32Array(this.delay);
+    for (var i = 0; i < this.delay; i++) this.ringBuf.push(new Int32Array(n)); // impulsy czekające na dotarcie
+    this.lastSpike = new Float32Array(n); // ms czasu symulacji, do wizualizacji
+    this.tmpCounts = new Float64Array(OUTPUTS.length);
     this.rates = {}; OUTPUTS.forEach(function (k) { self.rates[k] = 0; });
-    this.lastSpike = new Float32Array(this.n).fill(-1e9); // ms, do wizualizacji
-    this.spikesLastStep = 0;
-    this._s = (seed >>> 0) || 123456789;
+    this.reset(seed);
   }
 
-  FlyBrain.prototype.rand = function () { // xorshift32 — szybkie i powtarzalne w testach
-    var s = this._s; s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; this._s = s;
-    return s / 4294967296;
+  /** Wraca do stanu spoczynku (np. przy restarcie przejazdu), bez ponownego dekodowania obwodu. */
+  FlyBrain.prototype.reset = function (seed) {
+    this.v.fill(this.v0); this.g.fill(0); this.ref.fill(0);
+    this.t = 0;
+    for (var i = 0; i < this.delay; i++) this.ringCnt[i] = 0;
+    this.lastSpike.fill(-1e9);
+    for (var k in this.rates) this.rates[k] = 0;
+    this.spikesLastStep = 0; this.spikeRate = 0;
+    this._s = (seed >>> 0) || 123456789;
   };
 
   /** Symuluje `ms` milisekund mózgu przy stałych częstotliwościach wejść (Hz). */
   FlyBrain.prototype.run = function (ms, inputRates) {
-    var steps = Math.max(1, Math.round(ms / this.dt));
-    var n = this.n, v = this.v, g = this.g, ref = this.ref, rowptr = this.rowptr, post = this.post, w = this.w;
-    var dt = this.dt, kMem = this.kMem, decG = this.decG, v0 = this.v0, vth = this.vth, vrst = this.vrst;
-    var counts = new Float64Array(this.outSpikes.length), spikeTotal = 0;
-    var pIn = {}, k;
-    for (k in this.inputs) pIn[k] = Math.max(0, (inputRates && inputRates[k]) || 0) * dt / 1000;
-    for (var s = 0; s < steps; s++) {
-      var slot = this.t % this.delay;
-      var arrived = this.ring[slot];
-      for (var a = 0; a < arrived.length; a++) {
-        var pre = arrived[a];
-        for (var e = rowptr[pre], end = rowptr[pre + 1]; e < end; e++) g[post[e]] += w[e] * this.wsyn;
+    var dt = this.dt, steps = Math.max(1, Math.round(ms / dt)), n = this.n;
+    var v = this.v, g = this.g, ref = this.ref;
+    var rowptr = this.rowptr, post = this.post, w = this.w, wsyn = this.wsyn, wpoi = this.wpoi;
+    var delay = this.delay, ringBuf = this.ringBuf, ringCnt = this.ringCnt;
+    var v0 = this.v0, vth = this.vth, vrst = this.vrst, kMem = this.kMem, decG = this.decG, trf = this.trf;
+    var lastSpike = this.lastSpike, isOutput = this.isOutput, counts = this.tmpCounts;
+    counts.fill(0);
+    // Wejścia: w jednym kroku grupa N neuronów dostaje Poisson(N·p) impulsów w losowych neuronach
+    // (statystycznie to samo co niezależny rzut monetą dla każdego, ale ~50x mniej losowań).
+    var inIdx = [], inP0 = [], inLam = [], name;
+    for (name in this.inputs) {
+      var hz = inputRates && inputRates[name];
+      if (hz > 0) {
+        var lam = this.inputs[name].length * hz * dt / 1000;
+        inIdx.push(this.inputs[name]); inLam.push(lam); inP0.push(Math.exp(-lam));
       }
-      for (k in pIn) {
-        var pr = pIn[k]; if (!pr) continue;
-        var idx = this.inputs[k];
-        for (var j = 0; j < idx.length; j++) if (this.rand() < pr) g[idx[j]] += this.wpoi;
+    }
+    var s32 = this._s, spikeTotal = 0, t = this.t;
+    for (var s = 0; s < steps; s++, t++) {
+      var slot = t % delay, buf = ringBuf[slot], cnt = ringCnt[slot], a, e, end, j, k, i;
+      // 1) impulsy sprzed `delay` kroków docierają do synaps
+      for (a = 0; a < cnt; a++) {
+        var pre = buf[a];
+        for (e = rowptr[pre], end = rowptr[pre + 1]; e < end; e++) g[post[e]] += w[e] * wsyn;
       }
-      var fired = [];
-      var nowMs = this.t * dt;
-      for (var i = 0; i < n; i++) {
-        if (ref[i] > 0) { ref[i] -= dt; continue; }
-        v[i] += (v0 - v[i] + g[i]) * kMem;
-        g[i] *= decG;
-        if (v[i] > vth) {
-          v[i] = vrst; g[i] = 0; ref[i] = this.trf;
-          fired.push(i); this.lastSpike[i] = nowMs;
-          var oi = this.isOutput[i]; if (oi >= 0) counts[oi]++;
+      // 2) losowe (Poissona) pobudzenie neuronów wejściowych
+      for (k = 0; k < inIdx.length; k++) {
+        var idx = inIdx[k], len = idx.length, p0 = inP0[k], cum = p0, term = p0, c = 0;
+        s32 ^= s32 << 13; s32 >>>= 0; s32 ^= s32 >>> 17; s32 ^= s32 << 5; s32 >>>= 0; // xorshift32
+        var u = s32 / 4294967296;
+        while (u > cum && c < 12) { c++; term *= inLam[k] / c; cum += term; } // odwrócona dystrybuanta Poissona
+        for (; c > 0; c--) {
+          s32 ^= s32 << 13; s32 >>>= 0; s32 ^= s32 >>> 17; s32 ^= s32 << 5; s32 >>>= 0;
+          g[idx[(s32 / 4294967296 * len) | 0]] += wpoi;
         }
       }
-      spikeTotal += fired.length;
-      this.ring[slot] = fired;
-      this.t++;
+      // 3) całkowanie wszystkich neuronów (spoczynkowe pomijamy); nowe impulsy trafiają do tego samego slotu
+      var nowMs = t * dt, out = 0;
+      for (i = 0; i < n; i++) {
+        if (ref[i] > 0) { ref[i] -= dt; continue; }
+        var gi = g[i], vi = v[i];
+        if (gi === 0 && vi === v0) continue;
+        vi += (v0 - vi + gi) * kMem;
+        gi *= decG;
+        if (vi > vth) {
+          v[i] = vrst; g[i] = 0; ref[i] = trf;
+          buf[out++] = i; lastSpike[i] = nowMs;
+          var oi = isOutput[i]; if (oi >= 0) counts[oi]++;
+        } else {
+          if (gi < EPS && gi > -EPS) { gi = 0; if (vi - v0 < EPS && v0 - vi < EPS) vi = v0; }
+          v[i] = vi; g[i] = gi;
+        }
+      }
+      ringCnt[slot] = out; spikeTotal += out;
     }
+    this._s = s32; this.t = t;
     // Wygładzone częstotliwości wyjść (Hz) — stała czasowa ~150 ms.
     var simMs = steps * dt, alpha = 1 - Math.exp(-simMs / 150);
     for (var o = 0; o < OUTPUTS.length; o++) {
-      var name = OUTPUTS[o];
-      var hz = counts[o] / this.outputs[name].length / (simMs / 1000);
-      this.rates[name] += (hz - this.rates[name]) * alpha;
+      var nm = OUTPUTS[o];
+      var rate = counts[o] / this.outputs[nm].length / (simMs / 1000);
+      this.rates[nm] += (rate - this.rates[nm]) * alpha;
     }
     this.spikesLastStep = spikeTotal;
+    this.spikeRate = spikeTotal / (simMs / 1000);
     return this.rates;
   };
 
@@ -177,4 +207,4 @@
 
   if (typeof module !== 'undefined' && module.exports) module.exports = FlyBrain;
   else root.FlyBrain = FlyBrain;
-})(typeof window !== 'undefined' ? window : this);
+})(typeof window !== 'undefined' ? window : (typeof self !== 'undefined' ? self : this));

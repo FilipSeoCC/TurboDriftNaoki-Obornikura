@@ -6,6 +6,7 @@ const PRICE = 500;
 const ROUND_REWARD = 1000;
 const SHARE_REWARD = 2000;
 const { drawOutcome, settleBlackjack } = require('./blackjack');
+const flybet = require('./_lib/flybet');
 
 function sanitizeEmail(value) {
   if (typeof value !== 'string') return '';
@@ -110,6 +111,19 @@ module.exports = async (req, res) => {
           net: settlement.net,
         },
       }));
+    } else if (body.action === 'fly_bet_place') {
+      const placed = flybet.placeBet(profile, body, Date.now());
+      if (placed.error) return res.status(400).json(actionError(placed.error));
+      const saved = await writeProfile(key, profile);
+      return res.status(200).json(Object.assign({}, saved, { flyBet: { stake: placed.stake, pick: placed.pick, potentialPayout: placed.potentialPayout } }));
+    } else if (body.action === 'fly_bet_settle') {
+      const settled = flybet.settleBet(profile, body, Date.now());
+      if (settled.error) {
+        if (settled.error === 'ticket_expired') await writeProfile(key, profile);
+        return res.status(400).json(actionError(settled.error));
+      }
+      const saved = await writeProfile(key, profile);
+      return res.status(200).json(Object.assign({}, saved, { flyBetResult: settled }));
     } else return res.status(400).json(actionError('invalid_action'));
 
     return res.status(200).json(await writeProfile(key, profile));
