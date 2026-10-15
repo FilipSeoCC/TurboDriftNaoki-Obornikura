@@ -2966,7 +2966,7 @@
     if (tcSpace){ tcSpace.textContent = 'HYDROŁAPA'; tcSpace.setAttribute('aria-label','Hydrołapa — hydrauliczny hamulec ręczny'); }
     car = { x: W/2, y: H-80, angle: -Math.PI/2, vx:0, vy:0, speed:0, wheelSpin:0, wallHitAt:-9999 };
     setupTrack();
-    var startIndex = trackMode === 'rondo' ? Math.floor(SCORING_PATH.length/4) : Math.floor(SCORING_PATH.length/8);
+    var startIndex = trackMode === 'rondo' ? Math.floor(SCORING_PATH.length/4) : (trackMode === 'ulica' ? 4 : Math.floor(SCORING_PATH.length/8));
     var startPoint = SCORING_PATH[startIndex];
     var nextPoint = SCORING_PATH[(startIndex+1)%SCORING_PATH.length];
     car.x = startPoint.x; car.y = startPoint.y;
@@ -3166,6 +3166,52 @@
       supercharger:mods.supercharger||0
     };
   }
+  // ---- Tor uliczny: zamknięta krzywa Catmull-Rom przez punkty kontrolne (a = w poprzek, b = wzdłuż toru).
+  // Czerwona linia punktacji jest środkiem asfaltowej wstęgi, więc droga i linia to jedno. Układ: nawroty
+  // na końcach i po jednej szykanie typu "S" na każdej z długich stron.
+  var STREET_CTRL = [[0,-0.97],[0.62,-0.92],[0.95,-0.5],[0.72,-0.05],[0.95,0.45],[0.6,0.92],[0,0.97],[-0.62,0.92],[-0.95,0.5],[-0.72,0.05],[-0.95,-0.45],[-0.6,-0.92]];
+  var ROAD_R = 52, STREET_CURV = [], STREET_SIGN = [];
+  function streetRoadHalfWidth(){ var land = W >= H*1.1; return (land && H < 520) ? 38 : (W < 500 ? 46 : 52); }
+  function buildStreetPath(count){
+    ROAD_R = streetRoadHalfWidth();
+    var land = W >= H*1.1, cx = W/2;
+    var topPad = land ? (H < 520 ? 50 : 70) : 150, botPad = land ? (H < 520 ? 20 : 40) : 190;
+    var availH = H - topPad - botPad, ccy = topPad + availH/2, across, along;
+    if (land){ across = Math.min(availH/2 - ROAD_R - 8, 230); along = Math.min(W/2 - ROAD_R - 30, 430); }
+    else { across = Math.min(W/2 - ROAD_R - 16, 230); along = Math.min(availH/2 - ROAD_R - 8, 360); }
+    var P = STREET_CTRL.map(function(c){ return land ? { x:cx + c[1]*along, y:ccy + c[0]*across } : { x:cx + c[0]*across, y:ccy + c[1]*along }; });
+    var dense = [], n = P.length, seg = 24;
+    for (var i=0;i<n;i++){
+      var p0 = P[(i-1+n)%n], p1 = P[i], p2 = P[(i+1)%n], p3 = P[(i+2)%n];
+      for (var k=0;k<seg;k++){
+        var t = k/seg, t2 = t*t, t3 = t2*t;
+        dense.push({
+          x:.5*((2*p1.x)+(-p0.x+p2.x)*t+(2*p0.x-5*p1.x+4*p2.x-p3.x)*t2+(-p0.x+3*p1.x-3*p2.x+p3.x)*t3),
+          y:.5*((2*p1.y)+(-p0.y+p2.y)*t+(2*p0.y-5*p1.y+4*p2.y-p3.y)*t2+(-p0.y+3*p1.y-3*p2.y+p3.y)*t3)
+        });
+      }
+    }
+    var path = resampleClosedPolygon(dense, count), m = path.length;
+    STREET_CURV = []; STREET_SIGN = [];
+    for (var j=0;j<m;j++){
+      var a = path[(j-2+m)%m], b = path[j], c2 = path[(j+2)%m];
+      var v1x = b.x-a.x, v1y = b.y-a.y, v2x = c2.x-b.x, v2y = c2.y-b.y;
+      var ang = Math.atan2(v1x*v2y - v1y*v2x, v1x*v2x + v1y*v2y);
+      STREET_CURV.push(Math.abs(ang)); STREET_SIGN.push(ang < 0 ? -1 : 1);
+    }
+    return path;
+  }
+  // Indeksy najostrzejszych zakrętów, rozsunięte od siebie (do stref x2 i stożków przy wierzchołkach).
+  function streetApexes(count, minGap){
+    var order = STREET_CURV.map(function(c, i){ return i; }).sort(function(x, y){ return STREET_CURV[y] - STREET_CURV[x]; });
+    var picked = [], m = STREET_CURV.length;
+    for (var i=0;i<order.length && picked.length < count;i++){
+      var idx = order[i], ok = true;
+      for (var k=0;k<picked.length;k++){ var d = Math.abs(idx - picked[k]); if (Math.min(d, m-d) < minGap){ ok = false; break; } }
+      if (ok) picked.push(idx);
+    }
+    return picked.sort(function(x, y){ return x - y; });
+  }
   function setupTrack(){
     var cx = W/2, cy = H/2;
     if (trackMode === 'rondo'){
@@ -3208,26 +3254,16 @@
         }
       }
     } else {
-      // Street circuit: rectangular loop with one S-shaped chicane cut into the bottom side.
-      var halfW = Math.min(W*0.32, 230);
-      var halfH = Math.min(H*0.26, 160);
-      var dipIn = halfH*0.45, dipOut = halfH*0.28;
-      var waypoints = [
-        {x:cx-halfW, y:cy-halfH},
-        {x:cx+halfW, y:cy-halfH},
-        {x:cx+halfW, y:cy+halfH},
-        {x:cx+halfW*0.3, y:cy+halfH-dipIn},
-        {x:cx-halfW*0.3, y:cy+halfH+dipOut},
-        {x:cx-halfW, y:cy+halfH}
-      ];
-      SCORING_PATH = resampleClosedPolygon(waypoints, pathPoints);
+      // Street circuit: płynna pętla z nawrotami i szykanami; droga jest rysowana dokładnie wzdłuż tej linii.
+      SCORING_PATH = buildStreetPath(pathPoints);
     }
     BONUS_ZONES = [];
     var zoneCount = trackMode === 'rondo' ? 4 : 5;
+    var streetApex = trackMode === 'ulica' ? streetApexes(zoneCount, Math.floor(SCORING_PATH.length/9)) : null;
     for (var z=0;z<zoneCount;z++){
       var zoneIndex = trackMode === 'rondo'
         ? Math.floor((z+0.5)*SCORING_PATH.length/zoneCount)%SCORING_PATH.length
-        : z*Math.floor(SCORING_PATH.length/5);
+        : (streetApex && streetApex.length > z ? streetApex[z] : z*Math.floor(SCORING_PATH.length/5));
       BONUS_ZONES.push({x:SCORING_PATH[zoneIndex].x,y:SCORING_PATH[zoneIndex].y,radius:31});
     }
     laps = LOOPS.map(function(){ return { prevTheta:0, accum:0, active:false, laps:0 }; });
@@ -3249,14 +3285,14 @@
       }
     });
     if (trackMode === 'ulica'){
-      var coneSamples = 10;
-      for (var cs=0;cs<coneSamples;cs++){
-        var ci = Math.floor(cs*SCORING_PATH.length/coneSamples);
-        var inner = offsetPathPoint(SCORING_PATH, ci, -55);
-        var outer = offsetPathPoint(SCORING_PATH, ci, 70);
+      // Stożki przy wierzchołkach zakrętów: po wewnętrznej stronie (punkt celowania) i po zewnętrznej (kara za szerokie wyjście).
+      streetApexes(8, Math.floor(SCORING_PATH.length/14)).forEach(function(ci){
+        var sg = STREET_SIGN[ci];
+        var inner = offsetPathPoint(SCORING_PATH, ci, sg*(ROAD_R + 14));
+        var outer = offsetPathPoint(SCORING_PATH, ci, -sg*(ROAD_R + 22));
         cones.push({ x:inner.x, y:inner.y, hit:0, passing:false, minDist:Infinity, cooldown:0 });
         cones.push({ x:outer.x, y:outer.y, hit:0, passing:false, minDist:Infinity, cooldown:0 });
-      }
+      });
     }
   }
 
@@ -3290,16 +3326,21 @@
       ctx.restore();
     });
     if (trackMode === 'ulica' && SCORING_PATH.length){
+      // Droga = gruba obwódka wokół czerwonej linii: cień, krawężnik biało-czerwony, asfalt, przerywane pasy po bokach.
+      var roadPath = function(){
+        ctx.beginPath(); ctx.moveTo(SCORING_PATH[0].x, SCORING_PATH[0].y);
+        for (var ri=1; ri<SCORING_PATH.length; ri++) ctx.lineTo(SCORING_PATH[ri].x, SCORING_PATH[ri].y);
+        ctx.closePath();
+      };
       ctx.save();
-      ctx.strokeStyle = '#f4f2ec4d'; ctx.lineWidth = 3; ctx.setLineDash([10,10]);
-      [-55,70].forEach(function(offset){
-        ctx.beginPath();
-        for (var i=0;i<SCORING_PATH.length;i++){
-          var p = offsetPathPoint(SCORING_PATH, i, offset);
-          if (i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
-        }
-        ctx.closePath(); ctx.stroke();
-      });
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      roadPath(); ctx.strokeStyle = '#00000059'; ctx.lineWidth = ROAD_R*2 + 30; ctx.stroke();
+      roadPath(); ctx.strokeStyle = '#ece6d6'; ctx.lineWidth = ROAD_R*2 + 10; ctx.stroke();
+      ctx.setLineDash([18,18]); roadPath(); ctx.strokeStyle = '#c4262e'; ctx.lineWidth = ROAD_R*2 + 10; ctx.stroke(); ctx.setLineDash([]);
+      roadPath(); ctx.strokeStyle = '#272c34'; ctx.lineWidth = ROAD_R*2; ctx.stroke();
+      roadPath(); ctx.strokeStyle = '#2f353e'; ctx.lineWidth = ROAD_R*2 - 26; ctx.stroke();
+      roadPath(); ctx.strokeStyle = '#f4f2ec3a'; ctx.lineWidth = 2; ctx.setLineDash([14,14]);
+      ctx.save(); ctx.lineWidth = ROAD_R*2 - 12; ctx.strokeStyle = '#f4f2ec26'; ctx.stroke(); ctx.restore();
       ctx.setLineDash([]);
       ctx.restore();
     }
